@@ -18,8 +18,6 @@ package kmersetmerge;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -48,10 +46,8 @@ public class KmergerConsumer implements Runnable {
         try {
             ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
             StringTokenizer tokenizer;
-
             ArrayList<String> list;
             //SIMPLY LOADING A BUNCH OF KMERS 
-//                while (!"TERMINATE".equals(read = queue.take())) {
             String previous = null;
             Long previousFreq = null;
             String previousLabel = null;
@@ -80,6 +76,10 @@ public class KmergerConsumer implements Runnable {
                         } else { //different
                             //output previous
                             addRecordToList(previous, previousFreq, previousLabel, bufferList);                            
+                            if (bufferList.size() == KMER_BUFFER_SIZE) {
+                                outputQueue.put(bufferList);
+                                bufferList = new ArrayList<>();
+                            }
                             previous = kmer;
                             if (tokenizer.hasMoreTokens()) {
                                 previousFreq = Long.parseLong(tokenizer.nextToken());
@@ -88,19 +88,13 @@ public class KmergerConsumer implements Runnable {
 
                     }
                 }
-                if (bufferList.size() == KMER_BUFFER_SIZE) {
-                    outputQueue.put(bufferList);
-                    bufferList = new ArrayList<>();
-                }
             }
             //store last record 
             addRecordToList(previous, previousFreq, previousLabel, bufferList);
             //output remianing stored records
             outputQueue.put(bufferList);
-            outputQueue.put(new ArrayList<String>());
-
-//            queue.put("TERMINATE"); //inform other threads
             inputQueue.put(new ArrayList<String>()); //inform other threads
+            outputQueue.put(new ArrayList<String>()); //inform other threads
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
