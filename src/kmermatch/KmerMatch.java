@@ -47,7 +47,7 @@ public class KmerMatch {
     private final ArrayList<String> inputFileNamesList = new ArrayList<>();
     private Integer KMER_LENGTH;
     private Integer MIN_KMER_FREQUENCY;
-    
+
     private int MAX_THREADS = Runtime.getRuntime().availableProcessors();
     private String DEBUG_FILE;
     private String STATS_FILE;
@@ -55,19 +55,22 @@ public class KmerMatch {
     private String NAME_PREFIX = "";
     private String OUT_REDIRECT;
     private String ERR_REDIRECT;
+    private final String TOOL_NAME;
+
 //    private Integer HASH_ARRAY_SIZE = Integer.MAX_VALUE - 3;
 //    private Integer MULTIPASS_COMPRESS = null;
-
     private boolean RUN_SOME_WILD_AND_WONDERFUL_STUFF = false;
 
     private enum InputType {
+
         KMERS, FASTA, FASTQ;
     }
 
-    public KmerMatch(String[] args) {
+    public KmerMatch(String[] args, String callerName, String toolName) {
+        TOOL_NAME = callerName + " " + toolName;
         processArgs(args);
         if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
-            
+
         } else {
             if (OUT_REDIRECT != null) {
                 try {
@@ -119,7 +122,7 @@ public class KmerMatch {
             final ExecutorService readAndPopulateDbExecutor = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
             //SPAWN INPUT READING THREAD
-            InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFileNamesList, KMER_LENGTH, kmersMap);
+            InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFileNamesList, KMER_LENGTH, kmersMap, TOOL_NAME);
             Future<?> future = readAndPopulateDbExecutor.submit(inputReaderProducer);
             futures.add(future);
             boolean splitInputSequenceIntoKmers = true;
@@ -180,9 +183,6 @@ public class KmerMatch {
 
     }
 
-    public static void main(String[] args) {
-        new KmerMatch(args);
-    }
 
     /**
      * Supposedly POSIX-compliant CLI args processor

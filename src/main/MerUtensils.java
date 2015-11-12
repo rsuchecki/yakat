@@ -31,14 +31,15 @@ public class MerUtensils {
     }
 
     public MerUtensils(String[] args) {
+        String name = this.getClass().getSimpleName().toLowerCase();
         if (args.length != 0 && args[0].matches("(k)?extend(er)?")) {
             args[0] = "";
-            new KmerExtender(args);
+            new KmerExtender(args, name, "kextend");
         } else if (args.length != 0 && args[0].matches("(k)?match(er)?")) {
             args[0] = "";
-            new KmerMatch(args);
+            new KmerMatch(args, name, "kmatch");
         } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {       
-            new KmerSetMerge(args, this.getClass().getSimpleName());
+            new KmerSetMerge(args, name, "kmerge");
         } else if (args.length != 0 && args[0].matches("test")) {
             args[0] = "";
             new ParserTest(this.getClass().getSimpleName(), "test", args);

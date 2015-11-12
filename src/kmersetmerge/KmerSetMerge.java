@@ -35,13 +35,14 @@ public class KmerSetMerge {
     private String OUT_LABEL;
     private Integer MIN_FREQUENCY;
     private Integer MAX_FREQUENCY;
+    private final String TOOL_NAME;
 
-    public KmerSetMerge(String[] args, String callerName) {
+    public KmerSetMerge(String[] args, String callerName, String toolName) {
         ArrayList<String> inputFilenamesList = new ArrayList<>();
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, 180);
-
+        TOOL_NAME = callerName+" "+toolName;
         try {
             OUT_LABEL = (String) optSet.getOpt("-L").getValueIfSingle();
         } catch (NullPointerException e) {
@@ -85,7 +86,7 @@ public class KmerSetMerge {
         final ExecutorService executorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         //SPAWN INPUT READING THREAD
-        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, k);
+        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, k, TOOL_NAME);
         Future<?> future = executorService.submit(inputReaderProducer);
         futures.add(future);
 
@@ -108,7 +109,7 @@ public class KmerSetMerge {
             //Start KmergerConsumerProducer and OutputWriterConsumer threads
             KmergerConsumer kmerger = new KmergerConsumer(inputQueue, outputQueue, MIN_FREQUENCY, MAX_FREQUENCY, OUT_LABEL);
             futures.add(executorService.submit(kmerger));
-            WriterConsumer writer = new WriterConsumer(outputQueue);
+            WriterConsumer writer = new WriterConsumer(outputQueue, TOOL_NAME);
             futures.add(executorService.submit(writer));
         }
         executorService.shutdown();

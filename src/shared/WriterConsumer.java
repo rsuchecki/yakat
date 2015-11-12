@@ -22,10 +22,7 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import shared.Reporter;
 /**
  *
@@ -35,15 +32,18 @@ public class WriterConsumer implements Runnable {
 
     private final BlockingQueue<ArrayList<String>> outputQueue;
     private final int BUFFER_SIZE = 8192; // //THAT MANY KMERS 
-    private String recordName = "k-mers";
+    private String RECORD_NAME = "k-mers";
+    private final String TOOL_NAME;
 
-    public WriterConsumer(BlockingQueue<ArrayList<String>> outputQueue) {
+    public WriterConsumer(BlockingQueue<ArrayList<String>> outputQueue, String toolName) {
         this.outputQueue = outputQueue;
+        TOOL_NAME = toolName;
     }
 
-    public WriterConsumer(BlockingQueue<ArrayList<String>> outputQueue, String recordName) {
+    public WriterConsumer(BlockingQueue<ArrayList<String>> outputQueue, String recordName, String toolName) {
         this.outputQueue = outputQueue;
-        this.recordName = recordName;
+        this.RECORD_NAME = recordName;
+        TOOL_NAME = toolName;
     }
 
     @Override
@@ -63,11 +63,11 @@ public class WriterConsumer implements Runnable {
             out.flush();
             //output remianing stored records
             outputQueue.put(new ArrayList<String>());            
-            Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCount) + " " + recordName + " written-out", getClass().getSimpleName());
+            Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out",TOOL_NAME);
         } catch (InterruptedException | UnsupportedEncodingException e) {
-            Reporter.report("[ERROR]", e.getMessage(), getClass().getSimpleName());
+            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         } catch (IOException e) {
-            Reporter.report("[ERROR]", e.getMessage(), getClass().getSimpleName());
+            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         }
     }
 

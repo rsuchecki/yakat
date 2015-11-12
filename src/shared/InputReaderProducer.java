@@ -48,6 +48,7 @@ public class InputReaderProducer implements Runnable {
     private final int FASTQ_BUFFER_SIZE = 1024; //THAT MANY FASTQ RECORDS
     private final int KMER_BUFFER_SIZE = 8192; // //THAT MANY KMERS 
     private final int KMER_REPORTING_MULTIPLY = 2; //nice to use 2 if KMER_BUFFER_SIZE is a power of2 or 10 if it is a power of 10 
+    private final String TOOL_NAME;
 
     public enum GuessedInputFormat {
 
@@ -55,19 +56,21 @@ public class InputReaderProducer implements Runnable {
     }
 //    private final Task task; //readFastqNotKmerSet;
 
-    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k) {
+    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, String toolName) {
         this.queue = queue;
         this.inputFiles = inputFiles;
         KMER_LENGTH = k;
+        TOOL_NAME = toolName;
     }
 
-    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, MerMap map) {
+    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, MerMap map, String toolName ) {
         this.queue = queue;
         this.inputFiles = inputFiles;
         KMER_LENGTH = k;
         if (map != null) {
             this.map = map;
         }
+        TOOL_NAME = toolName;
     }
 
     /**
@@ -106,9 +109,9 @@ public class InputReaderProducer implements Runnable {
                 }
                 //IF FORMAT SUPPORT NOT IMPLEMENTED OR UNRECOGNZED 
                 guessedInputFormat = guessInputFormat(testLines);
-                Reporter.report("[INFO]", "Input format guessed: " + guessedInputFormat.toString(), getClass().getSimpleName());
+                Reporter.report("[INFO]", "Input format guessed: " + guessedInputFormat.toString(), TOOL_NAME);
                 if (guessedInputFormat == GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED) {
-                    Reporter.report("[ERROR]", "Unrecognized or unsupported input, terminating...", getClass().getSimpleName());
+                    Reporter.report("[ERROR]", "Unrecognized or unsupported input, terminating...", TOOL_NAME);
                     queue.put(new ArrayList<String>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
                     System.exit(1);
                 }
@@ -130,17 +133,17 @@ public class InputReaderProducer implements Runnable {
 //                                    reportThreshold *= 10;
                                     reportThreshold *= KMER_REPORTING_MULTIPLY;
                                 }
-                                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " k-mers read-in so far", getClass().getSimpleName());
+                                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " k-mers read-in so far", TOOL_NAME);
                             }
                         }
                         bufferList.add(line);
 //                        queue.put(line);
                     }
                     kmerCount+=bufferList.size();
-                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " k-mers read-in", getClass().getSimpleName());
+                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " k-mers read-in", TOOL_NAME);
                     queue.put(bufferList);
                 } else if (KMER_LENGTH == null) {
-                    Reporter.report("[ERROR]", "Fatal error, k-mer lenght must be specified for input other than a list of k-mers, terminating!", getClass().getSimpleName());
+                    Reporter.report("[ERROR]", "Fatal error, k-mer lenght must be specified for input other than a list of k-mers, terminating!", TOOL_NAME);
                     queue.put(new ArrayList<String>()); //queue.put("TERMINATE"); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
                     System.exit(1);
                 } else if (guessedInputFormat == GuessedInputFormat.FASTA) {
@@ -179,7 +182,7 @@ public class InputReaderProducer implements Runnable {
             queue.put(new ArrayList<String>()); //TELLS CONSUMERS, NO MORE DATA
         } catch (OutOfMemoryError err) {
             if (map == null) {
-                Reporter.report("[ERROR]", "Out of memory error!", getClass().getSimpleName());
+                Reporter.report("[ERROR]", "Out of memory error!", TOOL_NAME);
             } else {
                 map.setOutOfMemory();
             }
@@ -191,7 +194,7 @@ public class InputReaderProducer implements Runnable {
         } catch (InterruptedException ex) {
             System.err.println(ex.getMessage());
         } catch (FileNotFoundException ex) {
-            Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), getClass().getSimpleName());
+            Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
             System.exit(1);
         } catch (IOException ex) {
             System.err.println(ex.getMessage());

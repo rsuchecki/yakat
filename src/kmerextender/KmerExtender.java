@@ -46,7 +46,7 @@ public class KmerExtender {
     private final ArrayList<String> inputFileNamesList = new ArrayList<>();
     private Integer KMER_LENGTH;
     private Integer MIN_KMER_FREQUENCY;
-    
+
     private int MAX_THREADS = Runtime.getRuntime().availableProcessors();
     private String DEBUG_FILE;
     private String STATS_FILE;
@@ -58,13 +58,16 @@ public class KmerExtender {
 //    private Integer MULTIPASS_COMPRESS = null;
 
     private boolean RUN_SOME_WILD_AND_WONDERFUL_STUFF = false;
+    private final String TOOL_NAME;
 
     private enum InputType {
 
         KMERS, FASTA, FASTQ;
     }
 
-    public KmerExtender(String[] args) {
+    public KmerExtender(String[] args, String callerName, String toolName) {
+        TOOL_NAME = callerName + " " + toolName;
+
         processArgs(args);
         if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
             new kmerextender.ideas.Alternative(MAX_THREADS, inputFileNamesList, KMER_LENGTH);
@@ -131,7 +134,7 @@ public class KmerExtender {
             final ExecutorService readAndPopulateDbExecutor = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
             //SPAWN INPUT READING THREAD
-            InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFileNamesList, KMER_LENGTH, pairMersMap);
+            InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFileNamesList, KMER_LENGTH, pairMersMap, TOOL_NAME);
             Future<?> future = readAndPopulateDbExecutor.submit(inputReaderProducer);
             futures.add(future);
             boolean splitInputSequenceIntoKmers = true;
@@ -192,10 +195,6 @@ public class KmerExtender {
 
     }
 
-    public static void main(String[] args) {
-        new KmerExtender(args);
-    }
-
     /**
      * Supposedly POSIX-compliant CLI args processor
      *
@@ -228,7 +227,7 @@ public class KmerExtender {
                 } else {
                     allArgs.add(arg);
                 }
-            } else if(!arg.isEmpty()){ //we get en empty oone after tool/module name has been removed by outer wrapper
+            } else if (!arg.isEmpty()) { //we get en empty oone after tool/module name has been removed by outer wrapper
                 allArgs.add(arg);
             }
         }
