@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package kmersetmerge;
+package kmerger;
 
 import agrparser.ArgParser;
 import agrparser.Opt;
@@ -95,7 +95,7 @@ public class KmerSetMerge {
         while (inputReaderProducer.getGuessedInputFormat() == null) {
             try {
                 //IF nothing happens after 5 seconds
-                if (System.currentTimeMillis() - timeStart > 5000 && (count++ % 50 == 0)) {
+                if (System.currentTimeMillis() - timeStart > 2500 && (count++ % 25 == 0)) {
                     Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", getClass().getSimpleName());
                 }
                 Thread.sleep(100); //wait for 1/10 of a second

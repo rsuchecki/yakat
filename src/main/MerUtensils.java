@@ -18,7 +18,7 @@ package main;
 import agrparser.ParserTest;
 import kmerextender.KmerExtender;
 import kmermatch.KmerMatch;
-import kmersetmerge.KmerSetMerge;
+import kmerger.KmerSetMerge;
 
 /**
  *

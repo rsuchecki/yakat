@@ -170,22 +170,22 @@ public class ConnectedPairMers {
             currentString = currentNode.getPairMer().getPairMerString(k);
             isInitial = false;
         }
-        System.err.println(currentNode.getPairMer().getPairMerString(k) + " <-current");
+//        System.err.println(currentNode.getPairMer().getPairMerString(k) + " <-current");
 
         if (!currentNode.hasPrevious() && !currentNode.hasNext()) {
             sb.append(currentString);
         }
 
         if (currentNode.hasPrevious()) {
-            System.err.println(currentNode.getPrevious().getPairMerString(k) + " <-previous ");
+//            System.err.println(currentNode.getPrevious().getPairMerString(k) + " <-previous ");
             PairMerNode previous = pairMerNodes.get(currentNode.getPrevious());
             if (alreadyVisited == null || previous != alreadyVisited) {
                 if (currentNode.isPreviousRc()) {
-                    System.err.println(SequenceOps.getReverseComplementString(previous.getPairMer().getPairMerString(k))+" <- (RC) recursion to previous");
+//                    System.err.println(SequenceOps.getReverseComplementString(previous.getPairMer().getPairMerString(k))+" <- (RC) recursion to previous");
                     sb.append(SequenceOps.getReverseComplementString(traverse(previous, k, false, currentNode)));
                     sb.append(SequenceOps.complement(currentNode.getPrevious().getClipRight()));
                 } else {
-                    System.err.println(previous.getPairMer().getPairMerString(k)+" <- recursion to previous");
+//                    System.err.println(previous.getPairMer().getPairMerString(k)+" <- recursion to previous");
                     sb.append(traverse(previous, k, false, currentNode));
                     sb.append(currentNode.getPrevious().getClipLeft());
                 }
@@ -195,16 +195,16 @@ public class ConnectedPairMers {
         }
 
         if (currentNode.hasNext()) {
-            System.err.println(currentNode.getNext().getPairMerString(k) + " <-next ");
+//            System.err.println(currentNode.getNext().getPairMerString(k) + " <-next ");
             PairMerNode next = pairMerNodes.get(currentNode.getNext());
             if (alreadyVisited == null || next != alreadyVisited) {
                 sb.append(currentString);
                 if (currentNode.isNextRc()) {
-                    System.err.println(SequenceOps.getReverseComplementString(next.getPairMer().getPairMerString(k))+" <- (RC) recursion to next");
+//                    System.err.println(SequenceOps.getReverseComplementString(next.getPairMer().getPairMerString(k))+" <- (RC) recursion to next");
                     sb.append(SequenceOps.complement(currentNode.getNext().getClipLeft()));
                     sb.append(SequenceOps.getReverseComplementString(traverse(next, k, false, currentNode)));
                 } else {
-                    System.err.println(next.getPairMer().getPairMerString(k)+" <- recursion to next");
+//                    System.err.println(next.getPairMer().getPairMerString(k)+" <- recursion to next");
                     sb.append(currentNode.getNext().getClipRight());
                     sb.append(traverse(next, k, false, currentNode));
                 }
