@@ -111,7 +111,7 @@ public class SplitGBS {
         //READ INPUT AND POPULATE PairMers MAP
 //            int threads = Math.max(Runtime.getRuntime().availableProcessors(), 6);
         int threads = keyMap.getSamplesTotal()+2;
-        BlockingQueue inputQueue = new ArrayBlockingQueue(65536);
+        BlockingQueue inputQueue = new ArrayBlockingQueue(255);
 //            boolean stranded = false;
         ArrayList<Future<?>> futures = new ArrayList<>(threads + 1);
         final ExecutorService executorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
@@ -138,8 +138,9 @@ public class SplitGBS {
 //            Reporter.report("[FATAL]", "Only k-mer sets accepted as input. Guessed format: " + inputReaderProducer.getGuessedInputFormat(), getClass().getSimpleName());
 //        } else {
         //Start KmergerConsumerProducer and OutputWriterConsumer threads
-        SplitterConsumer splitter = new SplitterConsumer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE);
-        futures.add(executorService.submit(splitter));
+        for (int i = 0; i < 10; i++) {
+            futures.add(executorService.submit(new SplitterConsumer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE)));
+        }
         
         for (Map.Entry<String, BlockingQueue<ArrayList<String>>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
             String sample = entrySet.getKey();

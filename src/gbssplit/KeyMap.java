@@ -41,7 +41,7 @@ public class KeyMap {
     private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> keyMap;
     private ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> sampleToQueueMap;
     private final int READER_BUFFER_SIZE = 8192;
-    private final int QUEUE_BUFFER_SIZE = 8192;
+    private final int QUEUE_BUFFER_SIZE = 255;
     
     private final String TOOL_NAME;
 
