@@ -16,6 +16,7 @@
 package main;
 
 import agrparser.ParserTest;
+import gbssplit.SplitGBS;
 import kmerextender.KmerExtender;
 import kmermatch.KmerMatch;
 import kmerger.KmerSetMerge;
@@ -40,6 +41,8 @@ public class MerUtensils {
             new KmerMatch(args, name, "kmatch");
         } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {       
             new KmerSetMerge(args, name, "kmerge");
+        } else if (args.length != 0 && args[0].matches("split(er)?")) {       
+            new SplitGBS(args, name, "split");
         } else if (args.length != 0 && args[0].matches("test")) {
             args[0] = "";
             new ParserTest(this.getClass().getSimpleName(), "test", args);

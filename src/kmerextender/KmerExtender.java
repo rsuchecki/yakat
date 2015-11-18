@@ -42,7 +42,7 @@ import java.util.logging.Logger;
  */
 public class KmerExtender {
 
-    private PairMersMap pairMersMap = new PairMersMap();
+    private PairMersMap pairMersMap = new PairMersMap(); //TODO user to give expected num of elems?
     private final ArrayList<String> inputFileNamesList = new ArrayList<>();
     private Integer KMER_LENGTH;
     private Integer MIN_KMER_FREQUENCY;

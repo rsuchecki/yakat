@@ -37,7 +37,7 @@ import shared.MerMap;
 public class InputReaderProducer implements Runnable {
 
     private final BlockingQueue queue;
-    private Integer KMER_LENGTH;
+    private Integer KMER_LENGTH; // ignored if <0 but not if null
     private ArrayList<String> inputFiles;
     private GuessedInputFormat guessedInputFormat;
     private final int READER_BUFFER_SIZE = 8192;
@@ -49,6 +49,7 @@ public class InputReaderProducer implements Runnable {
     private final int KMER_BUFFER_SIZE = 8192; // //THAT MANY KMERS 
 //    private final int KMER_REPORTING_MULTIPLY = 2; //nice to use 2 if KMER_BUFFER_SIZE is a power of2 or 10 if it is a power of 10 
     private final String TOOL_NAME;
+    private String RECORD_NAME = "kmers";
 
     public enum GuessedInputFormat {
 
@@ -117,7 +118,7 @@ public class InputReaderProducer implements Runnable {
                 }
 
                 String line;
-                if (guessedInputFormat == GuessedInputFormat.KMERS) { //READ KMERS
+                if (guessedInputFormat == GuessedInputFormat.KMERS || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && KMER_LENGTH < 0)) { //READ KMERS
                     ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
                     bufferList.addAll(testLines);
 //                    queue.put(testLines);
@@ -134,14 +135,14 @@ public class InputReaderProducer implements Runnable {
 //                                    reportThreshold *= KMER_REPORTING_MULTIPLY;
                                     reportThreshold <<= 1; // *= 2
                                 }
-                                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " k-mers read-in so far", TOOL_NAME);
+                                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME+ " read-in so far", TOOL_NAME);
                             }
                         }
                         bufferList.add(line);
 //                        queue.put(line);
                     }
                     kmerCount+=bufferList.size();
-                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " k-mers read-in", TOOL_NAME);
+                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME+ " read-in", TOOL_NAME);
                     queue.put(bufferList);
                 } else if (KMER_LENGTH == null) {
                     Reporter.report("[ERROR]", "Fatal error, k-mer lenght must be specified for input other than a list of k-mers, terminating!", TOOL_NAME);

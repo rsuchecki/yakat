@@ -147,10 +147,11 @@ public class OptSet {
     }
 
     public Opt getOpt(String key) {
-        if (key.length() == 2 && key.startsWith("-")) {
-            return shortToOptMap.get(key.charAt(1));
-        } else if (key.startsWith("--") && key.length() > 2) {
-            return longToOptMap.get(key.substring(2));
+        String kString = key.replaceAll("-", "");
+        if (kString.length() == 1) {
+            return shortToOptMap.get(kString.charAt(0));
+        } else if (key.length() > 1) {
+            return longToOptMap.get(kString);
         }
         return null;
     }
