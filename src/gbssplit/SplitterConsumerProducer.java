@@ -48,17 +48,19 @@ public class SplitterConsumerProducer implements Runnable {
 //    private final Integer MIN_KMER_FREQUENCY;
 //    private final Integer MAX_KMER_FREQUENCY;
 //    private final String OUT_LABEL;
-    private final int BUFFER_SIZE = 100; // //THAT MANY KMERS 
+    private final int BUFFER_SIZE = 8192; // //THAT MANY KMERS 
     private final KeyMap keyMap;
     private final String TOOL_NAME;
     private final boolean TRIM_BARCODE;
+    private int PRODUCER_THREADS;
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
-            KeyMap keyMap, String toolName, boolean trimBarcode) {
+            KeyMap keyMap, String toolName, boolean trimBarcode, int producerThreads) {
         this.inputQueue = inputQueue;
         this.keyMap = keyMap;
         this.TOOL_NAME = toolName;
         this.TRIM_BARCODE = trimBarcode;
+        this.PRODUCER_THREADS = producerThreads;
     }
 
     @Override
@@ -70,7 +72,13 @@ public class SplitterConsumerProducer implements Runnable {
             ArrayList<String> list;
             long noBarcodeMatch = 0L;
             long lines = 0L;
-            while (!(list = inputQueue.take()).isEmpty()) {
+            while (!(list = inputQueue.take()).isEmpty() && PRODUCER_THREADS > 0) {
+                if(list.isEmpty()) {
+                    --PRODUCER_THREADS;
+                    continue;
+                }
+            
+//            while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     lines++;
                     tokenizer = new StringTokenizer(line);
@@ -85,11 +93,11 @@ public class SplitterConsumerProducer implements Runnable {
                                 matchingBarcodes++;
                                 String sample = entrySet.getValue();
                                 ArrayList<String> bufferList = sampleToBufferMap.get(sample);
-                                if (bufferList == null) {
+                                if (bufferList == null) { //nothing yet for this sample
                                     bufferList = new ArrayList<>(BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
-                                if (bufferList.size() == BUFFER_SIZE) {
+                                if (bufferList.size() == BUFFER_SIZE) { //buffer full, place on queue to write and start a new one
                                     BlockingQueue<ArrayList<String>> outputQueue = sampleToQueueMap.get(sample);
                                     outputQueue.put(bufferList);
                                     bufferList = new ArrayList<>(BUFFER_SIZE);
@@ -103,7 +111,7 @@ public class SplitterConsumerProducer implements Runnable {
                                     while (tokenizer.hasMoreTokens()) {
                                         sb.append("\t").append(tokenizer.nextToken());
                                     }
-                                    bufferList.add(line);
+                                    bufferList.add(sb.toString());
                                 } else {
                                     bufferList.add(line);
                                 }
@@ -129,7 +137,7 @@ public class SplitterConsumerProducer implements Runnable {
                 outQ.put(new ArrayList<String>());//inform other threads
             }
             inputQueue.put(new ArrayList<String>()); //inform other threads
-            Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(lines)+" records processed, no matching barcode in "+NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME);
+            Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(lines)+" records processed, no matching barcode in "+NumberFormat.getNumberInstance().format(noBarcodeMatch)+" thread="+Thread.currentThread().getId(), TOOL_NAME);
 
         } catch (InterruptedException e) {
             e.printStackTrace();

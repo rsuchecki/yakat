@@ -151,7 +151,7 @@ public class SplitGBS {
         //Start KmergerConsumerProducer and OutputWriterConsumer threads
         int splitterThreads =1; 
         for (int i = 0; i < splitterThreads; i++) {
-            futures.add(executorService.submit(new SplitterConsumerProducer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE)));
+            futures.add(executorService.submit(new SplitterConsumerProducer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE, splitterThreads)));
         }
 
         for (Map.Entry<String, BlockingQueue<ArrayList<String>>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {

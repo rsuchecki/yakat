@@ -116,7 +116,9 @@ public class FileWriterConsumer implements Runnable {
 //                if (task == Task.WRITE_FASTQ_SE) {
 //                    writer.write(read.replaceAll("\t", newline));
 //                } else if (task == Task.WRITE_FASTQ_PE) {
-                for (String read : list) {
+                while(!list.isEmpty()) {
+//                for (String read : list) {
+                    String read = list.remove(list.size()-1);
                     StringBuilder sb = new StringBuilder();
                     StringBuilder sb2 = new StringBuilder();
                     String[] splits = read.split("\t");
