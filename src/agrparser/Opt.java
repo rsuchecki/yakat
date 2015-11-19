@@ -402,4 +402,10 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     public boolean isVarArgsOption() {
         return getMinValueArgs().compareTo(getMaxValueArgs()) != 0;
     }
+
+    public void setDefaultValue(T defaultValue) {
+        this.defaultValue = defaultValue;
+    }
+    
+    
 }

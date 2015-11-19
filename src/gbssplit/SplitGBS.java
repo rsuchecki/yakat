@@ -37,7 +37,7 @@ import shared.WriterConsumer;
 public class SplitGBS {
 
     private String KEY_FILE_NAME;
-    private String OUT_DIR = "out_split";
+    private String OUT_DIR;
     private final String TOOL_NAME;
     private boolean TRIM_BARCODE = true;
 
@@ -49,6 +49,14 @@ public class SplitGBS {
         TOOL_NAME = callerName + " " + toolName;
         try {
             KEY_FILE_NAME = (String) optSet.getOpt("-K").getValueIfSingle();
+        } catch (NullPointerException e) {
+        }
+        OUT_DIR = (String) optSet.getOpt("o").getDefaultValue();
+        try {
+            String outDir = (String) optSet.getOpt("o").getValueIfSingle();
+            if(outDir != null) {
+                OUT_DIR = outDir;
+            }
         } catch (NullPointerException e) {
         }
 //        try {
@@ -72,6 +80,9 @@ public class SplitGBS {
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet();
         optSet.addOpt(new Opt('K', "key-file", "Key file name ", 1));
+        Opt opt = new Opt('o', "out-dir", "Output directory", 1);
+        opt.setDefaultValue("out_split");
+        optSet.addOpt(opt);
         optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, Short.MAX_VALUE));
         return optSet;
     }
@@ -110,10 +121,10 @@ public class SplitGBS {
         Integer k = -1;
         //READ INPUT AND POPULATE PairMers MAP
 //            int threads = Math.max(Runtime.getRuntime().availableProcessors(), 6);
-        int threads = keyMap.getSamplesTotal()+2;
+        int threads = keyMap.getSamplesTotal() + 2;
         BlockingQueue inputQueue = new ArrayBlockingQueue(255);
 //            boolean stranded = false;
-        ArrayList<Future<?>> futures = new ArrayList<>(threads + 1);
+        ArrayList<Future<?>> futures = new ArrayList<>(threads + 5);
         final ExecutorService executorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         //SPAWN INPUT READING THREAD
@@ -138,16 +149,19 @@ public class SplitGBS {
 //            Reporter.report("[FATAL]", "Only k-mer sets accepted as input. Guessed format: " + inputReaderProducer.getGuessedInputFormat(), getClass().getSimpleName());
 //        } else {
         //Start KmergerConsumerProducer and OutputWriterConsumer threads
-        for (int i = 0; i < 10; i++) {
-            futures.add(executorService.submit(new SplitterConsumer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE)));
+        int splitterThreads =1; 
+        for (int i = 0; i < splitterThreads; i++) {
+            futures.add(executorService.submit(new SplitterConsumerProducer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE)));
         }
-        
+
         for (Map.Entry<String, BlockingQueue<ArrayList<String>>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
             String sample = entrySet.getKey();
-            BlockingQueue<ArrayList<String>> queue = entrySet.getValue();            
-            futures.add(executorService.submit(new FileWriterConsumer(OUT_DIR+"/"+sample,queue, TOOL_NAME)));            
+            BlockingQueue<ArrayList<String>> queue = entrySet.getValue();
+            futures.add(executorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, splitterThreads)));
+//            Reporter.report("[INFO]", "Created writer thread for "+sample, TOOL_NAME);
+
         }
-        
+
         executorService.shutdown();
         try {
             for (Future<?> f : futures) {
@@ -157,8 +171,9 @@ public class SplitGBS {
         } catch (InterruptedException e) {
             Reporter.report("[ERROR]", "interrupted exception!", getClass().getSimpleName());
         } catch (ExecutionException ex) {
-            Reporter.report("[ERROR]", "execution exception! "+ex.getMessage(), getClass().getSimpleName());
-            
+            Reporter.report("[ERROR]", "execution exception! " + ex.getCause(), getClass().getSimpleName());
+            ex.printStackTrace();
+
         } catch (TimeoutException ex) {
             Reporter.report("[ERROR]", "timeout exception!", getClass().getSimpleName());
         }

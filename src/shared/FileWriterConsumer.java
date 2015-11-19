@@ -39,19 +39,21 @@ public class FileWriterConsumer implements Runnable {
     private String RECORD_NAME = "lines";
     private final String TOOL_NAME;
     private final String FILE_NAME;
+    private int PRODUCER_THREADS;
 
-    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String toolName) {
+    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String toolName, int producerThreads) {
         this.outputQueue = outputQueue;
         TOOL_NAME = toolName;
         FILE_NAME = fileName;
+        this.PRODUCER_THREADS = producerThreads;
     }
 
-    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String recordName, String toolName) {
-        this.outputQueue = outputQueue;
-        this.RECORD_NAME = recordName;
-        TOOL_NAME = toolName;
-        FILE_NAME = fileName;
-    }
+//    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String recordName, String toolName) {
+//        this.outputQueue = outputQueue;
+//        this.RECORD_NAME = recordName;
+//        TOOL_NAME = toolName;
+//        FILE_NAME = fileName;
+//    }
 
     @Override
     public void run() {
@@ -100,11 +102,15 @@ public class FileWriterConsumer implements Runnable {
 //            }
 
             ArrayList<String> list;
-            long outputCount = 0L;
-            while (!(list = outputQueue.take()).isEmpty()) {
+            long outputCount = 0L;            
+            while (!(list = outputQueue.take()).isEmpty() && PRODUCER_THREADS > 0) {
+                if(list.isEmpty()) {
+                    --PRODUCER_THREADS;
+                    continue;
+                }
                 if (writer == null) {
-                    writer = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R1.fastq.gz")), "UTF-8"));
-                    writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R2.fastq.gz")), "UTF-8"));
+                    writer = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R1.fastq.gz")), "UTF-8"), BUFFER_SIZE);
+                    writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R2.fastq.gz")), "UTF-8"), BUFFER_SIZE);
                 }
                 outputCount += list.size();
 //                if (task == Task.WRITE_FASTQ_SE) {
