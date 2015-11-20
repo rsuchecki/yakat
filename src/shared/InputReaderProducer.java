@@ -118,7 +118,7 @@ public class InputReaderProducer implements Runnable {
                 }
 
                 String line;
-                if (guessedInputFormat == GuessedInputFormat.KMERS || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && KMER_LENGTH < 0)) { //READ KMERS
+                if (guessedInputFormat == GuessedInputFormat.KMERS || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && KMER_LENGTH < 0)|| (guessedInputFormat == GuessedInputFormat.FASTQ_SE_ONE_LINE && KMER_LENGTH < 0)) { //READ KMERS
                     ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
                     bufferList.addAll(testLines);
 //                    queue.put(testLines);

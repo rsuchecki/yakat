@@ -119,6 +119,7 @@ public class SplitterConsumerProducer implements Runnable {
                         }
                         if (matchingBarcodes == 0) {
                             noBarcodeMatch++;
+//                            System.out.println(line);
                         } else if (matchingBarcodes > 1) {
                             Reporter.report("[ERROR]", "Sequence matching more than one barcode: " + sequence, TOOL_NAME);
                             System.exit(1);

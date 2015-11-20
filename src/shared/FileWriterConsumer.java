@@ -109,6 +109,10 @@ public class FileWriterConsumer implements Runnable {
                     continue;
                 }
                 if (writer == null) {
+                    //make sure outdir exists
+                    File f = new File(FILE_NAME);
+                    f.getParentFile().mkdirs();
+                    //create 2 writers
                     writer = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R1.fastq.gz")), "UTF-8"), BUFFER_SIZE);
                     writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R2.fastq.gz")), "UTF-8"), BUFFER_SIZE);
                 }
