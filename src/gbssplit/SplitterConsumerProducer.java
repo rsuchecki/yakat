@@ -53,15 +53,20 @@ public class SplitterConsumerProducer implements Runnable {
     private final KeyMap keyMap;
     private final String TOOL_NAME;
     private final boolean TRIM_BARCODE;
-    private AtomicInteger PRODUCER_THREADS;
+//    private AtomicInteger PRODUCER_THREADS;
+    private Integer MIN_LENGTH_READ;
+    private Integer MIN_LENGTH_PAIR;
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
-            KeyMap keyMap, String toolName, boolean trimBarcode, AtomicInteger producerThreads) {
+            KeyMap keyMap, String toolName, boolean trimBarcode, 
+            Integer MIN_LENGTH_READ, Integer MIN_LENGTH_PAIR) {
         this.inputQueue = inputQueue;
         this.keyMap = keyMap;
         this.TOOL_NAME = toolName;
         this.TRIM_BARCODE = trimBarcode;
-        this.PRODUCER_THREADS = producerThreads;
+//        this.PRODUCER_THREADS = producerThreads;
+        this.MIN_LENGTH_READ = MIN_LENGTH_READ;
+        this.MIN_LENGTH_PAIR = MIN_LENGTH_PAIR;
     }
 
     @Override
@@ -104,7 +109,7 @@ public class SplitterConsumerProducer implements Runnable {
                                     StringBuilder sb = new StringBuilder();
                                     tokenizer = new StringTokenizer(line);
                                     sb.append(tokenizer.nextToken()).append("\t"); //id
-                                    sb.append(tokenizer.nextToken().substring(barcode.length())); //trimmed sequence
+                                    sb.append(tokenizer.nextToken().substring(barcode.length())); //trimmed sequence                                    
                                     while (tokenizer.hasMoreTokens()) {
                                         sb.append("\t").append(tokenizer.nextToken());
                                     }
@@ -127,19 +132,23 @@ public class SplitterConsumerProducer implements Runnable {
             //output remianing stored records
             Set<String> keySet = sampleToQueueMap.keySet();
 
-            boolean closeWriters = PRODUCER_THREADS.decrementAndGet() == 0;
             for (String sample : keySet) {
                 BlockingQueue<ArrayList<String>> outQ = sampleToQueueMap.get(sample);
                 ArrayList<String> bufferList = sampleToBufferMap.get(sample);
                 if (bufferList != null && !bufferList.isEmpty()) {
                     outQ.put(bufferList);
-                }
-                if (closeWriters) {
-                    outQ.put(new ArrayList<String>());//inform other threads
-                }
+                }                
+                outQ.put(new ArrayList<String>());//inform other threads
             }
+
+//            if (PRODUCER_THREADS.decrementAndGet() == 0) {
+//                for (String sample : keySet) {
+//                    BlockingQueue<ArrayList<String>> outQ = sampleToQueueMap.get(sample);
+//                    outQ.put(new ArrayList<String>());//inform other threads
+//                }
+//            }
             inputQueue.put(new ArrayList<String>()); //inform other threads
-            Reporter.report("[INFO]", "[" + Thread.currentThread().getName()+"] "+ NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME);
+            Reporter.report("[INFO]", "[" + Thread.currentThread().getName() + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME);
 
         } catch (InterruptedException e) {
             e.printStackTrace();

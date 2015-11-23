@@ -40,9 +40,9 @@ public class FileWriterConsumer implements Runnable {
     private String RECORD_NAME = "lines";
     private final String TOOL_NAME;
     private final String FILE_NAME;
-    private AtomicInteger PRODUCER_THREADS;
+    private int PRODUCER_THREADS;
 
-    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String toolName, AtomicInteger producerThreads) {
+    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String toolName, int producerThreads) {
         this.outputQueue = outputQueue;
         TOOL_NAME = toolName;
         FILE_NAME = fileName;
@@ -55,7 +55,6 @@ public class FileWriterConsumer implements Runnable {
 //        TOOL_NAME = toolName;
 //        FILE_NAME = fileName;
 //    }
-
     @Override
     public void run() {
 //        try {
@@ -103,13 +102,10 @@ public class FileWriterConsumer implements Runnable {
 //            }
 
             ArrayList<String> list;
-            long outputCount = 0L;            
-            while (!(list = outputQueue.take()).isEmpty()) {
-//                if(list.isEmpty()) {
-//                    PRODUCER_THREADS.decrementAndGet();
-//                    continue;
-//                }
-                if (writer1 == null) {
+            long outputCount = 0L;
+            while (!(list = outputQueue.take()).isEmpty() || --PRODUCER_THREADS > 0) {
+
+                if (writer1 == null && !list.isEmpty()) {
                     //make sure outdir exists
                     File f = new File(FILE_NAME);
                     f.getParentFile().mkdirs();
@@ -117,13 +113,16 @@ public class FileWriterConsumer implements Runnable {
                     writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R1.fastq.gz")), "UTF-8"), BUFFER_SIZE);
                     writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R2.fastq.gz")), "UTF-8"), BUFFER_SIZE);
                 }
+//                    PRODUCER_THREADS.decrementAndGet();
+//                    continue;
+//                }
                 outputCount += list.size();
 //                if (task == Task.WRITE_FASTQ_SE) {
 //                    writer.write(read.replaceAll("\t", newline));
 //                } else if (task == Task.WRITE_FASTQ_PE) {
-                while(!list.isEmpty()) {
+                while (!list.isEmpty()) {
 //                for (String read : list) {
-                    String read = list.remove(list.size()-1);
+                    String read = list.remove(list.size() - 1);
                     StringBuilder sb1 = new StringBuilder();
                     StringBuilder sb2 = new StringBuilder();
                     String[] splits = read.split("\t");
@@ -140,8 +139,10 @@ public class FileWriterConsumer implements Runnable {
                     writer1.write(sb1.toString()); //                    writer.newLine();
                     writer2.write(sb2.toString());
                 }
-                writer1.flush();
-                writer2.flush();
+                if (writer1 != null) {
+                    writer1.flush();
+                    writer2.flush();
+                }
             }
             if (outputCount > 0) {
                 Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);

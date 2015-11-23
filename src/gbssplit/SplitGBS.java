@@ -164,16 +164,16 @@ public class SplitGBS {
         //Start KmergerConsumerProducer and OutputWriterConsumer threads
         final ExecutorService splitterExecutorService = new ThreadPoolExecutor(SPLITTER_THREADS, SPLITTER_THREADS, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
         ArrayList<Future<?>> splittersFutures = new ArrayList<>(SPLITTER_THREADS);
-        AtomicInteger splitterThreads = new AtomicInteger(SPLITTER_THREADS);
+//        AtomicInteger splitterThreads = new AtomicInteger(SPLITTER_THREADS);
         for (int i = 0; i < SPLITTER_THREADS; i++) {
-            splittersFutures.add(splitterExecutorService.submit(new SplitterConsumerProducer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE, splitterThreads)));
+            splittersFutures.add(splitterExecutorService.submit(new SplitterConsumerProducer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE, MIN_LENGTH_READ, MIN_LENGTH_PAIR)));
         }
-
+        
         //WRITER THREADS
         for (Map.Entry<String, BlockingQueue<ArrayList<String>>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
             String sample = entrySet.getKey();
             BlockingQueue<ArrayList<String>> queue = entrySet.getValue();
-            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, splitterThreads)));
+            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, SPLITTER_THREADS)));
 
         }
         splitterExecutorService.shutdown();
