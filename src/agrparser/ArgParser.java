@@ -83,10 +83,7 @@ public class ArgParser {
         boolean parsingPositional = false;
         Opt opt = null;
         while (it.hasNext()) {
-            String a = it.next();
-            if (a.equals("5")) {
-                int d = 0;
-            }
+            String a = it.next();            
             if (a.equals("-h") || a.equals("--help")) {
                 UsageAndHelp usageAndHelp = optSet.getUsageAndHelp(callerName, args[0], helpWidth);
                 System.err.println(usageAndHelp.getUsage());

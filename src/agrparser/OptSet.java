@@ -147,11 +147,13 @@ public class OptSet {
     }
 
     public Opt getOpt(String key) {
-        String kString = key.replaceAll("-", "");
-        if (kString.length() == 1) {
-            return shortToOptMap.get(kString.charAt(0));
+        while(key.startsWith("-")) {
+            key = key.replaceFirst("-", "");
+        }
+        if (key.length() == 1) {
+            return shortToOptMap.get(key.charAt(0));
         } else if (key.length() > 1) {
-            return longToOptMap.get(kString);
+            return longToOptMap.get(key);
         }
         return null;
     }
@@ -173,7 +175,7 @@ public class OptSet {
             }
         }
         maxLongArgLength++;
-        int offset = 8 + maxLongArgLength;
+        int offset = 8 + maxLongArgLength+8;
         int helpLineWidth = printWidth - offset;
 
         //Generate usage string
@@ -231,22 +233,23 @@ public class OptSet {
             
             String gap = String.format("%" + (maxLongArgLength - opt.getLongKeyLength()) + "s", " ");
             help.append(gap).append(": ");
-            help.append(Reporter.wrapString(opt.getHelpString(), helpLineWidth, offset));
+            StringBuilder helpLine = new StringBuilder(opt.getHelpString());
             if (opt.hasMinValue()) {
-                help.append(", min=").append(opt.getFormattedValue(opt.getMinValue()));
+                helpLine.append("; min=").append(opt.getFormattedValue(opt.getMinValue()));
             }
             if (opt.hasMaxValue()) {
-                help.append(", max=").append(opt.getFormattedValue(opt.getMaxValue()));
+                helpLine.append("; max=").append(opt.getFormattedValue(opt.getMaxValue()));
             }
             if (opt.hasDefaultValue()) {
-                help.append(", default=").append(opt.getFormattedValue(opt.getDefaultValue()));
+                helpLine.append("; default=").append(opt.getFormattedValue(opt.getDefaultValue()));
             } else if(opt.getMaxValueArgs() > 0) {
-                help.append(", no default value");                
+                helpLine.append("; no default value");                
             }
+            help.append(Reporter.wrapString(helpLine.toString(), helpLineWidth, offset));
             help.append(System.lineSeparator());
         }
         String usageString = usage.toString();
-        String helpString = help.toString().replaceAll("\\. *,", ",").replaceAll(" *,", ",");
+        String helpString = help.toString().replaceAll("\\. *,", ",").replaceAll(" *,", ",").replaceAll(" *;", ";");
         UsageAndHelp usageAndHelp = new UsageAndHelp(usageString, helpString);
         return usageAndHelp;
         //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "

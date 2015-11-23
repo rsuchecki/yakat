@@ -36,6 +36,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import shared.Reporter;
 
 /**
@@ -52,10 +53,10 @@ public class SplitterConsumerProducer implements Runnable {
     private final KeyMap keyMap;
     private final String TOOL_NAME;
     private final boolean TRIM_BARCODE;
-    private int PRODUCER_THREADS;
+    private AtomicInteger PRODUCER_THREADS;
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
-            KeyMap keyMap, String toolName, boolean trimBarcode, int producerThreads) {
+            KeyMap keyMap, String toolName, boolean trimBarcode, AtomicInteger producerThreads) {
         this.inputQueue = inputQueue;
         this.keyMap = keyMap;
         this.TOOL_NAME = toolName;
@@ -72,12 +73,8 @@ public class SplitterConsumerProducer implements Runnable {
             ArrayList<String> list;
             long noBarcodeMatch = 0L;
             long lines = 0L;
-            while (!(list = inputQueue.take()).isEmpty() && PRODUCER_THREADS > 0) {
-                if(list.isEmpty()) {
-                    --PRODUCER_THREADS;
-                    continue;
-                }
-            
+            while (!(list = inputQueue.take()).isEmpty()) {
+
 //            while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     lines++;
@@ -129,16 +126,20 @@ public class SplitterConsumerProducer implements Runnable {
             }
             //output remianing stored records
             Set<String> keySet = sampleToQueueMap.keySet();
+
+            boolean closeWriters = PRODUCER_THREADS.decrementAndGet() == 0;
             for (String sample : keySet) {
                 BlockingQueue<ArrayList<String>> outQ = sampleToQueueMap.get(sample);
                 ArrayList<String> bufferList = sampleToBufferMap.get(sample);
                 if (bufferList != null && !bufferList.isEmpty()) {
                     outQ.put(bufferList);
                 }
-                outQ.put(new ArrayList<String>());//inform other threads
+                if (closeWriters) {
+                    outQ.put(new ArrayList<String>());//inform other threads
+                }
             }
             inputQueue.put(new ArrayList<String>()); //inform other threads
-            Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(lines)+" records processed, no matching barcode in "+NumberFormat.getNumberInstance().format(noBarcodeMatch)+" thread="+Thread.currentThread().getId(), TOOL_NAME);
+            Reporter.report("[INFO]", "[" + Thread.currentThread().getName()+"] "+ NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME);
 
         } catch (InterruptedException e) {
             e.printStackTrace();
