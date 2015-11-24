@@ -68,8 +68,8 @@ public class KeyMap {
     }
     
     private void populateMap(String inputFile) {
-        keyMap = new ConcurrentHashMap<>();
-        sampleToQueueMap = new ConcurrentHashMap<>();
+        keyMap = new ConcurrentHashMap<>(1000);
+        sampleToQueueMap = new ConcurrentHashMap<>(1000);
         BufferedReader content = null;
         try {
             if (inputFile.endsWith(".gz")) {

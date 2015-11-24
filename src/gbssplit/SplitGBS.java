@@ -87,7 +87,7 @@ public class SplitGBS {
         optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime options]");
         optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
-                + "writing samples out is the likely bottleneck and a separate writing thread will be spawned per sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+                + "i/o is the likely bottleneck and a separate writing thread will be spawned per sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output options]");
         optSet.addOpt(new Opt('o', "out-dir", "Output directory", 1).setDefaultValue("out_split"));
         optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
