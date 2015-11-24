@@ -83,12 +83,11 @@ public class SplitGBS {
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet();
+        //INPUT
         optSet.setListingGroupLabel("[Input options]");
         optSet.addOpt(new Opt('K', "key-file", "Key file name ", 1).setRequired(true));
         optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime options]");
-        optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
-                + "i/o is the likely bottleneck and a separate writing thread will be spawned per sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+        //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output options]");
         optSet.addOpt(new Opt('o', "out-dir", "Output directory", 1).setDefaultValue("out_split"));
         optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
@@ -97,6 +96,18 @@ public class SplitGBS {
         optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
         optSet.addOpt(new Opt('r', "min-length-per-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1));
         optSet.addOpt(new Opt('p', "min-length-per-pair", "Only output a read pair if combined length is no less than <arg> bp", 2, 2, null, 1, 1));
+        //RUNTIME
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime options]");
+        optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
+                + "i/o is the likely bottleneck and a writing thread will be spawned per each sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+        int footId = 1;
+        String footText = "Carefully increase to sacrifice memory for speed. Decrease if incountering Out of memory errors.";
+        optSet.addOpt(new Opt('u', "buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
+                + "handled by a thread (one per sample)", 1024, 64, 8092).addFootnote(footId, footText));
+        optSet.addOpt(new Opt('q', "queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up. ", 
+                2, 1, 32).addFootnote(footId, footText));
+        
+        //POSITIONAL
         optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
         return optSet;
     }

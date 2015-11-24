@@ -18,6 +18,9 @@ package agrparser;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Set;
 import shared.CommonMaths;
 import shared.Reporter;
 
@@ -40,6 +43,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     private Integer listingGroupPosition = 1;
     private boolean required;
     private boolean optFlag; //used to indicate that arg is used
+    private HashMap<Integer, String> footnotesMap;
 
     //parsed values if opt is not a simple flag
     private final ArrayList<T> values = new ArrayList<>();
@@ -55,6 +59,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         this.shortKey = shortKey;
         this.longKey = longKey;
         this.helpString = helpString;
+        
     }
 
     /**
@@ -497,8 +502,35 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         return this;
     }
 
-    
-    
-    
 
+    public Opt addFootnote(int id, String footnoteText) {
+        if(footnotesMap == null) {
+            footnotesMap = new HashMap<>(2);
+        }
+        if(footnotesMap.containsKey(id)) {
+            Reporter.reportNoMem("[FATAL]", "Footnote ["+id+"] for option '" + getOptLabelString() + " already set to "+footnotesMap.get(id), getClass().getSimpleName());
+        } else {
+            footnotesMap.put(id, footnoteText);
+        }
+        return this;
+    }
+    
+    public ArrayList<Integer> getFootnoteKeys() {
+        ArrayList<Integer> keys = new ArrayList<>(footnotesMap.size());
+        for (Integer k: footnotesMap.keySet()) {
+            keys.add(k);
+        }
+        Collections.sort(keys);
+        return keys;
+    }
+
+    public HashMap<Integer, String> getFootnotesMap() {
+        return footnotesMap;
+    }
+    
+    public boolean hasFootnotes() {
+        return footnotesMap != null;
+    }
+   
+    
 }

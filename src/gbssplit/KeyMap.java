@@ -46,8 +46,8 @@ public class KeyMap {
 
     public KeyMap(String keyFileName, String toolName, String BlankSampleName) {
         TOOL_NAME = toolName;
-        populateMap(keyFileName);
         BLANK_SAMPLE_NAME = BlankSampleName;
+        populateMap(keyFileName);
     }
 
     public String getSample(String flowCell, String barcode) {
@@ -83,7 +83,7 @@ public class KeyMap {
                 String flowcell = toks[0];
                 String barcode = toks[2];
                 String sample = toks[3];
-                if(sample.equalsIgnoreCase(BLANK_SAMPLE_NAME)) {
+                if(sample.compareTo(BLANK_SAMPLE_NAME) == 0) {
                     for (int i = 4; i < toks.length; i++) {
                         sample += "_"+toks[i];
                     }

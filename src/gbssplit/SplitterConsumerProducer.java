@@ -36,7 +36,6 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import shared.Reporter;
 
 /**
@@ -72,9 +71,8 @@ public class SplitterConsumerProducer implements Runnable {
     @Override
     public void run() {
         try {
-            ConcurrentHashMap<String, ArrayList<String>> sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 5);
+            ConcurrentHashMap<String, ArrayList<String>> sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
             ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> sampleToQueueMap = keyMap.getSampleToQueueMap();
-            StringTokenizer tokenizer;
             ArrayList<String> list;
             long noBarcodeMatch = 0L;
             long lines = 0L;
@@ -83,10 +81,9 @@ public class SplitterConsumerProducer implements Runnable {
 //            while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     lines++;
-                    tokenizer = new StringTokenizer(line);
+                    StringTokenizer tokenizer = new StringTokenizer(line);
                     String id = tokenizer.nextToken();
-                    String flowcell = id.substring(1).replaceAll(":.*", "");
-                    ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(flowcell);
+                    ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(id.substring(1).replaceAll(":.*", ""));
                     if (barcodes != null) {
                         String sequence = tokenizer.nextToken();
                         int matchingBarcodes = 0;

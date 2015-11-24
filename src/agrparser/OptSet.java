@@ -17,8 +17,11 @@ package agrparser;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Set;
+import java.util.SortedMap;
 import shared.CommonMaths;
 import shared.Reporter;
 
@@ -187,6 +190,8 @@ public class OptSet {
         StringBuilder help = new StringBuilder();
         int listingGroup = -1;
         boolean hasRequiredOption = false;
+        
+        HashMap<Integer,String> footnotes = new HashMap<>();
         for (int i = 0; i < getOptsList().size(); i++) {
             Opt opt = getOptsList().get(i);
             //Split option groups
@@ -244,6 +249,13 @@ public class OptSet {
                 helpLine.append("; default=").append(opt.getFormattedValue(opt.getDefaultValue()));
             } else if (opt.getMaxValueArgs() > 0 && !opt.isRequired()) {
                 helpLine.append("; no default value");
+            }
+            if (opt.hasFootnotes()) {
+                helpLine.append("; ");
+                ArrayList<Integer> keys = opt.getFootnoteKeys();
+                for (Integer key : keys) {
+                    helpLine.append("[").append(key).append("]");                    
+                }
             }
             help.append(Reporter.wrapString(helpLine.toString(), helpLineWidth, offset));
             help.append(System.lineSeparator());
@@ -305,5 +317,7 @@ public class OptSet {
         }
         return "";
     }
+    
+    
 
 }
