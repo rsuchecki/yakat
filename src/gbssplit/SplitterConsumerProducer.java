@@ -49,7 +49,7 @@ public class SplitterConsumerProducer implements Runnable {
 //    private final Integer MIN_KMER_FREQUENCY;
 //    private final Integer MAX_KMER_FREQUENCY;
 //    private final String OUT_LABEL;
-    private final int BUFFER_SIZE = 8192; // //THAT MANY RECORDS 
+    private final int BUFFER_SIZE = 1024; // //THAT MANY RECORDS 
     private final KeyMap keyMap;
     private final String TOOL_NAME;
     private final boolean TRIM_BARCODE;
@@ -127,13 +127,13 @@ public class SplitterConsumerProducer implements Runnable {
                                 }
                                 if (mateLen >= MIN_LENGTH_READ && trimmed.length() >= MIN_LENGTH_READ && mateLen + trimmed.length() >= MIN_LENGTH_PAIR) {
                                     bufferList.add(sb1.append("\t").append(sb2).toString());
-                                } else {
-                                    if (trimmed.length() >= MIN_LENGTH_READ) {
-                                        bufferList.add(sb1.toString());
-                                    }
-                                    if (mateLen >= MIN_LENGTH_READ) {
-                                        bufferList.add(sb2.toString());
-                                    }
+//                                } else {
+//                                    if (trimmed.length() >= MIN_LENGTH_READ) {
+//                                        bufferList.add(sb1.toString());
+//                                    }
+//                                    if (mateLen >= MIN_LENGTH_READ) {
+//                                        bufferList.add(sb2.toString());
+//                                    }
                                 }
                             }
                         }

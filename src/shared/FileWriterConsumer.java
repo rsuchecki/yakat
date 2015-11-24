@@ -36,8 +36,8 @@ import shared.Reporter;
 public class FileWriterConsumer implements Runnable {
 
     private final BlockingQueue<ArrayList<String>> outputQueue;
-    private final int BUFFER_SIZE = 8192; // //THAT MANY KMERS 
-    private String RECORD_NAME = "lines";
+    private final int BUFFER_SIZE = 8192; // 
+    private final String RECORD_NAME = "lines";
     private final String TOOL_NAME;
     private final String DIR_NAME;
     private final String FILE_NAME;
@@ -115,14 +115,11 @@ public class FileWriterConsumer implements Runnable {
 
             ArrayList<String> list;
             long outputCount = 0L;
+            boolean appendPE = true;
+            boolean appendSE = true;
             
             while (!(list = outputQueue.take()).isEmpty() || --PRODUCER_THREADS > 0) {
 
-                if (writer1 == null && !list.isEmpty()) {
-                    //create 2 writers                    
-                    writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R1_SUFFIX)), "UTF-8"), BUFFER_SIZE);
-                    writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R2_SUFFIX)), "UTF-8"), BUFFER_SIZE);
-                }
 
 //                    PRODUCER_THREADS.decrementAndGet();
 //                    continue;
@@ -142,10 +139,17 @@ public class FileWriterConsumer implements Runnable {
                             sbOrphans.append(splits[i]).append(newline);
                         }
                         if (writerOrphans == null) {
-                            writerOrphans = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+SE_SUFFIX)), "UTF-8"), BUFFER_SIZE);
+                            writerOrphans = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+SE_SUFFIX, appendSE)), "UTF-8"), BUFFER_SIZE);
+                            appendSE = true;
                         }
                         writerOrphans.write(sbOrphans.toString());
                     } else if (splits.length == 8) {
+                        if (writer1 == null) {
+                            //create 2 writers                    
+                            writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R1_SUFFIX, appendPE)), "UTF-8"), BUFFER_SIZE);
+                            writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R2_SUFFIX, appendPE)), "UTF-8"), BUFFER_SIZE);
+                            appendPE = true;
+                        }
                         for (int i = 0; i < 4; i++) {
                             sb1.append(splits[i]).append(newline);
                             sb2.append(splits[i + 4]).append(newline);
@@ -159,11 +163,17 @@ public class FileWriterConsumer implements Runnable {
                     }
                 }
                 if (writer1 != null) {
-                    writer1.flush();
-                    writer2.flush();
+//                    writer1.flush();
+//                    writer2.flush();
+                    writer1.close();
+                    writer2.close();
+                    writer1 = null;
+                    writer2 = null;
                 }
                 if (writerOrphans != null) {
-                    writerOrphans.flush();
+//                    writerOrphans.flush();
+                    writerOrphans.close();
+                    writerOrphans = null;
                 }
             }
             if (outputCount > 0) {

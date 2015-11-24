@@ -43,6 +43,7 @@ public class SplitGBS {
     private final String R2_SUFFIX;
     private final String SE_SUFFIX;
     private final String BLANK_SAMPLE_NAME; //can be repeated so name will get extended with remaining key file columns
+    
     private final int HELP_WIDTH = 175;
 
     public SplitGBS(String[] args, String callerName, String toolName) {
@@ -135,7 +136,7 @@ public class SplitGBS {
         //READ INPUT AND POPULATE PairMers MAP
 //            int threads = Math.max(Runtime.getRuntime().availableProcessors(), 6);
 
-        BlockingQueue inputQueue = new ArrayBlockingQueue(255);
+        BlockingQueue inputQueue = new ArrayBlockingQueue(2);
 //            boolean stranded = false;
         int ioThreads = keyMap.getSamplesTotal() + 1;
         ArrayList<Future<?>> ioFutures = new ArrayList<>(ioThreads);

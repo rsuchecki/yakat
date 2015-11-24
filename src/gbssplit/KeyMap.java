@@ -40,8 +40,7 @@ public class KeyMap {
 
     private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> keyMap;
     private ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> sampleToQueueMap;
-    private final int READER_BUFFER_SIZE = 8192;
-    private final int QUEUE_BUFFER_SIZE = 255;
+    private final int QUEUE_BUFFER_SIZE = 2;
     private final String TOOL_NAME;
     private final String BLANK_SAMPLE_NAME;
 
@@ -73,10 +72,10 @@ public class KeyMap {
         BufferedReader content = null;
         try {
             if (inputFile.endsWith(".gz")) {
-                InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputFile), READER_BUFFER_SIZE);
-                content = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
+                InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputFile));
+                content = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"));
             } else {
-                content = new BufferedReader(new FileReader(new File(inputFile)), READER_BUFFER_SIZE);
+                content = new BufferedReader(new FileReader(new File(inputFile)));
             }
             String line;
             while ((line = content.readLine()) != null && !line.isEmpty()) {
