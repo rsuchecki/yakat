@@ -106,39 +106,35 @@ public class SplitterConsumerProducer implements Runnable {
                                     bufferList = new ArrayList<>(BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
-                                StringBuilder sb = new StringBuilder();
-                                sb.append(id).append("\t"); //id
+                                StringBuilder sb1 = new StringBuilder();
+                                StringBuilder sb2 = new StringBuilder();
+                                sb1.append(id).append("\t"); //id
                                 String trimmed = sequence;
-                                if(TRIM_BARCODE) {
-                                    trimmed = sequence.substring(barcode.length());                                    
+                                if (TRIM_BARCODE) {
+                                    trimmed = sequence.substring(barcode.length());
                                 }
-                                if (trimmed.length() >= MIN_LENGTH_READ) {
-                                    sb.append(trimmed); //sequence (possibly trimmed)
-                                    sb.append("\t").append(tokenizer.nextToken()); //redundant id or '+
-                                    sb.append("\t").append(tokenizer.nextToken()); //qual line
-                                } else {
-                                    sb = new StringBuilder();
-                                }
+                                sb1.append(trimmed); //sequence (possibly trimmed)
+                                sb1.append("\t").append(tokenizer.nextToken()); //redundant id or '+
+                                sb1.append("\t").append(tokenizer.nextToken()); //qual line
+                                int mateLen = 0;
                                 if (tokenizer.hasMoreTokens()) {
-                                    if(sb.length() > 0) {
-                                        sb.append("\t");                                        
-                                    }
-                                    sb.append(tokenizer.nextToken()); //mate id                                            
-                                }
-                                if (tokenizer.hasMoreTokens()) {
+                                    sb2.append(tokenizer.nextToken()); //mate id                                            
                                     String mateSequence = tokenizer.nextToken();
-                                    if (mateSequence.length() >= MIN_LENGTH_READ && sequence.length() + mateSequence.length() >= MIN_LENGTH_PAIR) {
-                                        sb.append("\t").append(mateSequence);
-                                        sb.append("\t").append(tokenizer.nextToken()); //redundant id or '+
-                                        sb.append("\t").append(tokenizer.nextToken()); //qual line
-                                    } else {
-                                        sb = new StringBuilder();;
+                                    mateLen = mateSequence.length();
+                                    sb2.append("\t").append(mateSequence);
+                                    sb2.append("\t").append(tokenizer.nextToken()); //redundant id or '+
+                                    sb2.append("\t").append(tokenizer.nextToken()); //qual line
+                                }
+                                if (mateLen >= MIN_LENGTH_READ && trimmed.length() >= MIN_LENGTH_READ && mateLen + trimmed.length() >= MIN_LENGTH_PAIR) {
+                                    bufferList.add(sb1.append("\t").append(sb2).toString());
+                                } else {
+                                    if (trimmed.length() >= MIN_LENGTH_READ) {
+                                        bufferList.add(sb1.toString());
+                                    }
+                                    if (mateLen >= MIN_LENGTH_READ) {
+                                        bufferList.add(sb2.toString());
                                     }
                                 }
-                                if (sb.length() > 0) {
-                                    bufferList.add(sb.toString());
-                                }
-
                             }
                         }
                         if (matchingBarcodes == 0) {
@@ -170,7 +166,7 @@ public class SplitterConsumerProducer implements Runnable {
 //                }
 //            }
             inputQueue.put(new ArrayList<String>()); //inform other threads
-            if(lines > 0) {
+            if (lines > 0) {
                 Reporter.report("[INFO]", "[" + Thread.currentThread().getName() + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME);
             }
 

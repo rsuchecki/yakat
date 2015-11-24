@@ -95,7 +95,7 @@ public class SplitGBS {
         optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
         optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
         optSet.addOpt(new Opt('r', "min-length-per-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1));
-        optSet.addOpt(new Opt('p', "min-length-per-pair", "Only output a read pair if combined length is no less than <arg> bp", 2, 1, null, 1, 1));
+        optSet.addOpt(new Opt('p', "min-length-per-pair", "Only output a read pair if combined length is no less than <arg> bp", 2, 2, null, 1, 1));
         optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
         return optSet;
     }

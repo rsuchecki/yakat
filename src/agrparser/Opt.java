@@ -470,4 +470,35 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         return this;
     }
 
+
+    public Opt  setMinValue(T minValue) {
+        this.minValue = minValue;
+        return this;
+    }
+
+    public Opt  setMaxValue(T maxValue) {
+        this.maxValue = maxValue;
+        return this;
+    }
+
+    public Opt  setMinValueArgs(Integer minValueArgs) {
+        this.minValueArgs = minValueArgs;
+        return this;
+    }
+
+    public Opt  setMaxValueArgs(int maxValueArgs) {
+        this.maxValueArgs = maxValueArgs;
+        return this;
+    }
+    
+    public Opt setNumArgs(int numArgs) {
+        this.minValueArgs = numArgs;
+        this.maxValueArgs = numArgs;
+        return this;
+    }
+
+    
+    
+    
+
 }
