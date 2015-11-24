@@ -147,7 +147,7 @@ public class OptSet {
     }
 
     public Opt getOpt(String key) {
-        while(key.startsWith("-")) {
+        while (key.startsWith("-")) {
             key = key.replaceFirst("-", "");
         }
         if (key.length() == 1) {
@@ -175,26 +175,18 @@ public class OptSet {
             }
         }
         maxLongArgLength++;
-        int offset = 8 + maxLongArgLength+8;
+        int offset = 8 + maxLongArgLength + 8;
         int helpLineWidth = printWidth - offset;
 
         //Generate usage string
         StringBuilder usage = new StringBuilder();
         usage.append("java -jar ").append(mainClassName).append(".jar ").append(moduleName);
-        if (!getOptsList().isEmpty()) {
-            usage.append(" [options]");
-        }
-        for (PositionalOpt positional : getPositionalOptsList()) {
-            if (positional.isRequired()) {
-                usage.append(" ").append(positional.getUsageString());
-            } else {
-                usage.append(" [").append(positional.getUsageString()).append("]");
-            }
-        }
+        
 
         //Generate help page
         StringBuilder help = new StringBuilder();
         int listingGroup = -1;
+        boolean hasRequiredOption = false;
         for (int i = 0; i < getOptsList().size(); i++) {
             Opt opt = getOptsList().get(i);
             //Split option groups
@@ -223,17 +215,25 @@ public class OptSet {
             } else {
                 help.append("    ");
             }
-            if(opt.getMaxValueArgs() == 1) {
-                help.append(" <arg> ");
-            } else if(opt.getMaxValueArgs() > 1) {        
-                help.append(" <args>");                
+            if (opt.getMaxValueArgs() == 1) {
+                help.append(" <arg> ");                
+            } else if (opt.getMaxValueArgs() > 1) {
+                help.append(" <args>");
             } else {
-                help.append("       ");                
+                help.append("       ");
             }
-            
+
             String gap = String.format("%" + (maxLongArgLength - opt.getLongKeyLength()) + "s", " ");
             help.append(gap).append(": ");
-            StringBuilder helpLine = new StringBuilder(opt.getHelpString());
+            StringBuilder helpLine = new StringBuilder();
+            if (opt.isRequired()) {
+                helpLine.append("* ");
+                hasRequiredOption = true;                
+                if(opt.hasShortKey()) {
+                    usage.append(" ").append(opt.getOptLabelShort());
+                }
+            }
+            helpLine.append(opt.getHelpString());
             if (opt.hasMinValue()) {
                 helpLine.append("; min=").append(opt.getFormattedValue(opt.getMinValue()));
             }
@@ -242,11 +242,27 @@ public class OptSet {
             }
             if (opt.hasDefaultValue()) {
                 helpLine.append("; default=").append(opt.getFormattedValue(opt.getDefaultValue()));
-            } else if(opt.getMaxValueArgs() > 0) {
-                helpLine.append("; no default value");                
+            } else if (opt.getMaxValueArgs() > 0 && !opt.isRequired()) {
+                helpLine.append("; no default value");
             }
             help.append(Reporter.wrapString(helpLine.toString(), helpLineWidth, offset));
             help.append(System.lineSeparator());
+        }
+        if (hasRequiredOption) {
+            help.append(System.lineSeparator()).append("* - denotes a required option");
+        }
+        
+        
+        //finish building usage string
+        if (!getOptsList().isEmpty()) {
+            usage.append(" [options]");
+        }
+        for (PositionalOpt positional : getPositionalOptsList()) {
+            if (positional.isRequired()) {
+                usage.append(" ").append(positional.getUsageString());
+            } else {
+                usage.append(" [").append(positional.getUsageString()).append("]");
+            }
         }
         String usageString = usage.toString();
         String helpString = help.toString().replaceAll("\\. *,", ",").replaceAll(" *,", ",").replaceAll(" *;", ";");
@@ -257,8 +273,6 @@ public class OptSet {
 //                + "the list of k-mers to KmerExtender. For smaller jobs FASTA or FASTQ input may suffice.";
 //        System.out.println(Reporter.wrapString(s, 145));
     }
-    
-
 
     /**
      * Increment and

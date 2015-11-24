@@ -42,12 +42,13 @@ public class KeyMap {
     private ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> sampleToQueueMap;
     private final int READER_BUFFER_SIZE = 8192;
     private final int QUEUE_BUFFER_SIZE = 255;
-    
     private final String TOOL_NAME;
+    private final String BLANK_SAMPLE_NAME;
 
-    public KeyMap(String keyFileName, String toolName) {
+    public KeyMap(String keyFileName, String toolName, String BlankSampleName) {
         TOOL_NAME = toolName;
         populateMap(keyFileName);
+        BLANK_SAMPLE_NAME = BlankSampleName;
     }
 
     public String getSample(String flowCell, String barcode) {
@@ -83,6 +84,11 @@ public class KeyMap {
                 String flowcell = toks[0];
                 String barcode = toks[2];
                 String sample = toks[3];
+                if(sample.equalsIgnoreCase(BLANK_SAMPLE_NAME)) {
+                    for (int i = 4; i < toks.length; i++) {
+                        sample += "_"+toks[i];
+                    }
+                }
                 if (keyMap.containsKey(flowcell)) {
                     ConcurrentHashMap<String, String> barcodeToSample = keyMap.get(flowcell);
                     if (barcodeToSample.containsKey(barcode)) {

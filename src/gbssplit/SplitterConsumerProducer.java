@@ -49,7 +49,7 @@ public class SplitterConsumerProducer implements Runnable {
 //    private final Integer MIN_KMER_FREQUENCY;
 //    private final Integer MAX_KMER_FREQUENCY;
 //    private final String OUT_LABEL;
-    private final int BUFFER_SIZE = 8192; // //THAT MANY KMERS 
+    private final int BUFFER_SIZE = 8192; // //THAT MANY RECORDS 
     private final KeyMap keyMap;
     private final String TOOL_NAME;
     private final boolean TRIM_BARCODE;
@@ -58,7 +58,7 @@ public class SplitterConsumerProducer implements Runnable {
     private Integer MIN_LENGTH_PAIR;
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
-            KeyMap keyMap, String toolName, boolean trimBarcode, 
+            KeyMap keyMap, String toolName, boolean trimBarcode,
             Integer MIN_LENGTH_READ, Integer MIN_LENGTH_PAIR) {
         this.inputQueue = inputQueue;
         this.keyMap = keyMap;
@@ -84,7 +84,8 @@ public class SplitterConsumerProducer implements Runnable {
                 for (String line : list) {
                     lines++;
                     tokenizer = new StringTokenizer(line);
-                    String flowcell = tokenizer.nextToken().substring(1).replaceAll(":.*", "");
+                    String id = tokenizer.nextToken();
+                    String flowcell = id.substring(1).replaceAll(":.*", "");
                     ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(flowcell);
                     if (barcodes != null) {
                         String sequence = tokenizer.nextToken();
@@ -99,24 +100,45 @@ public class SplitterConsumerProducer implements Runnable {
                                     bufferList = new ArrayList<>(BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
-                                if (bufferList.size() == BUFFER_SIZE) { //buffer full, place on queue to write and start a new one
+                                if (bufferList.size() == BUFFER_SIZE) { //buffer full, place on queue to write and start a new buffer
                                     BlockingQueue<ArrayList<String>> outputQueue = sampleToQueueMap.get(sample);
                                     outputQueue.put(bufferList);
                                     bufferList = new ArrayList<>(BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
-                                if (TRIM_BARCODE) {
-                                    StringBuilder sb = new StringBuilder();
-                                    tokenizer = new StringTokenizer(line);
-                                    sb.append(tokenizer.nextToken()).append("\t"); //id
-                                    sb.append(tokenizer.nextToken().substring(barcode.length())); //trimmed sequence                                    
-                                    while (tokenizer.hasMoreTokens()) {
-                                        sb.append("\t").append(tokenizer.nextToken());
-                                    }
-                                    bufferList.add(sb.toString());
-                                } else {
-                                    bufferList.add(line);
+                                StringBuilder sb = new StringBuilder();
+                                sb.append(id).append("\t"); //id
+                                String trimmed = sequence;
+                                if(TRIM_BARCODE) {
+                                    trimmed = sequence.substring(barcode.length());                                    
                                 }
+                                if (trimmed.length() >= MIN_LENGTH_READ) {
+                                    sb.append(trimmed); //sequence (possibly trimmed)
+                                    sb.append("\t").append(tokenizer.nextToken()); //redundant id or '+
+                                    sb.append("\t").append(tokenizer.nextToken()); //qual line
+                                } else {
+                                    sb = new StringBuilder();
+                                }
+                                if (tokenizer.hasMoreTokens()) {
+                                    if(sb.length() > 0) {
+                                        sb.append("\t");                                        
+                                    }
+                                    sb.append(tokenizer.nextToken()); //mate id                                            
+                                }
+                                if (tokenizer.hasMoreTokens()) {
+                                    String mateSequence = tokenizer.nextToken();
+                                    if (mateSequence.length() >= MIN_LENGTH_READ && sequence.length() + mateSequence.length() >= MIN_LENGTH_PAIR) {
+                                        sb.append("\t").append(mateSequence);
+                                        sb.append("\t").append(tokenizer.nextToken()); //redundant id or '+
+                                        sb.append("\t").append(tokenizer.nextToken()); //qual line
+                                    } else {
+                                        sb = new StringBuilder();;
+                                    }
+                                }
+                                if (sb.length() > 0) {
+                                    bufferList.add(sb.toString());
+                                }
+
                             }
                         }
                         if (matchingBarcodes == 0) {
@@ -137,7 +159,7 @@ public class SplitterConsumerProducer implements Runnable {
                 ArrayList<String> bufferList = sampleToBufferMap.get(sample);
                 if (bufferList != null && !bufferList.isEmpty()) {
                     outQ.put(bufferList);
-                }                
+                }
                 outQ.put(new ArrayList<String>());//inform other threads
             }
 
@@ -148,7 +170,9 @@ public class SplitterConsumerProducer implements Runnable {
 //                }
 //            }
             inputQueue.put(new ArrayList<String>()); //inform other threads
-            Reporter.report("[INFO]", "[" + Thread.currentThread().getName() + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME);
+            if(lines > 0) {
+                Reporter.report("[INFO]", "[" + Thread.currentThread().getName() + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME);
+            }
 
         } catch (InterruptedException e) {
             e.printStackTrace();

@@ -38,7 +38,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     private int maxValueArgs = 0;
     private Integer listingGroup = 1;
     private Integer listingGroupPosition = 1;
-
+    private boolean required;
     private boolean optFlag; //used to indicate that arg is used
 
     //parsed values if opt is not a simple flag
@@ -165,7 +165,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         if (maxValueArgs == 0) {
             Reporter.reportNoMem("[FATAL]", "Boolean flag must not carry args. Offending value" + valueString, getClass().getSimpleName());
             System.exit(1);
-        } else {
+        } else {        
+            T value = (T) valueString;
             try {
                 if (hasMinValue() && compareValues(getMinValue(), valueString) < 0) {
                     Reporter.reportNoMem("[FATAL]", "Value for option '" + getOptLabelString() + "' must be set to at least " + getMinValue() + ", offending value: " + valueString, getClass().getSimpleName());
@@ -179,19 +180,24 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
                     Reporter.reportNoMem("[FATAL]", "Option '" + getOptLabelString() + "' allows up to " + getMaxValueArgs() + " values, unable to add : " + valueString, getClass().getSimpleName());
                     System.exit(1);
                 }
+                if(hasDefaultValue()) {
+                    value = convertToType(getDefaultValue(), valueString);
+                } else if (hasMinValue()){
+                    value = convertToType(getMinValue(), valueString);                    
+                } else if (hasMaxValue()){
+                    value = convertToType(getMaxValue(), valueString);                    
+                }
             } catch (ClassCastException | NumberFormatException e) {
                 Reporter.reportNoMem("[FATAL]", "Possible reason(1): argument value type mismatch for option '" + getOptLabelString() + "', offending value: " + valueString, getClass().getSimpleName());
                 Reporter.reportNoMem("[FATAL]", "Possible reason(2): a wrong number of values passed with option '" + getOptLabelString() + "', expected number of values: min=" + getMinValueArgs() + ", max=" + getMaxValueArgs() + "", getClass().getSimpleName());
                 System.err.println(e.getMessage());
                 System.exit(1);
             }
-            values.add((T) valueString);
+            values.add(value);
         }
     }
     
-   
-
-    private Integer compareValues(T storedValue, String inputValueString) throws NumberFormatException {
+    private T convertToType(T storedValue, String inputValueString) throws NumberFormatException {
         Integer i = 0;
         Long l = 0L;
         Double d = 0.0;
@@ -206,6 +212,11 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
             Double valueDouble = Double.parseDouble(inputValueString);
             value = (T) valueDouble;
         }
+        return value;
+    }
+
+    private Integer compareValues(T storedValue, String inputValueString) throws NumberFormatException {
+        T value = convertToType(storedValue, inputValueString);       
         return value.compareTo(storedValue);
     }
 
@@ -214,7 +225,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         Long l = 0L;
         Double d = 0.0;
         if (value.getClass().isInstance(d)) {
-            d = (Double)value;
+            d = (Double) value;
             if (Math.abs(d) < 10E9 && Math.abs(d) > 10E-9) {
                 NumberFormat instance = DecimalFormat.getInstance();
                 instance.setMaximumFractionDigits(9);
@@ -223,19 +234,19 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
                 return CommonMaths.getScientific(d);
             }
         } else if (value.getClass().isInstance(i)) {
-            i = (Integer)value;
+            i = (Integer) value;
             if (Math.abs(i) < 10E9 && Math.abs(i) > 10E-9) {
                 return NumberFormat.getInstance().format(i);
             } else {
                 return CommonMaths.getScientific(i);
-            }            
+            }
         } else if (value.getClass().isInstance(l)) {
-            l = (Long)value;
+            l = (Long) value;
             if (Math.abs(l) < 10E9 && Math.abs(l) > 10E-9) {
                 return NumberFormat.getInstance().format(l);
             } else {
                 return CommonMaths.getScientific(l);
-            }            
+            }
         } else {
             return (String) value;
         }
@@ -248,11 +259,46 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
 
     public String getOptLabelString() {
         StringBuilder sb = new StringBuilder();
-        if (hasShortKey()) {
-            sb.append("-").append(getShortKey()).append(", ");
+        sb.append(getOptLabelShort());
+        if(hasShortKey() && hasLongKey()) {
+            sb.append(" / ");
         }
+        sb.append(getOptLabelLong());
+        return sb.toString();
+    }
+    
+    public String getOptLabelStringQuoted() {
+        StringBuilder sb = new StringBuilder("'");
+        sb.append(getOptLabelShort());
+        if(hasShortKey() && hasLongKey()) {
+            sb.append("' / '");
+        }
+        sb.append(getOptLabelLong()).append("'");
+        return sb.toString();
+    }
+    
+    public String getOptLabelShort() {
+        StringBuilder sb = new StringBuilder();
+        if (hasShortKey()) {
+            sb.append("-").append(getShortKey());
+            if (getMaxValueArgs() == 1) {
+                sb.append(" <arg>");
+            } else if (getMaxValueArgs() > 1) {
+                sb.append(" <args>");
+            }
+        }
+        return sb.toString();
+    }
+    
+    public String getOptLabelLong() {
+        StringBuilder sb = new StringBuilder();
         if (hasLongKey()) {
             sb.append("--").append(getLongKey());
+            if (getMaxValueArgs() == 1) {
+                sb.append(" <arg>");
+            } else if (getMaxValueArgs() > 1) {
+                sb.append(" <args>");
+            }
         }
         return sb.toString();
     }
@@ -344,8 +390,15 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         }
         return null;
     }
-    
-    
+
+    public T getValueOrDefault() {
+        if (isUsed()) {
+            if (values.size() == 1) {
+                return values.get(0);
+            }
+        }        
+        return getDefaultValue();
+    }
 
     public boolean canTakeMoreValues() {
         return getValues().size() < getMaxValueArgs();
@@ -403,9 +456,18 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         return getMinValueArgs().compareTo(getMaxValueArgs()) != 0;
     }
 
-    public void setDefaultValue(T defaultValue) {
+    public Opt setDefaultValue(T defaultValue) {
         this.defaultValue = defaultValue;
+        return this;
     }
-    
-    
+
+    public boolean isRequired() {
+        return required;
+    }
+
+    public Opt setRequired(boolean required) {
+        this.required = required;
+        return this;
+    }
+
 }

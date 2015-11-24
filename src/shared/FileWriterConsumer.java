@@ -39,15 +39,26 @@ public class FileWriterConsumer implements Runnable {
     private final int BUFFER_SIZE = 8192; // //THAT MANY KMERS 
     private String RECORD_NAME = "lines";
     private final String TOOL_NAME;
+    private final String DIR_NAME;
     private final String FILE_NAME;
     private int PRODUCER_THREADS;
+    private final String R1_SUFFIX;
+    private final String R2_SUFFIX;
+    private final String SE_SUFFIX;
 
-    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String toolName, int producerThreads) {
+
+    public FileWriterConsumer(BlockingQueue<ArrayList<String>> outputQueue, String TOOL_NAME, String DIR_NAME, String FILE_NAME, int PRODUCER_THREADS, String R1_SUFFIX, String R2_SUFFIX, String SE_SUFFIX) {
         this.outputQueue = outputQueue;
-        TOOL_NAME = toolName;
-        FILE_NAME = fileName;
-        this.PRODUCER_THREADS = producerThreads;
+        this.TOOL_NAME = TOOL_NAME;
+        this.DIR_NAME = DIR_NAME;
+        this.FILE_NAME = FILE_NAME;
+        this.PRODUCER_THREADS = PRODUCER_THREADS;
+        this.R1_SUFFIX = R1_SUFFIX;
+        this.R2_SUFFIX = R2_SUFFIX;
+        this.SE_SUFFIX = SE_SUFFIX;
     }
+    
+    
 
 //    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String recordName, String toolName) {
 //        this.outputQueue = outputQueue;
@@ -81,6 +92,7 @@ public class FileWriterConsumer implements Runnable {
         String newline = System.lineSeparator(); //.getProperty("line.separator");
         BufferedWriter writer1 = null;
         BufferedWriter writer2 = null;
+        BufferedWriter writerOrphans = null;
         try {
 //            if (task == Task.WRITE_FASTQ_PE) {
 //            if (!outputQueue.peek().isEmpty()) {
@@ -103,16 +115,15 @@ public class FileWriterConsumer implements Runnable {
 
             ArrayList<String> list;
             long outputCount = 0L;
+            
             while (!(list = outputQueue.take()).isEmpty() || --PRODUCER_THREADS > 0) {
 
                 if (writer1 == null && !list.isEmpty()) {
-                    //make sure outdir exists
-                    File f = new File(FILE_NAME);
-                    f.getParentFile().mkdirs();
-                    //create 2 writers
-                    writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R1.fastq.gz")), "UTF-8"), BUFFER_SIZE);
-                    writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R2.fastq.gz")), "UTF-8"), BUFFER_SIZE);
+                    //create 2 writers                    
+                    writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R1_SUFFIX)), "UTF-8"), BUFFER_SIZE);
+                    writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R2_SUFFIX)), "UTF-8"), BUFFER_SIZE);
                 }
+
 //                    PRODUCER_THREADS.decrementAndGet();
 //                    continue;
 //                }
@@ -121,35 +132,44 @@ public class FileWriterConsumer implements Runnable {
 //                    writer.write(read.replaceAll("\t", newline));
 //                } else if (task == Task.WRITE_FASTQ_PE) {
                 while (!list.isEmpty()) {
-//                for (String read : list) {
-                    String read = list.remove(list.size() - 1);
+                    String line = list.remove(list.size() - 1);
                     StringBuilder sb1 = new StringBuilder();
                     StringBuilder sb2 = new StringBuilder();
-                    String[] splits = read.split("\t");
-                    if (splits.length == 8) {
+                    StringBuilder sbOrphans = new StringBuilder();
+                    String[] splits = line.split("\t");
+                    if (splits.length == 4) {
+                        for (int i = 0; i < 4; i++) {
+                            sbOrphans.append(splits[i]).append(newline);
+                        }
+                        if (writerOrphans == null) {
+                            writerOrphans = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+SE_SUFFIX)), "UTF-8"), BUFFER_SIZE);
+                        }
+                        writerOrphans.write(sbOrphans.toString());
+                    } else if (splits.length == 8) {
                         for (int i = 0; i < 4; i++) {
                             sb1.append(splits[i]).append(newline);
                             sb2.append(splits[i + 4]).append(newline);
                         }
+                        writer1.write(sb1.toString());
+                        writer2.write(sb2.toString());
                     } else {
-                        System.err.println("Output writer error, expecting fastq record to have 4 or 8 tab delimited fields! Offending line:\n" + read);
+                        System.err.println("Output writer error, expecting fastq record to have 4 or 8 tab delimited fields! Offending line:\n" + line);
                         System.err.println("Terminating!");
                         System.exit(1);
                     }
-                    writer1.write(sb1.toString()); //                    writer.newLine();
-                    writer2.write(sb2.toString());
                 }
                 if (writer1 != null) {
                     writer1.flush();
                     writer2.flush();
+                }
+                if (writerOrphans != null) {
+                    writerOrphans.flush();
                 }
             }
             if (outputCount > 0) {
                 Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
 //                Reporter.report("[INFO]", "[Thread " + Thread.currentThread().getId()+"] "+NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
             }
-//            }
-//            queue.put("TERMINATE"); //inform other threads -should not be necessary - one thread for writing
         } catch (FileNotFoundException ex) {
             ex.printStackTrace();
         } catch (InterruptedException ex) {
@@ -163,6 +183,9 @@ public class FileWriterConsumer implements Runnable {
                 }
                 if (writer2 != null) {
                     writer2.close();
+                }
+                if (writerOrphans != null) {
+                    writerOrphans.close();
                 }
             } catch (IOException ex) {
                 ex.printStackTrace();

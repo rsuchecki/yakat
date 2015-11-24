@@ -136,6 +136,10 @@ public class ArgParser {
                 Reporter.reportNoMem("[FATAL]", "Insufficient (" + o.getNumberOfValues() + ") values passed with option '" + o.getOptLabelString() + "', " + o.getMinValueArgs() + " expected", getClass().getSimpleName());
                 System.exit(1);
             }
+            if(o.isRequired() && !o.isUsed()) {
+                Reporter.reportNoMem("[FATAL]", "Required option not used " + o.getOptLabelStringQuoted()+ " expected", getClass().getSimpleName());
+                System.exit(1);                
+            }
         }
     }
 }

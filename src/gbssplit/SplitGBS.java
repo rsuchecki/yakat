@@ -9,6 +9,7 @@ import agrparser.ArgParser;
 import agrparser.Opt;
 import agrparser.OptSet;
 import agrparser.PositionalOpt;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -36,45 +37,39 @@ public class SplitGBS {
     private final String TOOL_NAME;
     private int SPLITTER_THREADS = 1;
     private boolean TRIM_BARCODE = true;
-    private Integer MIN_LENGTH_READ;
-    private Integer MIN_LENGTH_PAIR;
+    private final int MIN_LENGTH_READ;
+    private final int MIN_LENGTH_PAIR;
+    private final String R1_SUFFIX;
+    private final String R2_SUFFIX;
+    private final String SE_SUFFIX;
+    private final String BLANK_SAMPLE_NAME; //can be repeated so name will get extended with remaining key file columns
+    private final int HELP_WIDTH = 175;
 
     public SplitGBS(String[] args, String callerName, String toolName) {
         ArrayList<String> inputFilenamesList = new ArrayList<>();
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();
-        argParser.processArgs(args, optSet, true, callerName, 180);
+        argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
         TOOL_NAME = callerName + " " + toolName;
+        //PARSE OPTS
         KEY_FILE_NAME = (String) optSet.getOpt("-K").getValueIfSingle();
-        OUT_DIR = (String) optSet.getOpt("o").getDefaultValue();
-        try {
-            String outDir = (String) optSet.getOpt("o").getValueIfSingle();
-            if (outDir != null) {
-                OUT_DIR = outDir;
-            }
-        } catch (NullPointerException e) {
-        }
+        BLANK_SAMPLE_NAME = (String) optSet.getOpt("B").getValueOrDefault();
+        OUT_DIR = (String) optSet.getOpt("o").getValueOrDefault();        
+        new File(OUT_DIR).mkdirs(); //make sure outdir exists
         if (optSet.getOpt("keep-barcodes").getOptFlag()) {
             TRIM_BARCODE = false;
         }
-        if (optSet.getOpt("r").isUsed()) {
-            MIN_LENGTH_READ = Integer.valueOf((String) optSet.getOpt("r").getValueIfSingle());
-        }
-        if (optSet.getOpt("p").isUsed()) {
-            MIN_LENGTH_PAIR = Integer.valueOf((String) optSet.getOpt("p").getValueIfSingle());
-        }
-        if (optSet.getOpt("t").isUsed()) {
-            SPLITTER_THREADS = Integer.valueOf((String) optSet.getOpt("t").getValueIfSingle());
-        }
-
-//        try {
-//            MIN_FREQUENCY = Integer.valueOf((String) optSet.getOpt("-m").getValueIfSingle());
-//        } catch (NullPointerException | NumberFormatException e) {
+        MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
+        MIN_LENGTH_PAIR = (int) optSet.getOpt("p").getValueOrDefault();
+        SPLITTER_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
+        R1_SUFFIX = (String) optSet.getOpt("-x").getValueOrDefault();
+        R2_SUFFIX = (String) optSet.getOpt("-X").getValueOrDefault();
+        SE_SUFFIX = (String) optSet.getOpt("-S").getValueOrDefault();
+        
+//        for(Opt o: optSet.getOptsList()) {
+//            Reporter.report("[INFO]", o.getOptLabelString()+" "+o.getValueOrDefault(), toolName);
 //        }
-//        try {
-//            MAX_FREQUENCY = Integer.valueOf((String) optSet.getOpt("-M").getValueIfSingle());
-//        } catch (NullPointerException | NumberFormatException e) {
-//        }
+        
         ArrayList<PositionalOpt> positionalOptsList = optSet.getPositionalOptsList();
         for (PositionalOpt po : positionalOptsList) {
             if (po.getValues() != null) {
@@ -87,21 +82,26 @@ public class SplitGBS {
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet();
-        optSet.addOpt(new Opt('K', "key-file", "Key file name ", 1));
-        Opt opt = new Opt('o', "out-dir", "Output directory", 1);
-        opt.setDefaultValue("out_split");
-        optSet.addOpt(opt);
-        optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
-        optSet.addOpt(new Opt('r', "min-length-per-read", "Only output a read if length is no less than <arg> bp", null, 1, null, 1, 1));
-        optSet.addOpt(new Opt('p', "min-length-per-pair", "Only output a read pair if combined length is no less than <arg> bp", null, 1, null, 1, 1));
+        optSet.setListingGroupLabel("[Input options]");
+        optSet.addOpt(new Opt('K', "key-file", "Key file name ", 1).setRequired(true));
+        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime options]");
         optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
                 + "writing samples out is the likely bottleneck and a separate writing thread will be spawned per sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output options]");
+        optSet.addOpt(new Opt('o', "out-dir", "Output directory", 1).setDefaultValue("out_split"));
+        optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
+        optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
+        optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
+        optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
+        optSet.addOpt(new Opt('r', "min-length-per-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1));
+        optSet.addOpt(new Opt('p', "min-length-per-pair", "Only output a read pair if combined length is no less than <arg> bp", 2, 1, null, 1, 1));
         optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
         return optSet;
     }
 
     private void splitFiles(ArrayList<String> inputFilenamesList) {
-        KeyMap keyMap = new KeyMap(KEY_FILE_NAME, TOOL_NAME);
+        KeyMap keyMap = new KeyMap(KEY_FILE_NAME, TOOL_NAME, BLANK_SAMPLE_NAME);
 
 //        ArrayList<String> r1 = new ArrayList<>();
 //        ArrayList<String> r2 = new ArrayList<>();
@@ -168,12 +168,13 @@ public class SplitGBS {
         for (int i = 0; i < SPLITTER_THREADS; i++) {
             splittersFutures.add(splitterExecutorService.submit(new SplitterConsumerProducer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE, MIN_LENGTH_READ, MIN_LENGTH_PAIR)));
         }
-        
+
         //WRITER THREADS
         for (Map.Entry<String, BlockingQueue<ArrayList<String>>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
             String sample = entrySet.getKey();
             BlockingQueue<ArrayList<String>> queue = entrySet.getValue();
-            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, SPLITTER_THREADS)));
+//            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, SPLITTER_THREADS)));
+            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(queue, TOOL_NAME, OUT_DIR, sample, SPLITTER_THREADS, R1_SUFFIX, R2_SUFFIX, SE_SUFFIX)));
 
         }
         splitterExecutorService.shutdown();
