@@ -40,7 +40,7 @@ public class KeyMap {
 
     private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> keyMap;
     private ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> sampleToQueueMap;
-    private final int QUEUE_BUFFER_SIZE = 4;
+    private final int QUEUE_BUFFER_SIZE = 2;
     private final String TOOL_NAME;
     private final String BLANK_SAMPLE_NAME;
 

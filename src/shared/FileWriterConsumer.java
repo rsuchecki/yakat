@@ -163,17 +163,17 @@ public class FileWriterConsumer implements Runnable {
                     }
                 }
                 if (writer1 != null) {
-                    writer1.flush();
-                    writer2.flush();
-//                    writer1.close();
-//                    writer2.close();
-//                    writer1 = null;
-//                    writer2 = null;
+//                    writer1.flush();
+//                    writer2.flush();
+                    writer1.close();
+                    writer2.close();
+                    writer1 = null;
+                    writer2 = null;
                 }
                 if (writerOrphans != null) {
-                    writerOrphans.flush();
-//                    writerOrphans.close();
-//                    writerOrphans = null;
+//                    writerOrphans.flush();
+                    writerOrphans.close();
+                    writerOrphans = null;
                 }
             }
             if (outputCount > 0) {
