@@ -49,7 +49,7 @@ public class SplitterConsumerProducer implements Runnable {
 //    private final Integer MIN_KMER_FREQUENCY;
 //    private final Integer MAX_KMER_FREQUENCY;
 //    private final String OUT_LABEL;
-    private final int BUFFER_SIZE = 8192; // //THAT MANY RECORDS 
+    private final int BUFFER_SIZE = 4096; // //THAT MANY RECORDS 
     private final KeyMap keyMap;
     private final String TOOL_NAME;
     private final boolean TRIM_BARCODE;

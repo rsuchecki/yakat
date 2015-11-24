@@ -135,7 +135,7 @@ public class SplitGBS {
         //READ INPUT AND POPULATE PairMers MAP
 //            int threads = Math.max(Runtime.getRuntime().availableProcessors(), 6);
 
-        BlockingQueue inputQueue = new ArrayBlockingQueue(255);
+        BlockingQueue inputQueue = new ArrayBlockingQueue(8);
 //            boolean stranded = false;
         int ioThreads = keyMap.getSamplesTotal() + 1;
         ArrayList<Future<?>> ioFutures = new ArrayList<>(ioThreads);
