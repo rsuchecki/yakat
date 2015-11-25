@@ -17,6 +17,7 @@ package agrparser;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -192,35 +193,36 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
                 } else if (hasMaxValue()){
                     value = convertToType(getMaxValue(), valueString);                    
                 }
-            } catch (ClassCastException | NumberFormatException e) {
+            } catch (ClassCastException | NumberFormatException | ParseException e) {
                 Reporter.reportNoMem("[FATAL]", "Possible reason(1): argument value type mismatch for option '" + getOptLabelString() + "', offending value: " + valueString, getClass().getSimpleName());
                 Reporter.reportNoMem("[FATAL]", "Possible reason(2): a wrong number of values passed with option '" + getOptLabelString() + "', expected number of values: min=" + getMinValueArgs() + ", max=" + getMaxValueArgs() + "", getClass().getSimpleName());
-                System.err.println(e.getMessage());
+                System.err.println(e.getClass());
                 System.exit(1);
             }
             values.add(value);
         }
     }
     
-    private T convertToType(T storedValue, String inputValueString) throws NumberFormatException {
+    private T convertToType(T storedValue, String inputValueString) throws NumberFormatException, ParseException {
         Integer i = 0;
         Long l = 0L;
         Double d = 0.0;
         T value = (T) inputValueString;
         if (storedValue.getClass().isInstance(l)) {
-            Long valueLong = Long.parseLong(inputValueString);
+            Long valueLong = NumberFormat.getInstance().parse(inputValueString).longValue();
+//            Long valueLong = Long.parseLong(inputValueString.replaceAll(",", ""));
             value = (T) valueLong;
         } else if (storedValue.getClass().isInstance(i)) {
-            Integer valueInteger = Integer.parseInt(inputValueString);
+            Integer valueInteger = NumberFormat.getInstance().parse(inputValueString).intValue();
             value = (T) valueInteger;
         } else if (storedValue.getClass().isInstance(d)) {
-            Double valueDouble = Double.parseDouble(inputValueString);
+            Double valueDouble = NumberFormat.getInstance().parse(inputValueString).doubleValue();
             value = (T) valueDouble;
         }
         return value;
     }
 
-    private Integer compareValues(T storedValue, String inputValueString) throws NumberFormatException {
+    private Integer compareValues(T storedValue, String inputValueString) throws NumberFormatException, ParseException {
         T value = convertToType(storedValue, inputValueString);       
         return value.compareTo(storedValue);
     }
