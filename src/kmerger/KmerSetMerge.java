@@ -86,7 +86,7 @@ public class KmerSetMerge {
         final ExecutorService executorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         //SPAWN INPUT READING THREAD
-        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, k, TOOL_NAME);
+        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, k, TOOL_NAME, "kmers", 8192);
         Future<?> future = executorService.submit(inputReaderProducer);
         futures.add(future);
 

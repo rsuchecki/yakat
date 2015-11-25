@@ -45,8 +45,8 @@ public class InputReaderProducer implements Runnable {
     //PUT READ LINES ON QUEQE AS SOON AS ONE OF THE FOLLOWING IS REACHED
 //    private final int FASTA_RECORD_LEN = 8192;    
 //    private final int FASTA_BUFFER_SIZE = 128; //THAT MANY FASTA RECORDS
-    private final int FASTQ_BUFFER_SIZE = 1024; //THAT MANY FASTQ RECORDS
-    private final int KMER_BUFFER_SIZE = 8192; // //THAT MANY KMERS 
+    private int FASTQ_BUFFER_SIZE = 1024; //THAT MANY FASTQ RECORDS
+    private int KMER_BUFFER_SIZE = 8192; // //THAT MANY KMERS 
 //    private final int KMER_REPORTING_MULTIPLY = 2; //nice to use 2 if KMER_BUFFER_SIZE is a power of2 or 10 if it is a power of 10 
     private final String TOOL_NAME;
     private String RECORD_NAME = "kmers";
@@ -57,11 +57,13 @@ public class InputReaderProducer implements Runnable {
     }
 //    private final Task task; //readFastqNotKmerSet;
 
-    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, String toolName) {
+    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, String toolName, String RECORD_NAME, int RECORD_BUFFER_SIZE) {
         this.queue = queue;
         this.inputFiles = inputFiles;
         KMER_LENGTH = k;
         TOOL_NAME = toolName;
+        KMER_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+        FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
     }
 
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, MerMap map, String toolName ) {

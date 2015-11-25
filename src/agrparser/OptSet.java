@@ -184,14 +184,13 @@ public class OptSet {
         //Generate usage string
         StringBuilder usage = new StringBuilder();
         usage.append("java -jar ").append(mainClassName).append(".jar ").append(moduleName);
-        
 
         //Generate help page
         StringBuilder help = new StringBuilder();
         int listingGroup = -1;
         boolean hasRequiredOption = false;
-        
-        HashMap<Integer,String> footnotes = new HashMap<>();
+
+        HashMap<Integer, String> footnotes = new HashMap<>();
         for (int i = 0; i < getOptsList().size(); i++) {
             Opt opt = getOptsList().get(i);
             //Split option groups
@@ -221,7 +220,7 @@ public class OptSet {
                 help.append("    ");
             }
             if (opt.getMaxValueArgs() == 1) {
-                help.append(" <arg> ");                
+                help.append(" <arg> ");
             } else if (opt.getMaxValueArgs() > 1) {
                 help.append(" <args>");
             } else {
@@ -232,9 +231,9 @@ public class OptSet {
             help.append(gap).append(": ");
             StringBuilder helpLine = new StringBuilder();
             if (opt.isRequired()) {
-                helpLine.append("* ");
-                hasRequiredOption = true;                
-                if(opt.hasShortKey()) {
+                helpLine.append("[*] ");
+                hasRequiredOption = true;
+                if (opt.hasShortKey()) {
                     usage.append(" ").append(opt.getOptLabelShort());
                 }
             }
@@ -254,17 +253,29 @@ public class OptSet {
                 helpLine.append("; ");
                 ArrayList<Integer> keys = opt.getFootnoteKeys();
                 for (Integer key : keys) {
-                    helpLine.append("[").append(key).append("]");                    
+                    helpLine.append("[").append(key).append("]");
+                    footnotes.put(key, opt.getFootnote(key));
                 }
             }
             help.append(Reporter.wrapString(helpLine.toString(), helpLineWidth, offset));
             help.append(System.lineSeparator());
         }
         if (hasRequiredOption) {
-            help.append(System.lineSeparator()).append("* - denotes a required option");
+            help.append(System.lineSeparator()).append("[*] Denotes a required argument.");
+        }
+        //Print footnotes
+        if (!footnotes.isEmpty()) {
+            ArrayList<Integer> keys = new ArrayList<>(footnotes.size());
+            for (Integer k : footnotes.keySet()) {
+                keys.add(k);
+            }
+            Collections.sort(keys);
+            for (Integer key : keys) {
+                help.append(System.lineSeparator()).append("[").append(key).append("] ").append(footnotes.get(key));
+            }
         }
         
-        
+
         //finish building usage string
         if (!getOptsList().isEmpty()) {
             usage.append(" [options]");
@@ -317,7 +328,5 @@ public class OptSet {
         }
         return "";
     }
-    
-    
 
 }

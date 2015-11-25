@@ -48,7 +48,7 @@ public class SplitterConsumerProducer implements Runnable {
 //    private final Integer MIN_KMER_FREQUENCY;
 //    private final Integer MAX_KMER_FREQUENCY;
 //    private final String OUT_LABEL;
-    private final int BUFFER_SIZE = 1024; // //THAT MANY RECORDS 
+    private final int OUT_BUFFER_SIZE;
     private final KeyMap keyMap;
     private final String TOOL_NAME;
     private final boolean TRIM_BARCODE;
@@ -58,7 +58,7 @@ public class SplitterConsumerProducer implements Runnable {
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
             KeyMap keyMap, String toolName, boolean trimBarcode,
-            Integer MIN_LENGTH_READ, Integer MIN_LENGTH_PAIR) {
+            Integer MIN_LENGTH_READ, Integer MIN_LENGTH_PAIR, int OUT_BUFFER_SIZE) {
         this.inputQueue = inputQueue;
         this.keyMap = keyMap;
         this.TOOL_NAME = toolName;
@@ -66,6 +66,7 @@ public class SplitterConsumerProducer implements Runnable {
 //        this.PRODUCER_THREADS = producerThreads;
         this.MIN_LENGTH_READ = MIN_LENGTH_READ;
         this.MIN_LENGTH_PAIR = MIN_LENGTH_PAIR;
+        this.OUT_BUFFER_SIZE = OUT_BUFFER_SIZE;
     }
 
     @Override
@@ -94,13 +95,13 @@ public class SplitterConsumerProducer implements Runnable {
                                 String sample = entrySet.getValue();
                                 ArrayList<String> bufferList = sampleToBufferMap.get(sample);
                                 if (bufferList == null) { //nothing yet for this sample
-                                    bufferList = new ArrayList<>(BUFFER_SIZE);
+                                    bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
-                                if (bufferList.size() == BUFFER_SIZE) { //buffer full, place on queue to write and start a new buffer
+                                if (bufferList.size() == OUT_BUFFER_SIZE) { //buffer full, place on queue to write and start a new buffer
                                     BlockingQueue<ArrayList<String>> outputQueue = sampleToQueueMap.get(sample);
                                     outputQueue.put(bufferList);
-                                    bufferList = new ArrayList<>(BUFFER_SIZE);
+                                    bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
                                 StringBuilder sb1 = new StringBuilder();
@@ -112,7 +113,11 @@ public class SplitterConsumerProducer implements Runnable {
                                 }
                                 sb1.append(trimmed); //sequence (possibly trimmed)
                                 sb1.append("\t").append(tokenizer.nextToken()); //redundant id or '+
-                                sb1.append("\t").append(tokenizer.nextToken()); //qual line
+                                if (TRIM_BARCODE) {
+                                    sb1.append("\t").append(tokenizer.nextToken().substring(barcode.length())); //trim qual line                                    
+                                } else {
+                                    sb1.append("\t").append(tokenizer.nextToken()); //qual line
+                                }
                                 int mateLen = 0;
                                 if (tokenizer.hasMoreTokens()) {
                                     sb2.append(tokenizer.nextToken()); //mate id                                            

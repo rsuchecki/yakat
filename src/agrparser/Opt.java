@@ -531,6 +531,10 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     public boolean hasFootnotes() {
         return footnotesMap != null;
     }
+    
+    public String getFootnote(int key) {
+        return footnotesMap.get(key);
+    }
    
     
 }

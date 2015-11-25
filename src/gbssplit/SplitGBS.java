@@ -32,10 +32,12 @@ import shared.Reporter;
  */
 public class SplitGBS {
 
+    private final int IN_BUFFER_SIZE;
+    private final int IN_Q_CAPACITY ;
+    
     private String KEY_FILE_NAME;
     private String OUT_DIR;
     private final String TOOL_NAME;
-    private int SPLITTER_THREADS = 1;
     private boolean TRIM_BARCODE = true;
     private final int MIN_LENGTH_READ;
     private final int MIN_LENGTH_PAIR;
@@ -43,6 +45,11 @@ public class SplitGBS {
     private final String R2_SUFFIX;
     private final String SE_SUFFIX;
     private final String BLANK_SAMPLE_NAME; //can be repeated so name will get extended with remaining key file columns
+    
+    private int SPLITTER_THREADS = 1;
+    private final int OUT_BUFFER_SIZE;
+    private final int OUT_Q_CAPACITY ;
+    
     
     private final int HELP_WIDTH = 175;
 
@@ -53,6 +60,8 @@ public class SplitGBS {
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
         TOOL_NAME = callerName + " " + toolName;
         //PARSE OPTS
+        IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
+        IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
         KEY_FILE_NAME = (String) optSet.getOpt("-K").getValueIfSingle();
         BLANK_SAMPLE_NAME = (String) optSet.getOpt("B").getValueOrDefault();
         OUT_DIR = (String) optSet.getOpt("o").getValueOrDefault();        
@@ -62,10 +71,14 @@ public class SplitGBS {
         }
         MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
         MIN_LENGTH_PAIR = (int) optSet.getOpt("p").getValueOrDefault();
-        SPLITTER_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
         R1_SUFFIX = (String) optSet.getOpt("-x").getValueOrDefault();
         R2_SUFFIX = (String) optSet.getOpt("-X").getValueOrDefault();
         SE_SUFFIX = (String) optSet.getOpt("-S").getValueOrDefault();
+        
+        SPLITTER_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
+        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
+        OUT_Q_CAPACITY = (int) optSet.getOpt("q").getValueOrDefault();
+        
         
 //        for(Opt o: optSet.getOptsList()) {
 //            Reporter.report("[INFO]", o.getOptLabelString()+" "+o.getValueOrDefault(), toolName);
@@ -87,8 +100,12 @@ public class SplitGBS {
         optSet.setListingGroupLabel("[Input options]");
         optSet.addOpt(new Opt('K', "key-file", "Key file name ", 1).setRequired(true));
         optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
-        //OUTPUT
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output options]");
+        optSet.addOpt(new Opt('U', "in-buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
+                + "passed to in-queue", 1024, 128, 8092));
+        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up. ", 
+                2, 1, 256));
+        //OUTPUT & RUNTIME
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime and output options]");
         optSet.addOpt(new Opt('o', "out-dir", "Output directory", 1).setDefaultValue("out_split"));
         optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
         optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
@@ -96,15 +113,13 @@ public class SplitGBS {
         optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
         optSet.addOpt(new Opt('r', "min-length-per-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1));
         optSet.addOpt(new Opt('p', "min-length-per-pair", "Only output a read pair if combined length is no less than <arg> bp", 2, 2, null, 1, 1));
-        //RUNTIME
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime options]");
         optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
                 + "i/o is the likely bottleneck and a writing thread will be spawned per each sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
         int footId = 1;
-        String footText = "Carefully increase to sacrifice memory for speed. Decrease if incountering Out of memory errors.";
-        optSet.addOpt(new Opt('u', "buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
-                + "handled by a thread (one per sample)", 1024, 64, 8092).addFootnote(footId, footText));
-        optSet.addOpt(new Opt('q', "queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up. ", 
+        String footText = "Consider increasing to sacrifice memory for speed. Decrease if incountering Out of memory errors.";
+        optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
+                + "passed to out-queue", 1024, 64, 8092).addFootnote(footId, footText));
+        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up. ", 
                 2, 1, 32).addFootnote(footId, footText));
         
         //POSITIONAL
@@ -113,7 +128,7 @@ public class SplitGBS {
     }
 
     private void splitFiles(ArrayList<String> inputFilenamesList) {
-        KeyMap keyMap = new KeyMap(KEY_FILE_NAME, TOOL_NAME, BLANK_SAMPLE_NAME);
+        KeyMap keyMap = new KeyMap(KEY_FILE_NAME, TOOL_NAME, BLANK_SAMPLE_NAME, OUT_Q_CAPACITY);
 
 //        ArrayList<String> r1 = new ArrayList<>();
 //        ArrayList<String> r2 = new ArrayList<>();
@@ -147,14 +162,14 @@ public class SplitGBS {
         //READ INPUT AND POPULATE PairMers MAP
 //            int threads = Math.max(Runtime.getRuntime().availableProcessors(), 6);
 
-        BlockingQueue inputQueue = new ArrayBlockingQueue(2);
+        BlockingQueue inputQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
 //            boolean stranded = false;
         int ioThreads = keyMap.getSamplesTotal() + 1;
         ArrayList<Future<?>> ioFutures = new ArrayList<>(ioThreads);
         final ExecutorService ioExecutorService = new ThreadPoolExecutor(ioThreads, ioThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         //SPAWN INPUT READING THREAD
-        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, k, TOOL_NAME);
+        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, k, TOOL_NAME, "records", IN_BUFFER_SIZE);
         ioFutures.add(ioExecutorService.submit(inputReaderProducer));
 
         long timeStart = System.currentTimeMillis();
@@ -178,7 +193,8 @@ public class SplitGBS {
         ArrayList<Future<?>> splittersFutures = new ArrayList<>(SPLITTER_THREADS);
 //        AtomicInteger splitterThreads = new AtomicInteger(SPLITTER_THREADS);
         for (int i = 0; i < SPLITTER_THREADS; i++) {
-            splittersFutures.add(splitterExecutorService.submit(new SplitterConsumerProducer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE, MIN_LENGTH_READ, MIN_LENGTH_PAIR)));
+            splittersFutures.add(splitterExecutorService.submit(new SplitterConsumerProducer(inputQueue, keyMap, TOOL_NAME, TRIM_BARCODE, 
+                    MIN_LENGTH_READ, MIN_LENGTH_PAIR, OUT_BUFFER_SIZE)));
         }
 
         //WRITER THREADS
@@ -204,7 +220,7 @@ public class SplitGBS {
         } catch (InterruptedException e) {
             Reporter.report("[ERROR]", "interrupted exception!", getClass().getSimpleName());
         } catch (ExecutionException ex) {
-            Reporter.report("[ERROR]", "execution exception! " + ex.getCause(), getClass().getSimpleName());
+            Reporter.report("[ERROR]", "execution exception! " + ex.getCause().getMessage(), getClass().getSimpleName());
             ex.printStackTrace();
         } catch (TimeoutException ex) {
             Reporter.report("[ERROR]", "timeout exception!", getClass().getSimpleName());
