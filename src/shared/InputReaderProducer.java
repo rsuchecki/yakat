@@ -64,6 +64,7 @@ public class InputReaderProducer implements Runnable {
         TOOL_NAME = toolName;
         KMER_BUFFER_SIZE = RECORD_BUFFER_SIZE;
         FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+        this.RECORD_NAME = RECORD_NAME;
     }
 
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, MerMap map, String toolName ) {
