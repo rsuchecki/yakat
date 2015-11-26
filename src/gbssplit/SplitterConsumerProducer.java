@@ -66,7 +66,7 @@ public class SplitterConsumerProducer implements Runnable {
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
             KeyMap keyMap, String toolName, int OUT_BUFFER_SIZE, OptSet optSet,
-           ArrayList<Message> finalMessages ) {
+            ArrayList<Message> finalMessages) {
 
         this.inputQueue = inputQueue;
         this.keyMap = keyMap;
@@ -96,6 +96,9 @@ public class SplitterConsumerProducer implements Runnable {
             long trimmedMspIcount = 0L;
             long trimmedPstIcount = 0L;
             long trimmedBothCutSitesInPair = 0L;
+            long pairUnderLenSum = 0L;
+            long pairedReadUnderLen = 0L;
+            long singleUnderLength = 0L;
             long lines = 0L;
             while (!(list = inputQueue.take()).isEmpty()) {
 
@@ -107,7 +110,7 @@ public class SplitterConsumerProducer implements Runnable {
 //                    String id = tokenizer.nextToken();
 //                    ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(id.substring(1).replaceAll(":.*", ""));
                     ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(toks[0].substring(1).replaceAll(":.*", ""));
-                    
+
                     if (barcodes != null) {
                         int matchingBarcodes = 0;
                         for (Map.Entry<String, String> entrySet : barcodes.entrySet()) {
@@ -155,7 +158,7 @@ public class SplitterConsumerProducer implements Runnable {
                                 if (toks.length == 8) {
                                     builderR2.append(toks[4]); //mate id                                            
                                     if (TRIM_ADAPTERS) {
-                                        int trimFrom = toks[5].indexOf("CTGCA"+SequenceOps.getReverseComplementString(barcode));
+                                        int trimFrom = toks[5].indexOf("CTGCA" + SequenceOps.getReverseComplementString(barcode));
                                         if (trimFrom >= 0) {
                                             toks[5] = toks[5].substring(0, trimFrom);
                                             toks[7] = toks[7].substring(0, trimFrom);
@@ -170,16 +173,32 @@ public class SplitterConsumerProducer implements Runnable {
                                 if (mateLen >= MIN_LENGTH_PAIR_EACH && toks[1].length() >= MIN_LENGTH_PAIR_EACH && mateLen + toks[1].length() >= MIN_LENGTH_PAIR_SUM) {
                                     bufferList.add(builderR1.append("\t").append(builderR2).toString());
                                 } else {
+                                    if (toks.length == 8) {
+                                        if (mateLen + toks[1].length() < MIN_LENGTH_PAIR_SUM) {
+                                            pairUnderLenSum++;
+                                        }
+                                        if (toks[1].length() < MIN_LENGTH_PAIR_EACH) {
+                                            pairedReadUnderLen++;
+                                        }
+                                        if (mateLen < MIN_LENGTH_PAIR_EACH) {
+                                            pairedReadUnderLen++;
+                                        }
+                                    }
                                     if (toks[1].length() >= MIN_LENGTH_READ) {
                                         bufferList.add(builderR1.toString());
+                                    } else {
+                                        singleUnderLength++;
                                     }
                                     if (mateLen >= MIN_LENGTH_READ) {
                                         bufferList.add(builderR2.toString());
+                                    } else {
+                                        singleUnderLength++;
                                     }
                                 }
-                                if(trimmedMspI && trimmedPstI) {
+
+                                if (trimmedMspI && trimmedPstI) {
                                     trimmedBothCutSitesInPair++;
-                                } else if(trimmedMspI){
+                                } else if (trimmedMspI) {
                                     trimmedMspIcount++;
                                 } else if (trimmedPstI) {
                                     trimmedPstIcount++;
@@ -217,11 +236,15 @@ public class SplitterConsumerProducer implements Runnable {
 //            }
             inputQueue.put(new ArrayList<String>()); //inform other threads
             if (lines > 0) {
-                finalMessages.add(new Message(Message.Level.INFO, "[" + Thread.currentThread().getName() + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME));
-                if(TRIM_ADAPTERS) {                    
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + Thread.currentThread().getName() + "] Trimmed both PstI read-through and MspI+adapter in "+NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair)+" pairs", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + Thread.currentThread().getName() + "] Trimmed only PstI read-through in "+NumberFormat.getNumberInstance().format(trimmedPstIcount)+" reads", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + Thread.currentThread().getName() + "] Trimmed only MspI+adapter in "+NumberFormat.getNumberInstance().format(trimmedMspIcount)+" reads", TOOL_NAME));                
+                String name = Thread.currentThread().getName();
+                finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME));
+                if (TRIM_ADAPTERS) {
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed both PstI read-through and MspI+adapter in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed only PstI read-through in " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " reads", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed only MspI+adapter in " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " reads", TOOL_NAME));                    
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(pairUnderLenSum) + " pairs under combined length " + MIN_LENGTH_PAIR_SUM, TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(pairedReadUnderLen) + " paired reads under length " + MIN_LENGTH_PAIR_EACH, TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(singleUnderLength) + " single reads under length " + MIN_LENGTH_READ, TOOL_NAME));
                 }
             }
 
@@ -231,9 +254,5 @@ public class SplitterConsumerProducer implements Runnable {
             e.printStackTrace();
         }
     }
-
-    
-    
-    
 
 }

@@ -111,7 +111,7 @@ public class SplitGBS {
         optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
         optSet.addOpt(new Opt('a', "keep-adapters", "Do not trim adapters found next to PstI and MspI sites "));        
         int footId = 1;
-        String footText1 = "Note that ceratin combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
+        String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
         optSet.addOpt(new Opt('r', "min-length-single-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1).addFootnote(footId, footText1));
         optSet.addOpt(new Opt('e', "min-length-pair-each", "Only output a read pair if length of each is no less than <arg> bp, otherwise process as single", 1, 1, null, 1, 1).addFootnote(footId, footText1));
         optSet.addOpt(new Opt('s', "min-length-pair-sum",  "Only output a read pair if combined length is no less than <arg> bp, otherwise process as single", 2, 2, null, 1, 1).addFootnote(footId, footText1));
@@ -126,7 +126,7 @@ public class SplitGBS {
         optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
         optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
         footId++;
-        String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if incountering Out of memory errors.";
+        String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if encountering 'out of memory' errors.";
         optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
                 + "passed to out-queue", 1024, 64, 8092).addFootnote(footId, footText2));
         optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up. ", 
