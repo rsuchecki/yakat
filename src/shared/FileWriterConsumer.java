@@ -37,7 +37,7 @@ public class FileWriterConsumer implements Runnable {
 
     private final BlockingQueue<ArrayList<String>> outputQueue;
     private final int BUFFER_SIZE = 8192; // 
-    private final String RECORD_NAME = "lines";
+    private final String RECORD_NAME = "FASTQ records";
     private final String TOOL_NAME;
     private final String DIR_NAME;
     private final String FILE_NAME;
@@ -114,7 +114,8 @@ public class FileWriterConsumer implements Runnable {
 //            }
 
             ArrayList<String> list;
-            long outputCount = 0L;
+            long outputCountPaired = 0L;
+            long outputCountSingle = 0L;
             boolean appendPE = true;
             boolean appendSE = true;
             
@@ -124,7 +125,7 @@ public class FileWriterConsumer implements Runnable {
 //                    PRODUCER_THREADS.decrementAndGet();
 //                    continue;
 //                }
-                outputCount += list.size();
+//                outputCount += list.size();
 //                if (task == Task.WRITE_FASTQ_SE) {
 //                    writer.write(read.replaceAll("\t", newline));
 //                } else if (task == Task.WRITE_FASTQ_PE) {
@@ -143,6 +144,7 @@ public class FileWriterConsumer implements Runnable {
                             appendSE = true;
                         }
                         writerOrphans.write(sbOrphans.toString());
+                        outputCountSingle++;
                     } else if (splits.length == 8) {
                         if (writer1 == null) {
                             //create 2 writers                    
@@ -156,6 +158,7 @@ public class FileWriterConsumer implements Runnable {
                         }
                         writer1.write(sb1.toString());
                         writer2.write(sb2.toString());
+                        outputCountPaired++;
                     } else {
                         System.err.println("Output writer error, expecting fastq record to have 4 or 8 tab delimited fields! Offending line:\n" + line);
                         System.err.println("Terminating!");
@@ -176,8 +179,9 @@ public class FileWriterConsumer implements Runnable {
                     writerOrphans = null;
                 }
             }
-            if (outputCount > 0) {
-                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
+            if (outputCountPaired > 0 || outputCountSingle > 0) {
+                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCountPaired) + " (PE) and "
+                        + outputCountSingle+" (SE) "+ RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
 //                Reporter.report("[INFO]", "[Thread " + Thread.currentThread().getId()+"] "+NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
             }
         } catch (FileNotFoundException ex) {
