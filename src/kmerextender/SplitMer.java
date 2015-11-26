@@ -16,6 +16,8 @@
 
 package kmerextender;
 
+import shared.SequenceOps;
+
 /**
  * One of the two representations of a k-mer, with one of the ends (typically 1 base)
  * stored separately from the reminder (core - typically k-1 bases). 

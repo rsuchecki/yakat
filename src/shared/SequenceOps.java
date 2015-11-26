@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package kmerextender;
+package shared;
 
 /**
  * Generic methods for handling nucleotide strings.

@@ -29,6 +29,7 @@
  */
 package gbssplit;
 
+import agrparser.OptSet;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
@@ -36,7 +37,10 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
+import shared.Message;
 import shared.Reporter;
+import shared.SequenceOps;
 
 /**
  *
@@ -51,22 +55,34 @@ public class SplitterConsumerProducer implements Runnable {
     private final int OUT_BUFFER_SIZE;
     private final KeyMap keyMap;
     private final String TOOL_NAME;
-    private final boolean TRIM_BARCODE;
+    private boolean TRIM_BARCODE = true;
+    private boolean TRIM_ADAPTERS = true;
 //    private AtomicInteger PRODUCER_THREADS;
-    private Integer MIN_LENGTH_READ;
-    private Integer MIN_LENGTH_PAIR;
+    private final int MIN_LENGTH_READ;
+    private final int MIN_LENGTH_PAIR_SUM;
+    private final int MIN_LENGTH_PAIR_EACH;
+    private final String ADAPTER;
+    private ArrayList<Message> finalMessages;
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
-            KeyMap keyMap, String toolName, boolean trimBarcode,
-            Integer MIN_LENGTH_READ, Integer MIN_LENGTH_PAIR, int OUT_BUFFER_SIZE) {
+            KeyMap keyMap, String toolName, int OUT_BUFFER_SIZE, OptSet optSet,
+           ArrayList<Message> finalMessages ) {
+
         this.inputQueue = inputQueue;
         this.keyMap = keyMap;
         this.TOOL_NAME = toolName;
-        this.TRIM_BARCODE = trimBarcode;
-//        this.PRODUCER_THREADS = producerThreads;
-        this.MIN_LENGTH_READ = MIN_LENGTH_READ;
-        this.MIN_LENGTH_PAIR = MIN_LENGTH_PAIR;
         this.OUT_BUFFER_SIZE = OUT_BUFFER_SIZE;
+        if (optSet.getOpt("keep-barcodes").getOptFlag()) {
+            TRIM_BARCODE = false;
+        }
+        if (optSet.getOpt("keep-adapters").getOptFlag()) {
+            TRIM_BARCODE = false;
+        }
+        ADAPTER = (String) optSet.getOpt("A").getValueOrDefault();
+        MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
+        MIN_LENGTH_PAIR_EACH = (int) optSet.getOpt("e").getValueOrDefault();
+        MIN_LENGTH_PAIR_SUM = (int) optSet.getOpt("s").getValueOrDefault();
+        this.finalMessages = finalMessages;
     }
 
     @Override
@@ -75,22 +91,28 @@ public class SplitterConsumerProducer implements Runnable {
             ConcurrentHashMap<String, ArrayList<String>> sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
             ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> sampleToQueueMap = keyMap.getSampleToQueueMap();
             ArrayList<String> list;
+            Pattern spliPattern = Pattern.compile("\t");
             long noBarcodeMatch = 0L;
+            long trimmedMspIcount = 0L;
+            long trimmedPstIcount = 0L;
+            long trimmedBothCutSitesInPair = 0L;
             long lines = 0L;
             while (!(list = inputQueue.take()).isEmpty()) {
 
 //            while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     lines++;
-                    StringTokenizer tokenizer = new StringTokenizer(line);
-                    String id = tokenizer.nextToken();
-                    ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(id.substring(1).replaceAll(":.*", ""));
+//                    StringTokenizer tokenizer = new StringTokenizer(line);
+                    String toks[] = spliPattern.split(line);
+//                    String id = tokenizer.nextToken();
+//                    ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(id.substring(1).replaceAll(":.*", ""));
+                    ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(toks[0].substring(1).replaceAll(":.*", ""));
+                    
                     if (barcodes != null) {
-                        String sequence = tokenizer.nextToken();
                         int matchingBarcodes = 0;
                         for (Map.Entry<String, String> entrySet : barcodes.entrySet()) {
                             String barcode = entrySet.getKey();
-                            if (sequence.startsWith(barcode)) {
+                            if (toks[1].startsWith(barcode)) {
                                 matchingBarcodes++;
                                 String sample = entrySet.getValue();
                                 ArrayList<String> bufferList = sampleToBufferMap.get(sample);
@@ -104,47 +126,73 @@ public class SplitterConsumerProducer implements Runnable {
                                     bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
-                                StringBuilder sb1 = new StringBuilder();
-                                StringBuilder sb2 = new StringBuilder();
-                                sb1.append(id).append("\t"); //id
-                                String trimmed = sequence;
+                                //TRIM AND ASSESS RECORDS
+                                StringBuilder builderR1 = new StringBuilder();
+                                StringBuilder builderR2 = new StringBuilder();
+                                builderR1.append(toks[0]); //id
                                 if (TRIM_BARCODE) {
-                                    trimmed = sequence.substring(barcode.length());
+                                    toks[1] = toks[1].substring(barcode.length());
+                                    toks[3] = toks[3].substring(barcode.length());
                                 }
-                                sb1.append(trimmed); //sequence (possibly trimmed)
-                                sb1.append("\t").append(tokenizer.nextToken()); //redundant id or '+
-                                if (TRIM_BARCODE) {
-                                    sb1.append("\t").append(tokenizer.nextToken().substring(barcode.length())); //trim qual line                                    
-                                } else {
-                                    sb1.append("\t").append(tokenizer.nextToken()); //qual line
+                                boolean trimmedMspI = false;
+                                if (TRIM_ADAPTERS) {
+                                    int trimFrom = toks[1].indexOf("CCG" + ADAPTER);
+                                    if (trimFrom >= 0) {
+//                                        System.err.println(toks[1]+" <--BEFORE l="+toks[1].length());
+                                        toks[1] = toks[1].substring(0, trimFrom);
+//                                        System.err.println(toks[1]+" <--AFTER  l="+toks[1].length());
+//                                        System.err.println(toks[3]+" <--BEFORE l="+toks[3].length());
+                                        toks[3] = toks[3].substring(0, trimFrom);
+//                                        System.err.println(toks[3]+" <--AFTER  l="+toks[3].length());
+                                        trimmedMspI = true;
+                                    }
                                 }
+                                builderR1.append("\t").append(toks[1]); //sequence (possibly trimmed)
+                                builderR1.append("\t").append("+"); //redundant id or '+
+                                builderR1.append("\t").append(toks[3]); //qualline (possibly trimmed)
                                 int mateLen = 0;
-                                if (tokenizer.hasMoreTokens()) {
-                                    sb2.append(tokenizer.nextToken()); //mate id                                            
-                                    String mateSequence = tokenizer.nextToken();
-                                    mateLen = mateSequence.length();
-                                    sb2.append("\t").append(mateSequence);
-                                    sb2.append("\t").append(tokenizer.nextToken()); //redundant id or '+
-                                    sb2.append("\t").append(tokenizer.nextToken()); //qual line
+                                boolean trimmedPstI = false;
+                                if (toks.length == 8) {
+                                    builderR2.append(toks[4]); //mate id                                            
+                                    if (TRIM_ADAPTERS) {
+                                        int trimFrom = toks[5].indexOf("CTGCA"+SequenceOps.getReverseComplementString(barcode));
+                                        if (trimFrom >= 0) {
+                                            toks[5] = toks[5].substring(0, trimFrom);
+                                            toks[7] = toks[7].substring(0, trimFrom);
+                                            trimmedPstI = true;
+                                        }
+                                    }
+                                    builderR2.append("\t").append(toks[5]); //mate seq
+                                    builderR2.append("\t").append("+"); //redundant id or '+
+                                    builderR2.append("\t").append(toks[7]); //qual line
+                                    mateLen = toks[5].length();
                                 }
-                                if (mateLen >= MIN_LENGTH_READ && trimmed.length() >= MIN_LENGTH_READ && mateLen + trimmed.length() >= MIN_LENGTH_PAIR) {
-                                    bufferList.add(sb1.append("\t").append(sb2).toString());
-//                                } else {
-//                                    if (trimmed.length() >= MIN_LENGTH_READ) {
-//                                        bufferList.add(sb1.toString());
-//                                    }
-//                                    if (mateLen >= MIN_LENGTH_READ) {
-//                                        bufferList.add(sb2.toString());
-//                                    }
+                                if (mateLen >= MIN_LENGTH_PAIR_EACH && toks[1].length() >= MIN_LENGTH_PAIR_EACH && mateLen + toks[1].length() >= MIN_LENGTH_PAIR_SUM) {
+                                    bufferList.add(builderR1.append("\t").append(builderR2).toString());
+                                } else {
+                                    if (toks[1].length() >= MIN_LENGTH_READ) {
+                                        bufferList.add(builderR1.toString());
+                                    }
+                                    if (mateLen >= MIN_LENGTH_READ) {
+                                        bufferList.add(builderR2.toString());
+                                    }
                                 }
+                                if(trimmedMspI && trimmedPstI) {
+                                    trimmedBothCutSitesInPair++;
+                                } else if(trimmedMspI){
+                                    trimmedMspIcount++;
+                                } else if (trimmedPstI) {
+                                    trimmedPstIcount++;
+                                }
+                                break;
                             }
                         }
                         if (matchingBarcodes == 0) {
                             noBarcodeMatch++;
 //                            System.out.println(line);
-                        } else if (matchingBarcodes > 1) {
-                            Reporter.report("[ERROR]", "Sequence matching more than one barcode: " + sequence, TOOL_NAME);
-                            System.exit(1);
+//                        } else if (matchingBarcodes > 1) {
+//                            Reporter.report("[ERROR]", "Record matching more than one barcode " + spliPattern.split(line)[1], TOOL_NAME);
+//                            System.exit(1);
                         }
                     }
                 }
@@ -169,7 +217,12 @@ public class SplitterConsumerProducer implements Runnable {
 //            }
             inputQueue.put(new ArrayList<String>()); //inform other threads
             if (lines > 0) {
-                Reporter.report("[INFO]", "[" + Thread.currentThread().getName() + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME);
+                finalMessages.add(new Message(Message.Level.INFO, "[" + Thread.currentThread().getName() + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME));
+                if(TRIM_ADAPTERS) {                    
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + Thread.currentThread().getName() + "] Trimmed both PstI read-through and MspI+adapter in "+NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair)+" pairs", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + Thread.currentThread().getName() + "] Trimmed only PstI read-through in "+NumberFormat.getNumberInstance().format(trimmedPstIcount)+" reads", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + Thread.currentThread().getName() + "] Trimmed only MspI+adapter in "+NumberFormat.getNumberInstance().format(trimmedMspIcount)+" reads", TOOL_NAME));                
+                }
             }
 
         } catch (InterruptedException e) {
@@ -178,5 +231,9 @@ public class SplitterConsumerProducer implements Runnable {
             e.printStackTrace();
         }
     }
+
+    
+    
+    
 
 }

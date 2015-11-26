@@ -15,6 +15,7 @@
  */
 package kmerextender;
 
+import shared.SequenceOps;
 import shared.Reporter;
 
 /**
