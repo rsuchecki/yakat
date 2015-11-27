@@ -39,7 +39,7 @@ import shared.Reporter;
 public class KeyMap {
 
     private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> keyMap;
-    private ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> sampleToQueueMap;
+    private ConcurrentHashMap<String, BlockingQueue<SampleBuffer>> sampleToQueueMap;
     private final int OUT_Q_CAPACITY;
     private final String TOOL_NAME;
     private final String BLANK_SAMPLE_NAME;
@@ -96,13 +96,13 @@ public class KeyMap {
                         System.exit(1);
                     } else {
                         barcodeToSample.put(barcode, sample);
-                        sampleToQueueMap.put(sample, new ArrayBlockingQueue<ArrayList<String>>(OUT_Q_CAPACITY));
+                        sampleToQueueMap.put(sample, new ArrayBlockingQueue<SampleBuffer>(OUT_Q_CAPACITY));
                     }
                 } else {
                     ConcurrentHashMap<String, String> barcodeToSample = new ConcurrentHashMap<>();
                     barcodeToSample.put(barcode, sample);
                     keyMap.put(flowcell, barcodeToSample);
-                    sampleToQueueMap.put(sample, new ArrayBlockingQueue<ArrayList<String>>(OUT_Q_CAPACITY));
+                    sampleToQueueMap.put(sample, new ArrayBlockingQueue<SampleBuffer>(OUT_Q_CAPACITY));
                 }
             }
 
@@ -122,7 +122,7 @@ public class KeyMap {
         }
     }
 
-    public ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> getSampleToQueueMap() {
+    public ConcurrentHashMap<String, BlockingQueue<SampleBuffer>> getSampleToQueueMap() {
         return sampleToQueueMap;
     }
 

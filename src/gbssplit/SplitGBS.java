@@ -209,9 +209,9 @@ public class SplitGBS {
         }
 
         //WRITER THREADS
-        for (Map.Entry<String, BlockingQueue<ArrayList<String>>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
+        for (Map.Entry<String, BlockingQueue<SampleBuffer>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
             String sample = entrySet.getKey();
-            BlockingQueue<ArrayList<String>> queue = entrySet.getValue();
+            BlockingQueue<SampleBuffer> queue = entrySet.getValue();
 //            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, SPLITTER_THREADS)));
             ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(queue, TOOL_NAME, OUT_DIR, sample, SPLITTER_THREADS, R1_SUFFIX, R2_SUFFIX, SE_SUFFIX)));
 

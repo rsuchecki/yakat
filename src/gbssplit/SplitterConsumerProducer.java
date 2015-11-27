@@ -88,8 +88,8 @@ public class SplitterConsumerProducer implements Runnable {
     @Override
     public void run() {
         try {
-            ConcurrentHashMap<String, ArrayList<String>> sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
-            ConcurrentHashMap<String, BlockingQueue<ArrayList<String>>> sampleToQueueMap = keyMap.getSampleToQueueMap();
+            ConcurrentHashMap<String, SampleBuffer> sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
+            ConcurrentHashMap<String, BlockingQueue<SampleBuffer>> sampleToQueueMap = keyMap.getSampleToQueueMap();
             ArrayList<String> list;
             Pattern spliPattern = Pattern.compile("\t");
             long noBarcodeMatch = 0L;
@@ -118,15 +118,16 @@ public class SplitterConsumerProducer implements Runnable {
                             if (toks[1].startsWith(barcode)) {
                                 matchingBarcodes++;
                                 String sample = entrySet.getValue();
-                                ArrayList<String> bufferList = sampleToBufferMap.get(sample);
+//                                ArrayList<String> bufferList = sampleToBufferMap.get(sample);
+                                SampleBuffer bufferList = sampleToBufferMap.get(sample);
                                 if (bufferList == null) { //nothing yet for this sample
-                                    bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
+                                    bufferList = new SampleBuffer(sample, null, OUT_BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
                                 if (bufferList.size() == OUT_BUFFER_SIZE) { //buffer full, place on queue to write and start a new buffer
-                                    BlockingQueue<ArrayList<String>> outputQueue = sampleToQueueMap.get(sample);
+                                    BlockingQueue<SampleBuffer> outputQueue = sampleToQueueMap.get(sample);
                                     outputQueue.put(bufferList);
-                                    bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
+                                    bufferList = new SampleBuffer(sample, null, OUT_BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
                                 //TRIM AND ASSESS RECORDS
@@ -220,12 +221,12 @@ public class SplitterConsumerProducer implements Runnable {
             Set<String> keySet = sampleToQueueMap.keySet();
 
             for (String sample : keySet) {
-                BlockingQueue<ArrayList<String>> outQ = sampleToQueueMap.get(sample);
-                ArrayList<String> bufferList = sampleToBufferMap.get(sample);
+                BlockingQueue<SampleBuffer> outQ = sampleToQueueMap.get(sample);
+                SampleBuffer bufferList = sampleToBufferMap.get(sample);
                 if (bufferList != null && !bufferList.isEmpty()) {
                     outQ.put(bufferList);
                 }
-                outQ.put(new ArrayList<String>());//inform other threads
+                outQ.put(new SampleBuffer());//inform other threads
             }
 
 //            if (PRODUCER_THREADS.decrementAndGet() == 0) {

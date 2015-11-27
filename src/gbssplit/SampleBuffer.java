@@ -29,12 +29,24 @@ public class SampleBuffer {
     private boolean appendToOutputFile;
     private ArrayList<String> bufferedRecords;
 
-    public SampleBuffer(String sampleId, String outFileName, ArrayList<String> bufferedRecords) {
+    public SampleBuffer(String sampleId, String outFileName, int bufferSize) {
         this.sampleId = sampleId;
         this.outFileName = outFileName;
-        this.bufferedRecords = bufferedRecords;
+        this.bufferedRecords = new ArrayList<>(bufferSize);
     }
 
+    public SampleBuffer() {
+        this.sampleId = null;
+        this.outFileName = null;
+    }
+    
+    
+
+    public SampleBuffer resetBuffer(int bufferSize) {
+        this.bufferedRecords = new ArrayList<>(bufferSize);        
+        return this;
+    }
+    
     public String getSampleId() {
         return sampleId;
     }
@@ -51,8 +63,21 @@ public class SampleBuffer {
         return bufferedRecords;
     }
 
+    public int size() {
+        return bufferedRecords.size();
+    }
     
+    public void add(String record) {
+        bufferedRecords.add(record);
+    }
     
+    public boolean isEmpty() {
+        return bufferedRecords == null || bufferedRecords.isEmpty();
+    }
+     
+    public String remove(int index) {
+        return bufferedRecords.remove(index);
+    }
     
     
 }

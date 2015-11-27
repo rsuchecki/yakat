@@ -15,19 +15,16 @@
  */
 package shared;
 
+import gbssplit.SampleBuffer;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.GZIPOutputStream;
-import shared.Reporter;
 
 /**
  *
@@ -35,7 +32,7 @@ import shared.Reporter;
  */
 public class FileWriterConsumer implements Runnable {
 
-    private final BlockingQueue<ArrayList<String>> outputQueue;
+    private final BlockingQueue<SampleBuffer> outputQueue;
     private final int BUFFER_SIZE = 8192; // 
     private final String RECORD_NAME = "FASTQ records";
     private final String TOOL_NAME;
@@ -47,7 +44,8 @@ public class FileWriterConsumer implements Runnable {
     private final String SE_SUFFIX;
 
 
-    public FileWriterConsumer(BlockingQueue<ArrayList<String>> outputQueue, String TOOL_NAME, String DIR_NAME, String FILE_NAME, int PRODUCER_THREADS, String R1_SUFFIX, String R2_SUFFIX, String SE_SUFFIX) {
+    public FileWriterConsumer(BlockingQueue<SampleBuffer> outputQueue, String TOOL_NAME, String DIR_NAME, String FILE_NAME, 
+        int PRODUCER_THREADS, String R1_SUFFIX, String R2_SUFFIX, String SE_SUFFIX) {
         this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
         this.DIR_NAME = DIR_NAME;
@@ -94,41 +92,12 @@ public class FileWriterConsumer implements Runnable {
         BufferedWriter writer2 = null;
         BufferedWriter writerOrphans = null;
         try {
-//            if (task == Task.WRITE_FASTQ_PE) {
-//            if (!outputQueue.peek().isEmpty()) {
-//                GZIPOutputStream outStream = new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R1.fastq.gz"));
-//                writer = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R1.fastq.gz")), "UTF-8"));
-//                GZIPOutputStream outStream2 = new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R2.fastq.gz"));
-//            writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(FILE_NAME + "_R2.fastq.gz")), "UTF-8"));
-//            } else if (task == Task.WRITE_FASTQ_SE) {
-//                GZIPOutputStream outStream = new GZIPOutputStream(new FileOutputStream("tmp_SE.fastq.gz"));
-//                writer = new BufferedWriter(new OutputStreamWriter(outStream, "UTF-8"));
-//            } else if (task == Task.WRITE_FASTA_PE) {
-////                GZIPOutputStream outStream = new GZIPOutputStream(new FileOutputStream("tmp_R1.fastq.gz"));
-////                writer = new BufferedWriter(new OutputStreamWriter(outStream, "UTF-8"));
-////                GZIPOutputStream outStream2 = new GZIPOutputStream(new FileOutputStream("tmp_R2.fastq.gz"));
-////                writer2 = new BufferedWriter(new OutputStreamWriter(outStream2, "UTF-8"));
-//            } else if (task == Task.WRITE_FASTA_SE) {
-////                GZIPOutputStream outStream = new GZIPOutputStream(new FileOutputStream("tmp_SE.fastq.gz"));
-////                writer = new BufferedWriter(new OutputStreamWriter(outStream, "UTF-8"));
-//            }
-
-            ArrayList<String> list;
+            SampleBuffer list;
             long outputCountPaired = 0L;
             long outputCountSingle = 0L;
             boolean appendPE = true;
             boolean appendSE = true;
-            
             while (!(list = outputQueue.take()).isEmpty() || --PRODUCER_THREADS > 0) {
-
-
-//                    PRODUCER_THREADS.decrementAndGet();
-//                    continue;
-//                }
-//                outputCount += list.size();
-//                if (task == Task.WRITE_FASTQ_SE) {
-//                    writer.write(read.replaceAll("\t", newline));
-//                } else if (task == Task.WRITE_FASTQ_PE) {
                 while (!list.isEmpty()) {
                     String line = list.remove(list.size() - 1);
                     StringBuilder sb1 = new StringBuilder();
@@ -166,15 +135,12 @@ public class FileWriterConsumer implements Runnable {
                     }
                 }
                 if (writer1 != null) {
-//                    writer1.flush();
-//                    writer2.flush();
                     writer1.close();
                     writer2.close();
                     writer1 = null;
                     writer2 = null;
                 }
                 if (writerOrphans != null) {
-//                    writerOrphans.flush();
                     writerOrphans.close();
                     writerOrphans = null;
                 }
