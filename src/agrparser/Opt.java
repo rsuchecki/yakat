@@ -60,7 +60,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         this.shortKey = shortKey;
         this.longKey = longKey;
         this.helpString = helpString;
-        
+
     }
 
     /**
@@ -94,7 +94,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
      * @param listingGroupPosition
      */
     public Opt(Character shortKey, String longKey, String helpString, T defaultValue, T minValue, T maxValue,
-            Integer maxArgs, Integer minArgs, Integer listingGroup, Integer listingGroupPosition) {
+        Integer maxArgs, Integer minArgs, Integer listingGroup, Integer listingGroupPosition) {
         this.shortKey = shortKey;
         this.longKey = longKey;
         this.helpString = helpString;
@@ -151,7 +151,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
      * @param maxArgs [default=0]
      */
     public Opt(Character shortKey, String longKey, String helpString, T defaultValue, T minValue, T maxValue,
-            Integer minArgs, Integer maxArgs) {
+        Integer minArgs, Integer maxArgs) {
         this.shortKey = shortKey;
         this.longKey = longKey;
         this.helpString = helpString;
@@ -171,7 +171,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         if (maxValueArgs == 0) {
             Reporter.reportNoMem("[FATAL]", "Boolean flag must not carry args. Offending value" + valueString, getClass().getSimpleName());
             System.exit(1);
-        } else {        
+        } else {
             T value = (T) valueString;
             try {
                 if (hasMinValue() && compareValues(getMinValue(), valueString) < 0) {
@@ -186,12 +186,12 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
                     Reporter.reportNoMem("[FATAL]", "Option '" + getOptLabelString() + "' allows up to " + getMaxValueArgs() + " values, unable to add : " + valueString, getClass().getSimpleName());
                     System.exit(1);
                 }
-                if(hasDefaultValue()) {
+                if (hasDefaultValue()) {
                     value = convertToType(getDefaultValue(), valueString);
-                } else if (hasMinValue()){
-                    value = convertToType(getMinValue(), valueString);                    
-                } else if (hasMaxValue()){
-                    value = convertToType(getMaxValue(), valueString);                    
+                } else if (hasMinValue()) {
+                    value = convertToType(getMinValue(), valueString);
+                } else if (hasMaxValue()) {
+                    value = convertToType(getMaxValue(), valueString);
                 }
             } catch (ClassCastException | NumberFormatException | ParseException e) {
                 Reporter.reportNoMem("[FATAL]", "Possible reason(1): argument value type mismatch for option '" + getOptLabelString() + "', offending value: " + valueString, getClass().getSimpleName());
@@ -202,7 +202,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
             values.add(value);
         }
     }
-    
+
     private T convertToType(T storedValue, String inputValueString) throws NumberFormatException, ParseException {
         Integer i = 0;
         Long l = 0L;
@@ -223,7 +223,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     private Integer compareValues(T storedValue, String inputValueString) throws NumberFormatException, ParseException {
-        T value = convertToType(storedValue, inputValueString);       
+        T value = convertToType(storedValue, inputValueString);
         return value.compareTo(storedValue);
     }
 
@@ -267,23 +267,23 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     public String getOptLabelString() {
         StringBuilder sb = new StringBuilder();
         sb.append(getOptLabelShort());
-        if(hasShortKey() && hasLongKey()) {
+        if (hasShortKey() && hasLongKey()) {
             sb.append(" / ");
         }
         sb.append(getOptLabelLong());
         return sb.toString();
     }
-    
+
     public String getOptLabelStringQuoted() {
         StringBuilder sb = new StringBuilder("'");
         sb.append(getOptLabelShort());
-        if(hasShortKey() && hasLongKey()) {
+        if (hasShortKey() && hasLongKey()) {
             sb.append("' / '");
         }
         sb.append(getOptLabelLong()).append("'");
         return sb.toString();
     }
-    
+
     public String getOptLabelShort() {
         StringBuilder sb = new StringBuilder();
         if (hasShortKey()) {
@@ -296,7 +296,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         }
         return sb.toString();
     }
-    
+
     public String getOptLabelLong() {
         StringBuilder sb = new StringBuilder();
         if (hasLongKey()) {
@@ -327,7 +327,12 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     public T getDefaultValue() {
-        return defaultValue;
+        if (defaultValue != null) {
+            return defaultValue;
+        } else {
+//            Reporter.reportNoMem("[ERROR]", "No default value available for " + getOptLabelString(), getClass().getSimpleName());
+            return null;
+        }
     }
 
     public T getMinValue() {
@@ -403,7 +408,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
             if (values.size() == 1) {
                 return values.get(0);
             }
-        }        
+        }
         return getDefaultValue();
     }
 
@@ -477,49 +482,47 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         return this;
     }
 
-
-    public Opt  setMinValue(T minValue) {
+    public Opt setMinValue(T minValue) {
         this.minValue = minValue;
         return this;
     }
 
-    public Opt  setMaxValue(T maxValue) {
+    public Opt setMaxValue(T maxValue) {
         this.maxValue = maxValue;
         return this;
     }
 
-    public Opt  setMinValueArgs(Integer minValueArgs) {
+    public Opt setMinValueArgs(Integer minValueArgs) {
         this.minValueArgs = minValueArgs;
         return this;
     }
 
-    public Opt  setMaxValueArgs(int maxValueArgs) {
+    public Opt setMaxValueArgs(int maxValueArgs) {
         this.maxValueArgs = maxValueArgs;
         return this;
     }
-    
+
     public Opt setNumArgs(int numArgs) {
         this.minValueArgs = numArgs;
         this.maxValueArgs = numArgs;
         return this;
     }
 
-
     public Opt addFootnote(int id, String footnoteText) {
-        if(footnotesMap == null) {
+        if (footnotesMap == null) {
             footnotesMap = new HashMap<>(2);
         }
-        if(footnotesMap.containsKey(id)) {
-            Reporter.reportNoMem("[FATAL]", "Footnote ["+id+"] for option '" + getOptLabelString() + " already set to "+footnotesMap.get(id), getClass().getSimpleName());
+        if (footnotesMap.containsKey(id)) {
+            Reporter.reportNoMem("[FATAL]", "Footnote [" + id + "] for option '" + getOptLabelString() + " already set to " + footnotesMap.get(id), getClass().getSimpleName());
         } else {
             footnotesMap.put(id, footnoteText);
         }
         return this;
     }
-    
+
     public ArrayList<Integer> getFootnoteKeys() {
         ArrayList<Integer> keys = new ArrayList<>(footnotesMap.size());
-        for (Integer k: footnotesMap.keySet()) {
+        for (Integer k : footnotesMap.keySet()) {
             keys.add(k);
         }
         Collections.sort(keys);
@@ -529,14 +532,13 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     public HashMap<Integer, String> getFootnotesMap() {
         return footnotesMap;
     }
-    
+
     public boolean hasFootnotes() {
         return footnotesMap != null;
     }
-    
+
     public String getFootnote(int key) {
         return footnotesMap.get(key);
     }
-   
-    
+
 }

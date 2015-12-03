@@ -147,7 +147,7 @@ public class FileWriterConsumer implements Runnable {
             }
             if (outputCountPaired > 0 || outputCountSingle > 0) {
                 Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCountPaired) + " (PE) and "
-                        + outputCountSingle+" (SE) "+ RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
+                        + NumberFormat.getNumberInstance().format(outputCountSingle)+" (SE) "+ RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
 //                Reporter.report("[INFO]", "[Thread " + Thread.currentThread().getId()+"] "+NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
             }
         } catch (FileNotFoundException ex) {

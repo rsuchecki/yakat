@@ -57,6 +57,8 @@ public class SplitterConsumerProducer implements Runnable {
     private final String TOOL_NAME;
     private boolean TRIM_BARCODE = true;
     private boolean TRIM_ADAPTERS = true;
+    private boolean ONLY_COUNT = false; //no output produced if true
+
 //    private AtomicInteger PRODUCER_THREADS;
     private final int MIN_LENGTH_READ;
     private final int MIN_LENGTH_PAIR_SUM;
@@ -65,19 +67,18 @@ public class SplitterConsumerProducer implements Runnable {
     private ArrayList<Message> finalMessages;
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
-            KeyMap keyMap, String toolName, int OUT_BUFFER_SIZE, OptSet optSet,
-            ArrayList<Message> finalMessages) {
+        KeyMap keyMap, String toolName, int OUT_BUFFER_SIZE, OptSet optSet,
+        ArrayList<Message> finalMessages) {
 
         this.inputQueue = inputQueue;
         this.keyMap = keyMap;
         this.TOOL_NAME = toolName;
         this.OUT_BUFFER_SIZE = OUT_BUFFER_SIZE;
-        if (optSet.getOpt("keep-barcodes").getOptFlag()) {
-            TRIM_BARCODE = false;
-        }
-        if (optSet.getOpt("keep-adapters").getOptFlag()) {
-            TRIM_BARCODE = false;
-        }
+
+        TRIM_BARCODE = !optSet.getOpt("keep-barcodes").getOptFlag();
+        TRIM_ADAPTERS = !optSet.getOpt("keep-adapters").getOptFlag();
+        ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
+
         ADAPTER = (String) optSet.getOpt("A").getValueOrDefault();
         MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
         MIN_LENGTH_PAIR_EACH = (int) optSet.getOpt("e").getValueOrDefault();
@@ -123,10 +124,14 @@ public class SplitterConsumerProducer implements Runnable {
                                 if (bufferList == null) { //nothing yet for this sample
                                     bufferList = new SampleBuffer(sample, null, OUT_BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
+
                                 }
                                 if (bufferList.size() == OUT_BUFFER_SIZE) { //buffer full, place on queue to write and start a new buffer
                                     BlockingQueue<SampleBuffer> outputQueue = sampleToQueueMap.get(sample);
-                                    outputQueue.put(bufferList);
+                                    keyMap.addToSampleCount(sample, OUT_BUFFER_SIZE);
+                                    if (!ONLY_COUNT) {
+                                        outputQueue.put(bufferList);
+                                    }
                                     bufferList = new SampleBuffer(sample, null, OUT_BUFFER_SIZE);
                                     sampleToBufferMap.put(sample, bufferList);
                                 }
@@ -224,7 +229,10 @@ public class SplitterConsumerProducer implements Runnable {
                 BlockingQueue<SampleBuffer> outQ = sampleToQueueMap.get(sample);
                 SampleBuffer bufferList = sampleToBufferMap.get(sample);
                 if (bufferList != null && !bufferList.isEmpty()) {
-                    outQ.put(bufferList);
+                    if (!ONLY_COUNT) {
+                        outQ.put(bufferList);
+                    }
+                    keyMap.addToSampleCount(sample, bufferList.size());
                 }
                 outQ.put(new SampleBuffer());//inform other threads
             }
@@ -242,7 +250,7 @@ public class SplitterConsumerProducer implements Runnable {
                 if (TRIM_ADAPTERS) {
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed both PstI read-through and MspI+adapter in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed only PstI read-through in " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " reads", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed only MspI+adapter in " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " reads", TOOL_NAME));                    
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed only MspI+adapter in " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " reads", TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(pairUnderLenSum) + " pairs under combined length " + MIN_LENGTH_PAIR_SUM, TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(pairedReadUnderLen) + " paired reads under length " + MIN_LENGTH_PAIR_EACH, TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(singleUnderLength) + " single reads under length " + MIN_LENGTH_READ, TOOL_NAME));

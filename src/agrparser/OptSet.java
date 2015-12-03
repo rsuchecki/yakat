@@ -150,15 +150,20 @@ public class OptSet {
     }
 
     public Opt getOpt(String key) {
+        Opt opt = null;
         while (key.startsWith("-")) {
             key = key.replaceFirst("-", "");
         }
         if (key.length() == 1) {
-            return shortToOptMap.get(key.charAt(0));
+            opt = shortToOptMap.get(key.charAt(0));
         } else if (key.length() > 1) {
-            return longToOptMap.get(key);
+            opt = longToOptMap.get(key);
         }
-        return null;
+        if (opt == null) {
+            Reporter.report("[FATAL]", "Unknown option requested: " + key, this.getClass().getSimpleName());
+            System.exit(1);
+        }
+        return opt;
     }
 
     /**
@@ -274,7 +279,6 @@ public class OptSet {
                 help.append(System.lineSeparator()).append("[").append(key).append("] ").append(footnotes.get(key));
             }
         }
-        
 
         //finish building usage string
         if (!getOptsList().isEmpty()) {

@@ -23,8 +23,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -40,6 +38,8 @@ public class KeyMap {
 
     private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> keyMap;
     private ConcurrentHashMap<String, BlockingQueue<SampleBuffer>> sampleToQueueMap;
+    private ConcurrentHashMap<String, Long> sampleToCountMap;
+    
     private final int OUT_Q_CAPACITY;
     private final String TOOL_NAME;
     private final String BLANK_SAMPLE_NAME;
@@ -70,6 +70,7 @@ public class KeyMap {
     private void populateMap(String inputFile) {
         keyMap = new ConcurrentHashMap<>(1000);
         sampleToQueueMap = new ConcurrentHashMap<>(1000);
+        sampleToCountMap = new ConcurrentHashMap<>(1000);
         BufferedReader content = null;
         try {
             if (inputFile.endsWith(".gz")) {
@@ -97,12 +98,14 @@ public class KeyMap {
                     } else {
                         barcodeToSample.put(barcode, sample);
                         sampleToQueueMap.put(sample, new ArrayBlockingQueue<SampleBuffer>(OUT_Q_CAPACITY));
+//                        sampleToCountMap.put(sample, 0L);
                     }
                 } else {
                     ConcurrentHashMap<String, String> barcodeToSample = new ConcurrentHashMap<>();
                     barcodeToSample.put(barcode, sample);
                     keyMap.put(flowcell, barcodeToSample);
                     sampleToQueueMap.put(sample, new ArrayBlockingQueue<SampleBuffer>(OUT_Q_CAPACITY));
+//                    sampleToCountMap.put(sample, 0L);
                 }
             }
 
@@ -126,5 +129,16 @@ public class KeyMap {
         return sampleToQueueMap;
     }
 
+    public ConcurrentHashMap<String, Long> getSampleToCountMap() {
+        return sampleToCountMap;
+    }
+
+    public synchronized void addToSampleCount(String sample, long count) {
+        Long stored = sampleToCountMap.get(sample); 
+        if(stored == null) {
+            stored = 0L;
+        }
+        sampleToCountMap.put(sample, stored+count);
+    }
     
 }

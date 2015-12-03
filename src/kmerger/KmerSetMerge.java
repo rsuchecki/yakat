@@ -48,11 +48,11 @@ public class KmerSetMerge {
         } catch (NullPointerException e) {
         }
         try {
-            MIN_FREQUENCY = Integer.valueOf((String) optSet.getOpt("-m").getValueIfSingle());
+            MIN_FREQUENCY = (int)optSet.getOpt("-m").getValueIfSingle();
         } catch (NullPointerException | NumberFormatException e) {
         }
         try {
-            MAX_FREQUENCY = Integer.valueOf((String) optSet.getOpt("-M").getValueIfSingle());
+            MAX_FREQUENCY = (int) optSet.getOpt("-M").getValueIfSingle();
         } catch (NullPointerException | NumberFormatException e) {
         }
         ArrayList<PositionalOpt> positionalOptsList = optSet.getPositionalOptsList();
