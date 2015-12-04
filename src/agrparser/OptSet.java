@@ -109,7 +109,7 @@ public class OptSet {
             success = false;
 //            return false;
         } else {
-            longToOptMap.put(longKey, opt);
+            longToOptMap.put(longKey.toLowerCase(), opt);
         }
         if (!success) {
             System.err.println("Failed addOpt() operation for " + opt.getOptLabelString() + " due to arg key clash");
@@ -130,7 +130,7 @@ public class OptSet {
     }
 
     public Opt getOptL(String longArg) {
-        return longToOptMap.get(longArg);
+        return longToOptMap.get(longArg.toLowerCase());
     }
 
     public ArrayList<Opt> getOptsList() {
@@ -157,7 +157,7 @@ public class OptSet {
         if (key.length() == 1) {
             opt = shortToOptMap.get(key.charAt(0));
         } else if (key.length() > 1) {
-            opt = longToOptMap.get(key);
+            opt = longToOptMap.get(key.toLowerCase());
         }
         if (opt == null) {
             Reporter.report("[FATAL]", "Unknown option requested: " + key, this.getClass().getSimpleName());

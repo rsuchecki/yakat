@@ -57,6 +57,7 @@ public class SplitterConsumerProducer implements Runnable {
     private final String TOOL_NAME;
     private boolean TRIM_BARCODE = true;
     private boolean TRIM_ADAPTERS = true;
+    private boolean PSTI_STARTING_ONLY = true;
     private boolean ONLY_COUNT = false; //no output produced if true
 
 //    private AtomicInteger PRODUCER_THREADS;
@@ -77,6 +78,7 @@ public class SplitterConsumerProducer implements Runnable {
 
         TRIM_BARCODE = !optSet.getOpt("keep-barcodes").getOptFlag();
         TRIM_ADAPTERS = !optSet.getOpt("keep-adapters").getOptFlag();
+        PSTI_STARTING_ONLY = !optSet.getOpt("keep-non-PstI-starting").getOptFlag();
         ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
 
         ADAPTER = (String) optSet.getOpt("A").getValueOrDefault();
@@ -94,6 +96,7 @@ public class SplitterConsumerProducer implements Runnable {
             ArrayList<String> list;
             Pattern spliPattern = Pattern.compile("\t");
             long noBarcodeMatch = 0L;
+            long notPstIStart = 0L;
             long trimmedMspIcount = 0L;
             long trimmedPstIcount = 0L;
             long trimmedBothCutSitesInPair = 0L;
@@ -116,8 +119,12 @@ public class SplitterConsumerProducer implements Runnable {
                         int matchingBarcodes = 0;
                         for (Map.Entry<String, String> entrySet : barcodes.entrySet()) {
                             String barcode = entrySet.getKey();
-                            if (toks[1].startsWith(barcode)) {
+                            if (toks[1].startsWith(barcode)) {                                
                                 matchingBarcodes++;
+                                if(PSTI_STARTING_ONLY && !toks[1].startsWith(barcode+"TGCAG")) {
+                                    notPstIStart++;
+                                    break;
+                                }
                                 String sample = entrySet.getValue();
 //                                ArrayList<String> bufferList = sampleToBufferMap.get(sample);
                                 SampleBuffer bufferList = sampleToBufferMap.get(sample);
@@ -139,9 +146,15 @@ public class SplitterConsumerProducer implements Runnable {
                                 StringBuilder builderR1 = new StringBuilder();
                                 StringBuilder builderR2 = new StringBuilder();
                                 builderR1.append(toks[0]); //id
+                                
                                 if (TRIM_BARCODE) {
                                     toks[1] = toks[1].substring(barcode.length());
                                     toks[3] = toks[3].substring(barcode.length());
+//                                    if (PSTI_STARTING_ONLY && !toks[1].startsWith("TGCAG")) {
+//                                        continue;
+//                                    }
+//                                } else if (PSTI_STARTING_ONLY && !toks[1].startsWith(barcode + "TGCAG")) {
+
                                 }
                                 boolean trimmedMspI = false;
                                 if (TRIM_ADAPTERS) {
@@ -246,7 +259,12 @@ public class SplitterConsumerProducer implements Runnable {
             inputQueue.put(new ArrayList<String>()); //inform other threads
             if (lines > 0) {
                 String name = Thread.currentThread().getName();
-                finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(lines) + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch), TOOL_NAME));
+                String message = "[" + name + "] " + NumberFormat.getNumberInstance().format(lines) + 
+                    " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch);
+                if(PSTI_STARTING_ONLY) {
+                    message+=", non-PstI start detected in " + NumberFormat.getNumberInstance().format(notPstIStart);
+                }
+                finalMessages.add(new Message(Message.Level.INFO, message, TOOL_NAME));
                 if (TRIM_ADAPTERS) {
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed both PstI read-through and MspI+adapter in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed only PstI read-through in " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " reads", TOOL_NAME));

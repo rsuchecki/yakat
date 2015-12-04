@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package pileup2snps;
+package processpileup;
 
 import agrparser.ArgParser;
 import agrparser.Opt;
@@ -46,6 +46,7 @@ public class PileupStats {
     private final String TOOL_NAME;
     boolean IGNORE_SPLICING = true;
     private boolean SAMPLE_VS_REF = false;
+    private boolean PAIRWISE_OVERLAP = true;
 //    private String INPUT_FILE;
     private int READER_BUFFER_SIZE = 8192;
 //    private ArrayList<String> SAMPLE_NAMES;
@@ -63,7 +64,7 @@ public class PileupStats {
         String PILEUP_FILE = (String) optSet.getOpt("p").getValueOrDefault();
         Opt opt = optSet.getOpt("s");
         String SNP_FILE = (String) opt.getValueOrDefault();
-        
+        PAIRWISE_OVERLAP = !optSet.getOpt("P").isUsed();
         pileupStats(PILEUP_FILE, SAMPLE_NAMES, minCoverageThreshold, maxCoverageThreshold);
     }
 
@@ -76,13 +77,21 @@ public class PileupStats {
         optSet.addOpt(new Opt('C', "max-coverage-per-sample", "Maximum coverage allowed for a sample to be processed/considered", 1000, 1, 1000000));
         optSet.addOpt(new Opt('p', "pileup-file", "Input (m)pileup file, alternatively use stdin", 1));
         optSet.addOpt(new Opt('s', "snp-file", "List of snps which will be used to interrogate offspring coverage at (parent) SNP positions", 1));
+        optSet.addOpt(new Opt('P', "no-pairwise-overlap", "Do not calculate pairwise overlap - this should speed things up"));
 
         return optSet;
     }
 
     private void pileupStats(String inputFile, ArrayList<String> sampleIds, int minCoverageThreshold, int maxCoverageThreshold) {
 
-        int[][] pairwiseOverlapAtCoverage = new int[sampleIds.size()][sampleIds.size()];
+        int[][] pairwiseOverlapAtCoverage;
+
+        int[] cumulativeCoverage = new int[maxCoverageThreshold +2 ];
+        if (PAIRWISE_OVERLAP) {
+            pairwiseOverlapAtCoverage = new int[sampleIds.size()][sampleIds.size()];
+        } else {
+            pairwiseOverlapAtCoverage = null;
+        }
         int[][] samplesAtMinCoverage = new int[21][sampleIds.size() + 1];
         BufferedReader content = null;
         try {
@@ -96,22 +105,32 @@ public class PileupStats {
             }
             String line;
             while ((line = content.readLine()) != null && !line.isEmpty()) {
-                String[] toks = line.split("\t");                
+                String[] toks = line.split("\t");
                 int[] record = new int[sampleIds.size()];
                 int r = 0;
-                //tos 0,1,2 are ref, position, refbase                
+                int cumCoverage = 0;
+                //tos 0,1,2 are ref, position, refbase                                
                 for (int i = 3; i < toks.length; i += 3) {
                     try {
-                    record[r++] = Integer.parseInt(toks[i]);
+                        int coverage = Integer.parseInt(toks[i]);
+                        record[r++] = coverage;
+                        cumCoverage += coverage;
                     } catch (ArrayIndexOutOfBoundsException e) {
                         Reporter.report("[FATAL]", "Array index out of bounds - likely cause: mismatch between samples given and pileup file content", TOOL_NAME);
                         System.exit(1);
                     }
                 }
-                for (int i = 0; i < pairwiseOverlapAtCoverage.length; i++) {
-                    for (int j = 0; j < pairwiseOverlapAtCoverage[0].length; j++) {
-                        if (record[i] >= minCoverageThreshold && record[j] >= minCoverageThreshold && record[i] <= maxCoverageThreshold && record[j] <= maxCoverageThreshold) {
-                            pairwiseOverlapAtCoverage[j][i]++;
+                if (cumCoverage > maxCoverageThreshold+1) {
+                    cumulativeCoverage[maxCoverageThreshold]++;
+                } else {
+                    cumulativeCoverage[cumCoverage]++;
+                }
+                if (PAIRWISE_OVERLAP) {
+                    for (int i = 0; i < pairwiseOverlapAtCoverage.length; i++) {
+                        for (int j = 0; j < pairwiseOverlapAtCoverage[0].length; j++) {
+                            if (record[i] >= minCoverageThreshold && record[j] >= minCoverageThreshold && record[i] <= maxCoverageThreshold && record[j] <= maxCoverageThreshold) {
+                                pairwiseOverlapAtCoverage[j][i]++;
+                            }
                         }
                     }
                 }
@@ -126,22 +145,23 @@ public class PileupStats {
                     samplesAtMinCoverage[c][recordsAtOrOverCoverage]++;
                 }
             }
-            int maxLen = Math.max(String.valueOf(getMaxOfMatrix(pairwiseOverlapAtCoverage)).length() + 1, getMaxNameLen(sampleIds)) + 1;
-            System.out.println();
-            System.out.printf("%" + maxLen + "s", "");
-            for (String id : sampleIds) {
-                System.out.printf("%" + maxLen + "s", id);
-            }
-            System.out.println();
-            for (int i = 0; i < pairwiseOverlapAtCoverage.length; i++) {
-                System.out.printf("%" + maxLen + "s", sampleIds.get(i));
-                for (int j = 0; j < pairwiseOverlapAtCoverage[0].length; j++) {
-                    System.out.printf("%" + maxLen + "d", pairwiseOverlapAtCoverage[i][j]);
+            if (PAIRWISE_OVERLAP) {
+                int maxLen = Math.max(String.valueOf(getMaxOfMatrix(pairwiseOverlapAtCoverage)).length() + 1, getMaxNameLen(sampleIds)) + 1;
+                System.out.println();
+                System.out.printf("%" + maxLen + "s", "");
+                for (String id : sampleIds) {
+                    System.out.printf("%" + maxLen + "s", id);
                 }
                 System.out.println();
+                for (int i = 0; i < pairwiseOverlapAtCoverage.length; i++) {
+                    System.out.printf("%" + maxLen + "s", sampleIds.get(i));
+                    for (int j = 0; j < pairwiseOverlapAtCoverage[0].length; j++) {
+                        System.out.printf("%" + maxLen + "d", pairwiseOverlapAtCoverage[i][j]);
+                    }
+                    System.out.println();
+                }
             }
-
-            maxLen = Math.max(String.valueOf(getMaxOfMatrix(samplesAtMinCoverage)).length() + 1, ("cov>=" + samplesAtMinCoverage.length).length() + 1);
+            int maxLen = Math.max(String.valueOf(getMaxOfMatrix(samplesAtMinCoverage)).length() + 1, ("cov>=" + samplesAtMinCoverage.length).length() + 1);
             System.out.println();
             System.out.printf("%" + String.valueOf(sampleIds.size()).length() + "s", "");
             for (int i = 0; i < samplesAtMinCoverage.length; i++) {
@@ -159,6 +179,14 @@ public class PileupStats {
                 }
                 System.out.println();
             }
+//            System.out.println();
+//            for (int i = 1; i < cumulativeCoverage.length; i++) {
+//                if (i <= maxCoverageThreshold) {
+//                    System.err.println(i + "\t" + cumulativeCoverage[i]);
+//                } else {
+//                    System.err.println("more\t" + cumulativeCoverage[i]);                    
+//                }
+//            }
 
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
@@ -175,10 +203,9 @@ public class PileupStats {
             }
         }
     }
-    
-//    private HashMap<String,PileupPosition> parseSnpsTable(String fName) {
-//        
-//    }
+        //    private HashMap<String,PileupPosition> parseSnpsTable(String fName) {
+    //        
+    //    }
 
     private int getMaxOfMatrix(int[][] matrix) {
         int max = 0;

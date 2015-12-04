@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package pileup2snps;
+package processpileup;
 
 import agrparser.*;
 import java.util.ArrayList;
@@ -33,7 +33,7 @@ import shared.Reporter;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class Pileup2Snps {
+public class Pileup2SnpsTODO {
     private final int IN_BUFFER_SIZE;
     private final int IN_Q_CAPACITY ;
     
@@ -41,7 +41,7 @@ public class Pileup2Snps {
     private final int PROCESSING_THREADS = 1;
     private final int HELP_WIDTH = 175;
 
-    public Pileup2Snps(String[] args, String callerName, String toolName) {
+    public Pileup2SnpsTODO(String[] args, String callerName, String toolName) {
         ArrayList<String> inputFilenamesList = new ArrayList<>();
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();

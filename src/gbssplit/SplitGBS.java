@@ -108,6 +108,8 @@ public class SplitGBS {
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Trimming and length settings]");
         optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
         optSet.addOpt(new Opt('a', "keep-adapters", "Do not trim adapters found next to PstI and MspI sites "));
+        optSet.addOpt(new Opt('p', "keep-non-PstI-starting", "Keep reads (or pairs) which do not start with 'barcodeTGCAG'"));
+
         int footId = 1;
         String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
         optSet.addOpt(new Opt('r', "min-length-single-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1).addFootnote(footId, footText1));
@@ -115,9 +117,9 @@ public class SplitGBS {
         optSet.addOpt(new Opt('s', "min-length-pair-sum", "Only output a read pair if combined length is no less than <arg> bp, otherwise process as single", 2, 2, null, 1, 1).addFootnote(footId, footText1));
         //RUNTIME
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
+        optSet.addOpt(new Opt('c', "only-count", "Do not output reads"));
         optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
             + "i/o is the likely bottleneck and a writing thread will be spawned per each sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
-        optSet.addOpt(new Opt('O', "only-count", "Do not output reads"));
 
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
@@ -240,11 +242,13 @@ public class SplitGBS {
         for (Message fm : finalMessages) {
             Reporter.report(fm.getLevel().toString(), fm.getBody(), fm.getCaller());
         }
-        ConcurrentHashMap<String, Long> sampleToCountMap = keyMap.getSampleToCountMap();
-        Set<String> keySet = sampleToCountMap.keySet();
-        for (String key : keySet) {
-            Long c = sampleToCountMap.get(key);
-            Reporter.report("[INFO]", NumberFormat.getInstance().format(c) + " records@sample " + key, TOOL_NAME);
+        if (optSet.getOpt("only-count").getOptFlag()) {
+            ConcurrentHashMap<String, Long> sampleToCountMap = keyMap.getSampleToCountMap();
+            Set<String> keySet = sampleToCountMap.keySet();
+            for (String key : keySet) {
+                Long c = sampleToCountMap.get(key);
+                Reporter.report("[INFO]", NumberFormat.getInstance().format(c) + " records@sample " + key, TOOL_NAME);
+            }
         }
 
     }

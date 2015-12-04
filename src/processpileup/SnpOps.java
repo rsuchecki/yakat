@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package pileup2snps;
+package processpileup;
 
 import java.util.ArrayList;
 import java.util.Collections;
