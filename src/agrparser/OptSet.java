@@ -249,15 +249,23 @@ public class OptSet {
             }
             helpLine.append(opt.getHelpString());
             if (opt.hasMinValue()) {
-                helpLine.append("; min=").append(opt.getFormattedValue(opt.getMinValue()));
+                if(helpLine.length() > 0)
+                    helpLine.append("; ");                    
+                helpLine.append("min=").append(opt.getFormattedValue(opt.getMinValue()));
             }
             if (opt.hasMaxValue()) {
-                helpLine.append("; max=").append(opt.getFormattedValue(opt.getMaxValue()));
+                if(helpLine.length() > 0)
+                    helpLine.append("; ");                    
+                helpLine.append("max=").append(opt.getFormattedValue(opt.getMaxValue()));
             }
             if (opt.hasDefaultValue()) {
-                helpLine.append("; default=").append(opt.getFormattedValue(opt.getDefaultValue()));
+                if(helpLine.length() > 0)
+                    helpLine.append("; ");                    
+                helpLine.append("default=").append(opt.getFormattedValue(opt.getDefaultValue()));
             } else if (opt.getMaxValueArgs() > 0 && !opt.isRequired()) {
-                helpLine.append("; no default value");
+                if(helpLine.length() > 0)
+                    helpLine.append("; ");                    
+                helpLine.append("no default value");
             }
             if (opt.hasFootnotes()) {
                 helpLine.append("; ");
@@ -277,7 +285,7 @@ public class OptSet {
             help.append(System.lineSeparator());
         }
         if (hasRequiredOption) {
-            help.append(System.lineSeparator()).append("[*] Denotes a required argument.");
+            help.append(System.lineSeparator()).append("[*] Denotes a required setting/argument.");
         }
         //Print footnotes
         if (!footnotes.isEmpty()) {

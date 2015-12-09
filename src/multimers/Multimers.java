@@ -64,6 +64,9 @@ public class Multimers {
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
         TOOL_NAME = callerName + " " + toolName;
         //PARSE OPTS
+        Opt opti = optSet.getOpt("i");
+        int optInstances = opti.getOptInstance();
+        
 //        IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
 //        IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
 //
@@ -98,11 +101,11 @@ public class Multimers {
         OptSet optSet = new OptSet();
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
-        optSet.addOpt(new Opt('i', "input-sample", "Input sample name followed by input file name(s) ").setRequired(true).setMinValueArgs(2));
+        optSet.addOpt(new Opt('i', "input-sample", "Input sample name followed by input file name(s) ")
+            .setRequired(true).setMinValueArgs(2).setMaxValueArgs(Short.MAX_VALUE));
+        optSet.addOpt(new Opt('k', "k-mer-length", "").setNumArgs(1).setMinValue(4));
 //        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAA"));
 //        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
-//        optSet.addOpt(new Opt('U', "in-buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
-//            + "passed to in-queue", 1024, 128, 8092));
 //        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
 //            2, 1, 256));
 //        //TRIMMING AND LENGTH

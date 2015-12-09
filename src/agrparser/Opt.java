@@ -445,7 +445,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         if (values == null) {
             return 0;
         } else {
-            return values.size();
+            return values.get(getOptInstance()).size();
         }
     }
 

@@ -134,7 +134,7 @@ public class ArgParser {
         }
         for (Opt o : optSet.getOptsList()) {
             if (o.isUsed() && o.getMinValueArgs() > o.getNumberOfValues()) {
-                Reporter.reportNoMem("[FATAL]", "Insufficient (" + o.getNumberOfValues() + ") values passed with option '" + o.getOptLabelString() + "', " + o.getMinValueArgs() + " expected", getClass().getSimpleName());
+                Reporter.reportNoMem("[FATAL]", "Insufficient (" + o.getNumberOfValues() + ") values passed with option '" + o.getOptLabelString() + "', at least " + o.getMinValueArgs() + " expected", getClass().getSimpleName());
                 System.exit(1);
             }
             if(o.isRequired() && !o.isUsed()) {
