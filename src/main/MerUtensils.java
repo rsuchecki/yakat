@@ -18,10 +18,11 @@ package main;
 import agrparser.ParserTest;
 import gbssplit.SplitGBS;
 import kmerextender.KmerExtender;
-import kmermatch.KmerMatch;
+import kmermatch.TODO.KmerMatch;
 import kmerger.KmerSetMerge;
+import multimers.Multimers;
 import processpileup.PileupStats;
-import processpileup.PileupStatsMerge;
+import processpileup.adhoc.PileupStatsMerge;
 
 /**
  *
@@ -52,6 +53,8 @@ public class MerUtensils {
         } else if (args.length != 0 && args[0].matches("test")) {
             args[0] = "";
             new ParserTest(this.getClass().getSimpleName(), "test", args);
+        } else if (args.length != 0 && args[0].matches("m(ulti)?mers")) {       
+            new Multimers(args, name, "mmers");
         } else {
             printHelp();
         }
@@ -61,11 +64,13 @@ public class MerUtensils {
         System.out.println();
         System.out.println("java -jar " + this.getClass().getSimpleName() + ".jar <command> ");
         System.out.println("Commands:");
-        System.out.println("   extend  : ");
-        System.out.println("   match   : ");
-        System.out.println("   merge   : given sorted input, merge k-mer sets summing frequencies if available ");
-        System.out.println("   split   : split FASTQ reads by barcodes");
-        System.out.println("   ppileup : process (m)pileup ");
+        System.out.println("   extend    : extend k-mers to unambiguous contigs");
+        System.out.println("   match     : a.k.a bait");
+        System.out.println("   merge     : given sorted input, merge k-mer sets summing frequencies if available ");
+        System.out.println("   split     : split FASTQ GBS reads by barcodes, trim barcodes and adapters");
+        System.out.println("   ppileup   : extract some stats from (m)pileup ");
+        System.out.println("   mmers     : count (and analyse?) k-mers in multiple input sets");
+        
 //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
 //                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "
 //                + "the list of k-mers to KmerExtender. For smaller jobs FASTA or FASTQ input may suffice.";

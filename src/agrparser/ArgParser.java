@@ -102,6 +102,7 @@ public class ArgParser {
                     System.err.println("Unrecognized argument " + a + ", try -h or --help. Terminating...");
                     System.exit(1);
                 }
+                currentOpt.incrementOptInstance(); //accommodates for an opt that can be called multiple times 
                 if (currentOpt.canTakeMoreValues()) {
                     opt = currentOpt;
                 } else {

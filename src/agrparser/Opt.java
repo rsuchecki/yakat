@@ -47,7 +47,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     private HashMap<Integer, String> footnotesMap;
 
     //parsed values if opt is not a simple flag
-    private final ArrayList<T> values = new ArrayList<>();
+    private final ArrayList<ArrayList<T>> values = new ArrayList<>();
+    private int optInstance = -1;
 
     /**
      * Create a "flag" opt
@@ -199,7 +200,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
                 System.err.println(e.getClass());
                 System.exit(1);
             }
-            values.add(value);
+            values.get(getOptInstance()).add(value);
         }
     }
 
@@ -393,12 +394,16 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     public ArrayList<T> getValues() {
-        return values;
+        int oi = getOptInstance();
+        if(oi == -1) {
+            return new ArrayList<>();
+        }
+        return values.get(oi);
     }
 
     public T getValueIfSingle() {
         if (values.size() == 1) {
-            return values.get(0);
+            return values.get(0).get(0);
         }
         return null;
     }
@@ -406,7 +411,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     public T getValueOrDefault() {
         if (isUsed()) {
             if (values.size() == 1) {
-                return values.get(0);
+                return values.get(0).get(0);
             }
         }
         return getDefaultValue();
@@ -502,6 +507,11 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         return this;
     }
 
+    /**
+     * Set min and max number of args accepted 
+     * @param numArgs
+     * @return 
+     */
     public Opt setNumArgs(int numArgs) {
         this.minValueArgs = numArgs;
         this.maxValueArgs = numArgs;
@@ -540,5 +550,16 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     public String getFootnote(int key) {
         return footnotesMap.get(key);
     }
+
+    public int getOptInstance() {
+        return optInstance;
+    }
+
+    public void incrementOptInstance() {
+        values.add(new ArrayList<T>());
+        this.optInstance++;
+    }
+    
+    
 
 }

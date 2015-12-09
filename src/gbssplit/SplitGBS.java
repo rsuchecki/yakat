@@ -102,7 +102,7 @@ public class SplitGBS {
         optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
             + "passed to in-queue", 1024, 128, 8092));
-        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up. ",
+        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
             2, 1, 256));
         //TRIMMING AND LENGTH
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Trimming and length settings]");
@@ -131,7 +131,7 @@ public class SplitGBS {
         String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if encountering 'out of memory' errors.";
         optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
             + "passed to out-queue", 1024, 64, 8092).addFootnote(footId, footText2));
-        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up. ",
+        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
             2, 1, 32).addFootnote(footId, footText2));
 
         //POSITIONAL

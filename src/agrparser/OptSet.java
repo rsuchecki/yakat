@@ -192,22 +192,27 @@ public class OptSet {
 
         //Generate help page
         StringBuilder help = new StringBuilder();
-        int listingGroup = -1;
+        int currentListingGroup = -1;
         boolean hasRequiredOption = false;
 
         HashMap<Integer, String> footnotes = new HashMap<>();
+        boolean wrappedLine = false;
         for (int i = 0; i < getOptsList().size(); i++) {
             Opt opt = getOptsList().get(i);
             //Split option groups
-            if (opt.getListingGroup() > listingGroup) {
-                listingGroup = opt.getListingGroup();
-                String groupLabel = getListingGroupLabel(listingGroup);
+            if (opt.getListingGroup() > currentListingGroup) {
+                currentListingGroup = opt.getListingGroup();
+                String groupLabel = getListingGroupLabel(currentListingGroup);
                 if (groupLabel.isEmpty()) {
                     if (i != 0) {
                         help.append(String.format("%" + (offset - 1) + "s", " ")).append(": ").append(System.lineSeparator());
                     }
-                } else {
-                    help.append(groupLabel).append(System.lineSeparator());
+                } else {         
+                    //if last line not wrapped add extra line for better readability
+                    if(!wrappedLine) {
+                        help.append(System.lineSeparator());                                            
+                    }
+                    help.append(groupLabel).append(System.lineSeparator());                    
                 }
             }
             help.append(" ");
@@ -226,7 +231,7 @@ public class OptSet {
             }
             if (opt.getMaxValueArgs() == 1) {
                 help.append(" <arg> ");
-            } else if (opt.getMaxValueArgs() > 1) {
+            } else if (opt.getMinValueArgs()> 1) {
                 help.append(" <args>");
             } else {
                 help.append("       ");
@@ -263,6 +268,12 @@ public class OptSet {
                 }
             }
             help.append(Reporter.wrapString(helpLine.toString(), helpLineWidth, offset));
+            //record if line was wrapped
+            if(helpLine.length() > helpLineWidth-offset) {
+                wrappedLine = true;
+            } else {
+                wrappedLine = false;
+            }
             help.append(System.lineSeparator());
         }
         if (hasRequiredOption) {
