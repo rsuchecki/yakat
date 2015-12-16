@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import shared.CommonMaths;
@@ -184,6 +185,17 @@ public class OptSet {
         }
         maxLongArgLength++;
         int offset = 8 + maxLongArgLength + 8;
+        
+        
+//        Map<String, String> env = System.getenv();
+//        for (String envName : env.keySet()) {
+//             System.out.format("%s=%s%n", envName, env.get(envName));
+//        }
+        String terminalColumns = System.getenv("COLUMNS");
+        if(terminalColumns != null) {
+            printWidth = Integer.parseInt(terminalColumns);
+        }
+        
         int helpLineWidth = printWidth - offset;
 
         //Generate usage string
