@@ -5,11 +5,11 @@
  */
 package kmerger;
 
-import agrparser.ArgParser;
-import agrparser.Opt;
-import agrparser.OptSet;
-import agrparser.PositionalOpt;
-import agrparser.UsageAndHelp;
+import argparser.ArgParser;
+import argparser.Opt;
+import argparser.OptSet;
+import argparser.PositionalOpt;
+import argparser.UsageAndHelp;
 import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;

@@ -29,7 +29,7 @@
  */
 package gbssplit;
 
-import agrparser.OptSet;
+import argparser.OptSet;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;

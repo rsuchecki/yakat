@@ -5,10 +5,10 @@
  */
 package gbssplit;
 
-import agrparser.ArgParser;
-import agrparser.Opt;
-import agrparser.OptSet;
-import agrparser.PositionalOpt;
+import argparser.ArgParser;
+import argparser.Opt;
+import argparser.OptSet;
+import argparser.PositionalOpt;
 import java.io.File;
 import java.text.NumberFormat;
 import java.util.ArrayList;

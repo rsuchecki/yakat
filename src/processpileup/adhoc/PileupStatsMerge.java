@@ -15,9 +15,9 @@
  */
 package processpileup.adhoc;
 
-import agrparser.ArgParser;
-import agrparser.Opt;
-import agrparser.OptSet;
+import argparser.ArgParser;
+import argparser.Opt;
+import argparser.OptSet;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;

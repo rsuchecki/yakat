@@ -14,12 +14,28 @@
  * limitations under the License.
  */
 
-package agrparser;
+package argparser;
 
 /**
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class MultiOpt {
+public class UsageAndHelp {
+    private String usage;
+    private String help;
 
+    public UsageAndHelp(String usage, String help) {
+        this.usage = usage;
+        this.help = help;
+    }
+
+    public String getUsage() {
+        return usage;
+    }
+
+    public String getHelp() {
+        return help;
+    }
+    
+    
 }

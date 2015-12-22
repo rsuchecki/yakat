@@ -15,10 +15,10 @@
  */
 package processpileup;
 
-import agrparser.ArgParser;
-import agrparser.Opt;
-import agrparser.OptSet;
-import agrparser.PositionalOpt;
+import argparser.ArgParser;
+import argparser.Opt;
+import argparser.OptSet;
+import argparser.PositionalOpt;
 import gbssplit.SampleBuffer;
 import java.io.BufferedReader;
 import java.io.File;

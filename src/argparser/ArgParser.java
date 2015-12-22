@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package agrparser;
+package argparser;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -36,9 +36,10 @@ public class ArgParser {
      * @param helpWidth
      */
     public void processArgs(String[] args, OptSet optSet, boolean firstArgModuleName, String callerName, int helpWidth) {
+        boolean fatal = false;
         if (optSet.hasPositionalArgs() && optSet.hasVarArgOption()) {
             Reporter.reportNoMem("[FATAL]", "Mixing (i) options which take a variable number of values with (ii) positional arguments is asking for trouble", getClass().getSimpleName());
-            System.exit(1);
+            fatal = true;
         }
         ArrayList<String> allArgs = new ArrayList<>();
         int argStart = 0;
@@ -95,12 +96,12 @@ public class ArgParser {
             } else if (a.startsWith("-") && !a.equals("-")) { //to allow dash stand-in for stdin: !a.equals("-")
                 if (parsingPositional) {
                     Reporter.reportNoMem("[FATAL]", "Options mixed with positional arguments or incorrect number of values passed with option ", getClass().getSimpleName());
-                    System.exit(1);
+                    fatal = true;
                 }
                 Opt currentOpt = optSet.getOpt(a);
                 if (currentOpt == null) {
                     System.err.println("Unrecognized argument " + a + ", try -h or --help. Terminating...");
-                    System.exit(1);
+                    fatal = true;
                 }
                 currentOpt.incrementOptInstance(); //accommodates for an opt that can be called multiple times 
                 if (currentOpt.canTakeMoreValues()) {
@@ -123,7 +124,7 @@ public class ArgParser {
                     }
                 } else {
                     Reporter.reportNoMem("[FATAL]", "Unexpected positional argument '" + a + "', try -h or --help", getClass().getSimpleName());
-                    System.exit(1);
+                    fatal = true;
                 }
             } else {
                 opt.addValue(a);
@@ -135,12 +136,15 @@ public class ArgParser {
         for (Opt o : optSet.getOptsList()) {
             if (o.isUsed() && o.getMinValueArgs() > o.getNumberOfValues()) {
                 Reporter.reportNoMem("[FATAL]", "Insufficient (" + o.getNumberOfValues() + ") values passed with option '" + o.getOptLabelString() + "', at least " + o.getMinValueArgs() + " expected", getClass().getSimpleName());
-                System.exit(1);
+                fatal = true;
             }
             if(o.isRequired() && !o.isUsed()) {
                 Reporter.reportNoMem("[FATAL]", "Required option not used " + o.getOptLabelStringQuoted()+ " expected", getClass().getSimpleName());
-                System.exit(1);                
+                fatal = true;                
             }
+        }
+        if(fatal) {
+            System.exit(1);
         }
     }
 }

@@ -15,7 +15,7 @@
  */
 package main;
 
-import agrparser.ParserTest;
+import argparser.ParserTest;
 import gbssplit.SplitGBS;
 import kmerextender.KmerExtender;
 import kmermatch.TODO.KmerMatch;
