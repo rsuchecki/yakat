@@ -87,6 +87,7 @@ public class ArgParser {
             String a = it.next();            
             if (a.equals("-h") || a.equals("--help")) {
                 UsageAndHelp usageAndHelp = optSet.getUsageAndHelp(callerName, args[0], helpWidth);
+                System.err.println();
                 System.err.println(usageAndHelp.getUsage());
                 System.err.println(usageAndHelp.getHelp());
                 System.exit(0);

@@ -209,6 +209,7 @@ public class OptSet {
 
         HashMap<Integer, String> footnotes = new HashMap<>();
         boolean wrappedLine = false;
+        int optInUsage = 0;
         for (int i = 0; i < getOptsList().size(); i++) {
             Opt opt = getOptsList().get(i);
             //Split option groups
@@ -241,10 +242,10 @@ public class OptSet {
             } else {
                 help.append("    ");
             }
-            if (opt.getMaxValueArgs() == 1) {
-                help.append(" <arg> ");
-            } else if (opt.getMinValueArgs()> 1) {
+            if (opt.getMaxValueArgs()> 1 || opt.getMinValueArgs() > 1) {
                 help.append(" <args>");
+            } else if (opt.getMaxValueArgs() == 1 || opt.getMinValueArgs() == 1 ) {
+                help.append(" <arg> ");
             } else {
                 help.append("       ");
             }
@@ -257,6 +258,7 @@ public class OptSet {
                 hasRequiredOption = true;
                 if (opt.hasShortKey()) {
                     usage.append(" ").append(opt.getOptLabelShort());
+                    optInUsage++;
                 }
             }
             helpLine.append(opt.getHelpString());
@@ -312,7 +314,7 @@ public class OptSet {
         }
 
         //finish building usage string
-        if (!getOptsList().isEmpty()) {
+        if (getOptsList().size() > optInUsage) {
             usage.append(" [options]");
         }
         for (PositionalOpt positional : getPositionalOptsList()) {

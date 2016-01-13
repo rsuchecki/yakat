@@ -43,7 +43,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     private Integer listingGroup = 1;
     private Integer listingGroupPosition = 1;
     private boolean required;
-    private boolean optFlag; //used to indicate that arg is used
+    private boolean optFlag; //used to indicate that flag is is set
     private HashMap<Integer, String> footnotesMap;
 
     //parsed values if opt is not a simple flag
