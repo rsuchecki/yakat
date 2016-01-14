@@ -24,8 +24,10 @@ import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.NavigableSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -102,7 +104,7 @@ public class KmerExtender {
         readKmersAndPopulatePairMersMap();
 
         Reporter.report("[INFO]", "Finished populating map, k=" + KMER_LENGTH + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
-        long purged = pairMersMap.purge(KMER_LENGTH); //indicating large number of kmers overall
+        long purged = pairMersMap.purge(KMER_LENGTH); //indicating large number of kmers overall        
         if (purged > 100000) {
             for (int i = 0; i < 5; i++) {
                 System.gc();
@@ -113,6 +115,44 @@ public class KmerExtender {
             }
         }
         Reporter.report("[INFO]", "Finished purging map, n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
+
+        //EXPERIMENTAL================================== BEGIN ============================
+        String seed = "ACAACTACCTCATCATCAAGCGTATGAAGGGAATCGTACCCGTTCAAAGAATGAGATGACAGGGCAAACTAGGGTAGGAAAAGCAAGGCTTGATGGCATTACCCTCTTCTGATGAAAAATATCAGTAAGGGTTGCCAAAGG";
+        String trimmedSeed = seed.substring(1, seed.length() - 1); //hack to prevent end-pairmers from being thrown out 
+        System.err.println(seed.length() + " " + trimmedSeed.length());
+        BlockingQueue<ArrayList<String>> dummyQueue = new ArrayBlockingQueue<>(2);
+        ArrayList<String> arrayList = new ArrayList<>(1);
+        arrayList.add(trimmedSeed);
+        PairMersMap trimmedSeedPairMersMap = new PairMersMap();
+        try {
+            dummyQueue.put(arrayList);
+            dummyQueue.put(new ArrayList<String>());
+//PairMerMapPopulatorConsumer(BlockingQueue<ArrayList<String>> queue, PairMersMap pairMersMap, boolean splitInputSequenceintoKmers, Integer k, Integer minFreq) {
+        } catch (InterruptedException ex) {
+        }
+        PairMerMapPopulatorConsumer pairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(dummyQueue, trimmedSeedPairMersMap, true, KMER_LENGTH, KMER_LENGTH);
+        pairMerMapPopulatorConsumer.run();
+
+        NavigableSet<PairMer> trimmedSeedPairMers = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet();
+
+        Iterator<PairMer> it = trimmedSeedPairMers.iterator();
+        ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap = pairMersMap.getPairMersSkipListMap();
+        long removedCount = 0L;
+        while (it.hasNext()) {
+            PairMer next = it.next();
+            PairMer removed = pairMersSkipListMap.remove(next);
+            if (removed != null) {
+                removedCount++;
+                if (!next.getPairMerString(KMER_LENGTH).equals(removed.getPairMerString(KMER_LENGTH))) {
+                    System.err.println("Seed-mer " + next.getPairMerString(KMER_LENGTH));
+                    System.err.println("Removed  " + removed.getPairMerString(KMER_LENGTH));
+                } else {
+//                System.err.println("Nothing Removed  ");                                
+                }
+            }            
+        }
+        System.err.println("Total pairMers removed due to overlap with seed = "+removedCount);
+        //EXPERIMENTAL================================== END ============================
         PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE);
         pairMersExtender.matchAndExtendKmers(KMER_LENGTH, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS);
         Reporter.report("[INFO]", "Finished extending k-mers", getClass().getSimpleName());
@@ -160,7 +200,7 @@ public class KmerExtender {
                 KMER_LENGTH = inputReaderProducer.getKmerLength();
             }
 
-            //SPAWN THREADS TO POPULATE CLIPMERS MAP
+            //SPAWN THREADS TO POPULATE MAP
             for (int i = 0; i < threads; i++) {
                 PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(inputQueue, pairMersMap, splitInputSequenceIntoKmers, KMER_LENGTH, MIN_KMER_FREQUENCY);
                 futures.add(readAndPopulateDbExecutor.submit(consumer));
@@ -370,8 +410,8 @@ public class KmerExtender {
 //                + "2,147,483,644 element array will consume over 8GB of the allocated memory. ";
 //        System.out.println(Reporter.wrapString(s, 145));
         String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
-                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "
-                + "the list of k-mers to KmerExtender. For smaller jobs FASTA or FASTQ input may suffice.";
+            + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "
+            + "the list of k-mers to KmerExtender. For smaller jobs FASTA or FASTQ input may suffice.";
         System.out.println(Reporter.wrapString(s, 145));
         System.out.println();
     }
