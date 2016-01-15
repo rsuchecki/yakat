@@ -52,6 +52,9 @@ public class KmerExtender {
 //    private PairMersMap pairMersMap = new PairMersMap(); //TODO user to give expected num of elems?
     private final ArrayList<String> inputFileNamesList = new ArrayList<>();
     private Integer KMER_LENGTH;
+    private Integer KMER_LENGTH_MIN;
+    private Integer KMER_LENGTH_MAX;
+    private Integer KMER_LENGTH_STEP;
     private Integer MIN_KMER_FREQUENCY;
     private int MAX_THREADS;
     private boolean OUTPUT_FASTA = false;
@@ -80,6 +83,11 @@ public class KmerExtender {
         if (optSet.getOpt("k").getValueOrDefault() != null) {
             KMER_LENGTH = (int) optSet.getOpt("k").getValueOrDefault();
         }
+        
+        KMER_LENGTH_MIN = (int) optSet.getOpt("--k-mer-min").getValueOrDefault();
+        KMER_LENGTH_MAX = (int) optSet.getOpt("--k-mer-max").getValueOrDefault();
+        KMER_LENGTH_STEP = (int) optSet.getOpt("--k-mer-step").getValueOrDefault();
+        
 //        MIN_KMER_FREQUENCY = (int) optSet.getOpt("k").getValueOrDefault();
         MAX_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
         if (optSet.getOpt("f").getValueOrDefault() != null) {
@@ -132,19 +140,21 @@ public class KmerExtender {
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet();
         //INPUT
-        optSet.setListingGroupLabel("[Input settings]");
+        optSet.setListingGroupLabel("[Input settings - general extender]");
         optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));
-//        optSet.addOpt(new Opt('m', "min-frequency", "....", 1,1,Integer.MAX_VALUE));
-//        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAA"));
-//        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
-        optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing a single entry (\"a seed\") to be extended. ", 1));
-        optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(4).setMaxValue(2048));
-        optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(5).setMaxValue(2048));
-        optSet.addOpt(new Opt(null, "k-mer-step", "", 1).setMinValue(1));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of records (k-mers or FASTQ reads or pairs depending on input) "
             + "passed to in-queue", 1024, 128, 8092));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
             2, 1, 256));
+//        optSet.addOpt(new Opt('m', "min-frequency", "....", 1,1,Integer.MAX_VALUE));
+//        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAA"));
+//        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
+        
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Varying k-mer size settings]");
+        optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing a single entry (\"a seed\") to be extended", 1));
+        optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(4).setDefaultValue(15));
+        optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(5).setDefaultValue(55));
+        optSet.addOpt(new Opt(null, "k-mer-step", "",1).setMinValue(1).setDefaultValue(1));
 //        int footId = 1;
 //        String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
 //        optSet.addOpt(new Opt('r', "min-length-single-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1).addFootnote(footId, footText1));
@@ -187,7 +197,7 @@ public class KmerExtender {
         Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", getClass().getSimpleName());
         HashMap<Integer, PairMersMap> kSizeToPairMersMap = new HashMap<>();
         ArrayList<Integer> kSizes = new ArrayList<>();
-        for (int k = 25; k < 46; k += 5) {
+        for (int k = KMER_LENGTH_MIN; k < KMER_LENGTH_MAX+1; k += KMER_LENGTH_STEP) {
             kSizeToPairMersMap.put(k, new PairMersMap());
             kSizes.add(k);
         }
