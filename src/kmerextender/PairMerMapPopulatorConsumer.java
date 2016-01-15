@@ -33,7 +33,8 @@ public class PairMerMapPopulatorConsumer implements Runnable {
     private final boolean SPLIT_INPUT_INTO_KMERS;
     private final Integer KMER_LENGTH;
 
-    public PairMerMapPopulatorConsumer(BlockingQueue<ArrayList<String>> queue, PairMersMap pairMersMap, boolean splitInputSequenceintoKmers, Integer k, Integer minFreq) {
+    public PairMerMapPopulatorConsumer(BlockingQueue<ArrayList<String>> queue, PairMersMap pairMersMap, 
+        boolean splitInputSequenceintoKmers, Integer k, Integer minFreq) {
         this.queue = queue;
         this.pairMersMap = pairMersMap;
         this.SPLIT_INPUT_INTO_KMERS = splitInputSequenceintoKmers;
