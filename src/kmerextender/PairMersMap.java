@@ -193,5 +193,10 @@ public class PairMersMap extends shared.MerMap {
 //    public synchronized void setOutOfMemory() {
 //        this.OutOfMemory = true;
 //    }
+    
+//    public int purgeSeedMers(PairMersMap seedMersMap) {
+//        Iterator<PairMer> it = seedMersMap.getPairMersSkipListMap().keySet().iterator();
+//        
+//    }
 
 }

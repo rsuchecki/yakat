@@ -100,61 +100,91 @@ public class KmerExtender {
     }
 
     private void runKmerExtender() {
-        Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", getClass().getSimpleName());
-        readKmersAndPopulatePairMersMap();
+        int longestSeedAfterExtension = 0;
+        String seed = "ACAACTACCTCATCATCAAGCGTATGAAGGGAATCGTACCCGTTCAAAGAATGAGATGACAGGGCAAACTAGGGTAGGAAAAGCAAGGCTTGATGGCATTACCCTCTTCTGATGAAAAATATCAGTAAGGGTTGCCAAAGG";
+        String seedToOutput = seed;
+        int kBest = -1;
+        
+        for (int k = 5; k < 96; k++) {
+            KMER_LENGTH = k;
+            pairMersMap = new PairMersMap();
+            Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", getClass().getSimpleName());
+            readKmersAndPopulatePairMersMap();
 
-        Reporter.report("[INFO]", "Finished populating map, k=" + KMER_LENGTH + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
-        long purged = pairMersMap.purge(KMER_LENGTH); //indicating large number of kmers overall        
-        if (purged > 100000) {
-            for (int i = 0; i < 5; i++) {
-                System.gc();
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ex) {
+            Reporter.report("[INFO]", "Finished populating map, k=" + KMER_LENGTH + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
+            long purged = pairMersMap.purge(KMER_LENGTH); //indicating large number of kmers overall        
+            if (purged > 100000) {
+                for (int i = 0; i < 5; i++) {
+                    System.gc();
+                    try {
+                        Thread.sleep(500);
+                    } catch (InterruptedException ex) {
+                    }
                 }
             }
-        }
-        Reporter.report("[INFO]", "Finished purging map, n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
+            Reporter.report("[INFO]", "Finished purging map, n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
 
-        //EXPERIMENTAL================================== BEGIN ============================
-        String seed = "ACAACTACCTCATCATCAAGCGTATGAAGGGAATCGTACCCGTTCAAAGAATGAGATGACAGGGCAAACTAGGGTAGGAAAAGCAAGGCTTGATGGCATTACCCTCTTCTGATGAAAAATATCAGTAAGGGTTGCCAAAGG";
-        String trimmedSeed = seed.substring(1, seed.length() - 1); //hack to prevent end-pairmers from being thrown out 
-        System.err.println(seed.length() + " " + trimmedSeed.length());
-        BlockingQueue<ArrayList<String>> dummyQueue = new ArrayBlockingQueue<>(2);
-        ArrayList<String> arrayList = new ArrayList<>(1);
-        arrayList.add(trimmedSeed);
-        PairMersMap trimmedSeedPairMersMap = new PairMersMap();
-        try {
-            dummyQueue.put(arrayList);
-            dummyQueue.put(new ArrayList<String>());
-//PairMerMapPopulatorConsumer(BlockingQueue<ArrayList<String>> queue, PairMersMap pairMersMap, boolean splitInputSequenceintoKmers, Integer k, Integer minFreq) {
-        } catch (InterruptedException ex) {
-        }
-        PairMerMapPopulatorConsumer pairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(dummyQueue, trimmedSeedPairMersMap, true, KMER_LENGTH, KMER_LENGTH);
-        pairMerMapPopulatorConsumer.run();
+            //EXPERIMENTAL================================== BEGIN ============================
+            String trimmedSeed = seed.substring(1, seed.length() - 1); //hack to prevent end-pairmers from being thrown out 
+//            System.err.println(seed.length() + " " + trimmedSeed.length());
+            BlockingQueue<ArrayList<String>> dummyQueue = new ArrayBlockingQueue<>(2);
+            ArrayList<String> arrayList = new ArrayList<>(1);
+            arrayList.add(trimmedSeed);
+            PairMersMap trimmedSeedPairMersMap = new PairMersMap();
+            try {
+                dummyQueue.put(arrayList);
+                dummyQueue.put(new ArrayList<String>());
+            } catch (InterruptedException ex) {
+            }
+            PairMerMapPopulatorConsumer pairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(dummyQueue, trimmedSeedPairMersMap, true, KMER_LENGTH, KMER_LENGTH);
+            pairMerMapPopulatorConsumer.run(); //TODO move to a background thread earlier 
 
-        NavigableSet<PairMer> trimmedSeedPairMers = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet();
+            NavigableSet<PairMer> trimmedSeedPairMers = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet();
 
-        Iterator<PairMer> it = trimmedSeedPairMers.iterator();
-        ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap = pairMersMap.getPairMersSkipListMap();
-        long removedCount = 0L;
-        while (it.hasNext()) {
-            PairMer next = it.next();
-            PairMer removed = pairMersSkipListMap.remove(next);
-            if (removed != null) {
-                removedCount++;
-                if (!next.getPairMerString(KMER_LENGTH).equals(removed.getPairMerString(KMER_LENGTH))) {
-                    System.err.println("Seed-mer " + next.getPairMerString(KMER_LENGTH));
-                    System.err.println("Removed  " + removed.getPairMerString(KMER_LENGTH));
-                } else {
-//                System.err.println("Nothing Removed  ");                                
+            Iterator<PairMer> it = trimmedSeedPairMers.iterator();
+            ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap = pairMersMap.getPairMersSkipListMap();
+            long removedCount = 0L;
+            while (it.hasNext()) {
+                PairMer next = it.next();
+                PairMer removed = pairMersSkipListMap.remove(next);
+                if (removed != null) {
+                    removedCount++;
+//                    if (!next.getPairMerString(KMER_LENGTH).equals(removed.getPairMerString(KMER_LENGTH))) {
+//                        System.err.println("Seed-mer " + next.getPairMerString(KMER_LENGTH));
+//                        System.err.println("Removed  " + removed.getPairMerString(KMER_LENGTH));
+//                    } else {
+////                System.err.println("Nothing Removed  ");                                
+//                    }
                 }
-            }            
-        }
-        System.err.println("Total pairMers removed due to overlap with seed = "+removedCount);
-        //EXPERIMENTAL================================== END ============================
-        PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE);
-        pairMersExtender.matchAndExtendKmers(KMER_LENGTH, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS);
+            }
+            Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount), getClass().getSimpleName());
+            //EXPERIMENTAL================================== END ============================
+
+            PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE);
+            String extendedSeed = pairMersExtender.matchAndExtendKmers(KMER_LENGTH, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, seed);
+            if (extendedSeed != null) {
+                //            if (outputFasta) {
+//                if (inputSeedLen < seed.length()) {
+//                    System.out.println(">InputSeedID_extended_from_" + inputSeedLen + " " + seed.length());
+//                } else {
+//                    System.out.println(">InputSeedID " + inputSeedLen);
+//                }
+//                System.out.println(seed);
+//            } else {
+//                System.out.println(seed);// + "\t" + SequenceOps.getReverseComplementString(connected));
+//            }
+                if(longestSeedAfterExtension < extendedSeed.length()) {
+                    longestSeedAfterExtension = extendedSeed.length();
+                    kBest = k;
+                    seedToOutput = extendedSeed;
+                }
+                System.out.println(extendedSeed.length()+" @ k = "+k);
+            }
+        } if(longestSeedAfterExtension > 0) {
+            Reporter.report("[INFO]", "Longest extension of the provided seed is from ... to "+longestSeedAfterExtension+" at k = "+kBest, getClass().getSimpleName());            
+            System.out.println(seedToOutput);
+            
+        } 
         Reporter.report("[INFO]", "Finished extending k-mers", getClass().getSimpleName());
     }
 
