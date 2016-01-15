@@ -34,6 +34,7 @@ public class OptSet {
 
     HashMap<Character, Opt> shortToOptMap;
     HashMap<String, Opt> longToOptMap;
+    HashMap<Integer, ArrayList<Opt>> groupToOptsMap;
     ArrayList<Opt> optsList;
 
     HashMap<Integer, PositionalOpt> positionalOptsMap;
@@ -42,8 +43,14 @@ public class OptSet {
     Integer currentListingGroup = 0;
     Integer currentListingGroupPosition = 0;
 
-    HashMap<Integer, String> listingGroupLabels;
+    HashMap<Integer, String> listingGroupLabels;     
+    HashMap<Integer, ArrayList<Integer>> mutuallyExclusiveGroups;
+    ArrayList<Integer> requiredGroups;
+    
 
+//    ArrayList<OptGroup> optGroups; //taking care of mutual exlusion of groups of opts
+    
+    
 //    /**
 //     * Add an "flag" opt
 //     * @param shortKey
@@ -60,8 +67,11 @@ public class OptSet {
         shortToOptMap = new HashMap<>();
         longToOptMap = new HashMap<>();
         optsList = new ArrayList<>();
+        groupToOptsMap = new HashMap<>();
         positionalOptsMap = new HashMap<>();
         positionalOptsList = new ArrayList<>();
+        requiredGroups = new ArrayList<>();
+//        optGroups = new ArrayList<>();
     }
 
     public boolean hasVarArgOption() {
@@ -88,6 +98,13 @@ public class OptSet {
         }
     }
 
+//    public void addOptGroup(OptGroup optGroup) {
+//        optGroups.add(optGroup);
+//        for (Opt opt : optGroup.getOpts()) {
+//            addOpt(opt);
+//        }
+//    }
+    
     public void addOpt(Opt opt) {
         addOpt(opt, currentListingGroup, currentListingGroupPosition++);
     }
@@ -100,17 +117,22 @@ public class OptSet {
 //            return false;
             success = false;
         }
-        if (shortToOptMap.containsKey(shortKey)) {
-            success = false;
+
+        if (shortKey != null) {
+            if (shortToOptMap.containsKey(shortKey)) {
+                success = false;
 //            return false;
-        } else {
-            shortToOptMap.put(shortKey, opt);
+            } else {
+                shortToOptMap.put(shortKey, opt);
+            }
         }
-        if (longToOptMap.containsKey(longKey)) {
-            success = false;
+        if (longKey != null) {
+            if (longToOptMap.containsKey(longKey)) {
+                success = false;
 //            return false;
-        } else {
-            longToOptMap.put(longKey.toLowerCase(), opt);
+            } else {
+                longToOptMap.put(longKey.toLowerCase(), opt);
+            }
         }
         if (!success) {
             System.err.println("Failed addOpt() operation for " + opt.getOptLabelString() + " due to arg key clash");
@@ -185,17 +207,16 @@ public class OptSet {
         }
         maxLongArgLength++;
         int offset = 8 + maxLongArgLength + 8;
-        
-        
+
 //        Map<String, String> env = System.getenv();
 //        for (String envName : env.keySet()) {
 //             System.out.format("%s=%s%n", envName, env.get(envName));
 //        }
         String terminalColumns = System.getenv("COLUMNS");
-        if(terminalColumns != null) {
+        if (terminalColumns != null) {
             printWidth = Integer.parseInt(terminalColumns);
         }
-        
+
         int helpLineWidth = printWidth - offset;
 
         //Generate usage string
@@ -220,12 +241,23 @@ public class OptSet {
                     if (i != 0) {
                         help.append(String.format("%" + (offset - 1) + "s", " ")).append(": ").append(System.lineSeparator());
                     }
-                } else {         
+                } else {
                     //if last line not wrapped add extra line for better readability
-                    if(!wrappedLine) {
-                        help.append(System.lineSeparator());                                            
+                    if (!wrappedLine) {
+                        help.append(System.lineSeparator());
                     }
-                    help.append(groupLabel).append(System.lineSeparator());                    
+                    help.append(groupLabel); 
+                    ArrayList<Integer> mutuallyExclusive = getMutuallyExclusive(currentListingGroup);
+                    if(isGroupRequired(currentListingGroup)) {
+                        help.append("[**] ");
+                    }
+//                    if(mutuallyExclusive !=null && !mutuallyExclusive.isEmpty()) {
+//                        help.append(" Mutually exclusive with:");
+//                        for (Integer g : mutuallyExclusive) {
+//                            help.append(" ").append(getListingGroupLabel(g).replaceAll("\\[|\\]", ""));
+//                        }
+//                    }
+                    help.append(System.lineSeparator());
                 }
             }
             help.append(" ");
@@ -240,14 +272,17 @@ public class OptSet {
             if (opt.hasLongKey()) {
                 help.append("--").append(opt.getLongKey());
             } else {
-                help.append("    ");
+//                help.append("    ");
             }
-            if (opt.getMaxValueArgs()> 1 || opt.getMinValueArgs() > 1) {
+            if (opt.getMaxValueArgs() > 1 || opt.getMinValueArgs() > 1) {
                 help.append(" <args>");
-            } else if (opt.getMaxValueArgs() == 1 || opt.getMinValueArgs() == 1 ) {
+            } else if (opt.getMaxValueArgs() == 1 || opt.getMinValueArgs() == 1) {
                 help.append(" <arg> ");
             } else {
                 help.append("       ");
+            }
+            if (!opt.hasLongKey()) {
+                help.append("    ");                
             }
 
             String gap = String.format("%" + (maxLongArgLength - opt.getLongKeyLength()) + "s", " ");
@@ -263,22 +298,26 @@ public class OptSet {
             }
             helpLine.append(opt.getHelpString());
             if (opt.hasMinValue()) {
-                if(helpLine.length() > 0)
-                    helpLine.append("; ");                    
+                if (helpLine.length() > 0) {
+                    helpLine.append("; ");
+                }
                 helpLine.append("min=").append(opt.getFormattedValue(opt.getMinValue()));
             }
             if (opt.hasMaxValue()) {
-                if(helpLine.length() > 0)
-                    helpLine.append("; ");                    
+                if (helpLine.length() > 0) {
+                    helpLine.append("; ");
+                }
                 helpLine.append("max=").append(opt.getFormattedValue(opt.getMaxValue()));
             }
             if (opt.hasDefaultValue()) {
-                if(helpLine.length() > 0)
-                    helpLine.append("; ");                    
+                if (helpLine.length() > 0) {
+                    helpLine.append("; ");
+                }
                 helpLine.append("default=").append(opt.getFormattedValue(opt.getDefaultValue()));
             } else if (opt.getMaxValueArgs() > 0 && !opt.isRequired()) {
-                if(helpLine.length() > 0)
-                    helpLine.append("; ");                    
+                if (helpLine.length() > 0) {
+                    helpLine.append("; ");
+                }
                 helpLine.append("no default value");
             }
             if (opt.hasFootnotes()) {
@@ -291,7 +330,7 @@ public class OptSet {
             }
             help.append(Reporter.wrapString(helpLine.toString(), helpLineWidth, offset));
             //record if line was wrapped
-            if(helpLine.length() > helpLineWidth-offset) {
+            if (helpLine.length() > helpLineWidth - offset) {
                 wrappedLine = true;
             } else {
                 wrappedLine = false;
@@ -364,6 +403,39 @@ public class OptSet {
             return listingGroupLabels.get(group);
         }
         return "";
+    }
+    
+    
+    public void setGroupRequired(int group) {
+        requiredGroups.add(group);
+    }
+    
+    public boolean isGroupRequired(int group) {
+        return requiredGroups.contains(group);
+    }
+    
+    public void setMutuallyExclusiveGroups(int group1, int group2) {
+        if(mutuallyExclusiveGroups == null) {
+            mutuallyExclusiveGroups = new HashMap<>();                        
+        }        
+        setMustuallyExclusive(group1, group2);
+        setMustuallyExclusive(group2, group1);
+    }
+    
+    private void setMustuallyExclusive(int group1, int group2) {
+        ArrayList<Integer> incompatibleWithGroup1 = mutuallyExclusiveGroups.get(group1);
+        if(incompatibleWithGroup1 == null) {
+            incompatibleWithGroup1 = new ArrayList<>();
+        }
+        incompatibleWithGroup1.add(group2);
+        mutuallyExclusiveGroups.put(group1, incompatibleWithGroup1);
+    }
+    
+    private  ArrayList<Integer> getMutuallyExclusive(int group) {
+        if(mutuallyExclusiveGroups == null) {
+            return null;
+        }
+        return mutuallyExclusiveGroups.get(group);
     }
 
 }
