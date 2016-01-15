@@ -25,10 +25,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.zip.GZIPInputStream;
-
-import shared.MerMap;
 
 /**
  *
@@ -36,7 +37,11 @@ import shared.MerMap;
  */
 public class InputReaderProducer implements Runnable {
 
-    private final BlockingQueue queue;
+    private BlockingQueue queue; //Either
+    private HashMap<Integer, BlockingQueue> kSizeToQueue; //or
+    
+    private ArrayList<Integer> kValues;
+    
     private Integer KMER_LENGTH; // ignored if <0 but not if null
     private ArrayList<String> inputFiles;
     private GuessedInputFormat guessedInputFormat;
@@ -67,10 +72,27 @@ public class InputReaderProducer implements Runnable {
         this.RECORD_NAME = RECORD_NAME;
     }
 
-    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, MerMap map, String toolName ) {
+    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, MerMap map, String toolName) {
         this.queue = queue;
         this.inputFiles = inputFiles;
         KMER_LENGTH = k;
+        if (map != null) {
+            this.map = map;
+        }
+        TOOL_NAME = toolName;
+    }
+
+    public InputReaderProducer(HashMap<Integer, BlockingQueue> kSizeToQueue, ArrayList<Integer> kValues,
+        ArrayList<String> inputFiles, String toolName) {
+        if (kSizeToQueue.size() == 1) {
+            this.queue = kSizeToQueue.values().iterator().next();
+        } else {
+            this.kSizeToQueue = kSizeToQueue;
+            this.kValues = kValues;
+        }
+        this.inputFiles = inputFiles;
+        
+        KMER_LENGTH = -1;
         if (map != null) {
             this.map = map;
         }
@@ -116,12 +138,13 @@ public class InputReaderProducer implements Runnable {
                 Reporter.report("[INFO]", "Input format guessed: " + guessedInputFormat.toString(), TOOL_NAME);
                 if (guessedInputFormat == GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED) {
                     Reporter.report("[ERROR]", "Unrecognized or unsupported input, terminating...", TOOL_NAME);
-                    queue.put(new ArrayList<String>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+//                    queue.put(new ArrayList<String>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+                    putOnQueue(new ArrayList<String>());
                     System.exit(1);
                 }
 
                 String line;
-                if (guessedInputFormat == GuessedInputFormat.KMERS || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && KMER_LENGTH < 0)|| (guessedInputFormat == GuessedInputFormat.FASTQ_SE_ONE_LINE && KMER_LENGTH < 0)) { //READ KMERS
+                if (guessedInputFormat == GuessedInputFormat.KMERS || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && KMER_LENGTH < 0) || (guessedInputFormat == GuessedInputFormat.FASTQ_SE_ONE_LINE && KMER_LENGTH < 0)) { //READ KMERS
                     ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
                     bufferList.addAll(testLines);
 //                    queue.put(testLines);
@@ -129,7 +152,8 @@ public class InputReaderProducer implements Runnable {
                     long reportThreshold = (long) KMER_BUFFER_SIZE;
                     while ((line = content.readLine()) != null && !line.isEmpty()) {
                         if (bufferList.size() == KMER_BUFFER_SIZE) {
-                            queue.put(bufferList);
+//                            queue.put(bufferList);
+                            putOnQueue(bufferList);
                             kmerCount += KMER_BUFFER_SIZE;
                             bufferList = new ArrayList<>();
                             if (kmerCount % reportThreshold == 0) {
@@ -138,18 +162,20 @@ public class InputReaderProducer implements Runnable {
 //                                    reportThreshold *= KMER_REPORTING_MULTIPLY;
                                     reportThreshold <<= 1; // *= 2
                                 }
-                                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME+ " read-in so far", TOOL_NAME);
+                                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME + " read-in so far", TOOL_NAME);
                             }
                         }
                         bufferList.add(line);
 //                        queue.put(line);
                     }
-                    kmerCount+=bufferList.size();
-                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME+ " read-in", TOOL_NAME);
-                    queue.put(bufferList);
+                    kmerCount += bufferList.size();
+                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME + " read-in", TOOL_NAME);
+//                    queue.put(bufferList);
+                    putOnQueue(bufferList);
                 } else if (KMER_LENGTH == null) {
                     Reporter.report("[ERROR]", "Fatal error, k-mer lenght must be specified for input other than a list of k-mers, terminating!", TOOL_NAME);
-                    queue.put(new ArrayList<String>()); //queue.put("TERMINATE"); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+//                    queue.put(new ArrayList<String>()); //queue.put("TERMINATE"); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+                    putOnQueue(new ArrayList<String>(0));
                     System.exit(1);
                 } else if (guessedInputFormat == GuessedInputFormat.FASTA) {
                     StringBuilder sb = new StringBuilder();
@@ -172,7 +198,8 @@ public class InputReaderProducer implements Runnable {
                     while ((line = content.readLine()) != null && !line.isEmpty()) {
                         if (countFastqLine++ == 2) {
                             if (bufferList.size() == FASTQ_BUFFER_SIZE) {
-                                queue.put(bufferList);
+//                                queue.put(bufferList);
+                                putOnQueue(bufferList);
                                 bufferList = new ArrayList<>();
                             }
                             bufferList.add(line);
@@ -181,10 +208,12 @@ public class InputReaderProducer implements Runnable {
                             countFastqLine = 0;
                         }
                     }
-                    queue.put(bufferList);
+//                    queue.put(bufferList);
+                    putOnQueue(bufferList);
                 }
             }
-            queue.put(new ArrayList<String>()); //TELLS CONSUMERS, NO MORE DATA
+//            queue.put(new ArrayList<String>()); //TELLS CONSUMERS, NO MORE DATA
+            putOnQueue(new ArrayList<String>(0));
         } catch (OutOfMemoryError err) {
             if (map == null) {
                 Reporter.report("[ERROR]", "Out of memory error!", TOOL_NAME);
@@ -192,7 +221,8 @@ public class InputReaderProducer implements Runnable {
                 map.setOutOfMemory();
             }
             try {
-                queue.put(new ArrayList<String>());
+//                queue.put(new ArrayList<String>());
+                putOnQueue(new ArrayList<String>(0));
             } catch (InterruptedException ex) {
                 System.err.println(ex.getMessage());
             }
@@ -225,7 +255,8 @@ public class InputReaderProducer implements Runnable {
 
                 ArrayList<String> wrapper = new ArrayList<>(1);
                 wrapper.add(sb.toString());
-                queue.put(wrapper);
+//                queue.put(wrapper);
+                putOnQueue(wrapper);
             }
             return new StringBuilder();
         } else {
@@ -286,4 +317,13 @@ public class InputReaderProducer implements Runnable {
         return KMER_LENGTH;
     }
 
+    private void putOnQueue(ArrayList<String> list) throws InterruptedException {
+        if(queue != null ) {
+            queue.put(list);
+        } else {
+            for (Integer k : kValues) {
+                kSizeToQueue.get(k).put(list);
+            }            
+        }
+    }
 }
