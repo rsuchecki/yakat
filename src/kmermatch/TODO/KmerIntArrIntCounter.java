@@ -16,7 +16,6 @@
 package kmermatch.TODO;
 
 import shared.SequenceOps;
-import kmerextender.*;
 import java.util.Arrays;
 
 /**

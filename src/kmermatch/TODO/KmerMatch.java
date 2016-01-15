@@ -15,6 +15,11 @@
  */
 package kmermatch.TODO;
 
+import argparser.ArgParser;
+import argparser.Opt;
+import argparser.OptGroup;
+import argparser.OptSet;
+import argparser.PositionalOpt;
 import shared.Reporter;
 import shared.InputReaderProducer;
 import kmerextender.*;
@@ -24,6 +29,7 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -60,6 +66,7 @@ public class KmerMatch {
 //    private Integer HASH_ARRAY_SIZE = Integer.MAX_VALUE - 3;
 //    private Integer MULTIPASS_COMPRESS = null;
     private boolean RUN_SOME_WILD_AND_WONDERFUL_STUFF = false;
+    private final int HELP_WIDTH = 180;
 
     private enum InputType {
 
@@ -68,7 +75,21 @@ public class KmerMatch {
 
     public KmerMatch(String[] args, String callerName, String toolName) {
         TOOL_NAME = callerName + " " + toolName;
-        processArgs(args);
+        
+        
+        
+        
+        OptSet optSet = populateOptSet();
+        ArgParser argParser = new ArgParser();
+        argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
+        
+        System.exit(0);
+        
+//        processArgs(args);
+        
+        
+        
+        
         if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
 
         } else {
@@ -95,6 +116,87 @@ public class KmerMatch {
             runKmerMatcher();
         }
     }
+    
+    
+    
+    private OptSet populateOptSet() {
+        OptSet optSet = new OptSet();
+        //INPUT
+        optSet.setListingGroupLabel("[Target input files]");
+        optSet.addOpt(new Opt('I', "in-single", "Target SE FASTA/FASTQ file(s)", 1).setMaxValueArgs(Short.MAX_VALUE));
+        optSet.addOpt(new Opt('1', "in-paired-r1", "Target R1 FASTA/FASTQ file(s), use in conjunction with -2 <args>", 1).setMaxValueArgs(Short.MAX_VALUE));
+        optSet.addOpt(new Opt('2', "in-paired-r2", "Target R2 FASTA/FASTQ file(s), use in conjunction with -1 <args>", 1).setMaxValueArgs(Short.MAX_VALUE));
+        
+        //REFERENCE INPUT TYPE 1 
+        int refGroupI = optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel(refGroupI, "[Reference input - option I]");
+        optSet.addOpt(new Opt('K', "k-mers-set", "A file contining a pre-computed set of reference k-mers, one k-mer per line", 1).setMaxValueArgs(Short.MAX_VALUE));
+        
+        //REFERENCE INPUT TYPE 2
+        int refGroupII = optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel(refGroupII, "[Reference input - option II]");
+        optSet.addOpt(new Opt('f', "fast-to-k-mers", "Input FASTA/FASTQ file(s) to be chopped-up into reference set of k-mers", 1).setMaxValueArgs(Short.MAX_VALUE));
+        optSet.addOpt(new Opt('k', "k-mer-size", "Specify the size of k if you don't input a set of k-mers",1).setMinValue(4).setMaxValue(1024));
+        optSet.setMutuallyExclusiveGroups(refGroupI, refGroupII);
+        optSet.setGroupRequired(refGroupI);
+        optSet.setGroupRequired(refGroupII);
+//        OptGroup optGroup = new OptGroup();
+//        optGroup.addOpt(optFast2kmers);
+//        optGroup.addOpt(optKmerSize);
+//        optSet.addOptGroup(optGroup);
+        
+//        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAA"));
+//        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
+        
+        //
+//        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[?????      settings]");
+//        optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
+//        optSet.addOpt(new Opt('a', "keep-adapters", "Do not trim adapters found next to PstI and MspI sites "));
+//        optSet.addOpt(new Opt('p', "keep-non-PstI-starting", "Keep reads (or pairs) which do not start with 'barcodeTGCAG'"));
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Matching settings]");
+        optSet.addOpt(new Opt('S', "stranded-matching", "Do not reverse-complement k-mers (by default canonical representation of a k-mer is stored and matched)"));
+        optSet.addOpt(new Opt('M', "min-matches", "Set minimum number of reference k-mers matching each targeted sequence",1,1,Integer.MAX_VALUE));
+        optSet.addOpt(new Opt('V', "invert-matching", "Invert matching: output targets that contain fewer than [-M] k-mers matching the reference set"));
+        optSet.addOpt(new Opt('B', "match-both-mates", "Relevant for PE input only. Demand each mate to have [-M] matching kmers with the reference set, by default, both mates are caught if at least one has [-M] kmer(s) matching the reference"));
+        optSet.addOpt(new Opt('A', "report-all", "Report all input sequences, with the number of matching baiting k-mers appended to the identifier, other matchin settings will be ignored"));
+
+//        int footId = 1;
+//        String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
+//        optSet.addOpt(new Opt('r', "min-length-single-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1).addFootnote(footId, footText1));
+//        optSet.addOpt(new Opt('e', "min-length-pair-each", "Only output a read pair if length of each is no less than <arg> bp, otherwise process as single", 1, 1, null, 1, 1).addFootnote(footId, footText1));
+//        optSet.addOpt(new Opt('s', "min-length-pair-sum", "Only output a read pair if combined length is no less than <arg> bp, otherwise process as single", 2, 2, null, 1, 1).addFootnote(footId, footText1));
+        //RUNTIME
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
+        optSet.addOpt(new Opt('U', "in-buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
+            + "passed to in-queue", 1024, 128, 8092));
+        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
+            2, 1, 256));
+        optSet.addOpt(new Opt('T', "querying-threads", "Number of threads to query the generated reference set. No point setting too high for small reference sets, "
+            + "i/o is the likely bottleneck.", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+
+        //OUTPUT
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
+        optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
+        optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
+        optSet.addOpt(new Opt('d', "out-dir", "Output directory", 1).setDefaultValue("matched"));
+        optSet.addOpt(new Opt('u', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
+        optSet.addOpt(new Opt('x', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
+        optSet.addOpt(new Opt('s', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
+        int footId = 1;
+        String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if encountering 'out of memory' errors.";
+        optSet.addOpt(new Opt('r', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
+            + "passed to out-queue", 1024, 64, 8092).addFootnote(footId, footText2));
+        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
+            2, 1, 32).addFootnote(footId, footText2));
+
+        //POSITIONAL
+//        optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
+        return optSet;
+    }
+    
+    
+    
+    
 
     private void runKmerMatcher() {
         Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", getClass().getSimpleName());
