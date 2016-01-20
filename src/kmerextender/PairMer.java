@@ -128,6 +128,24 @@ public class PairMer {//implements Comparable<PairMer> {
         sb.append(getClipRight());
         return sb.toString();
     }
+    
+    /**
+     * Output PairMer String with delimiter separating {leftClip, rightClip} 
+     * from core, if delimiter = "_" then e.g.
+     * A_TCCCTTGCT_C
+     * @param k
+     * @param delimiter
+     * @return 
+     */
+    public String getPairMerString(int k, String delimiter) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(getClipLeft());
+        sb.append(delimiter);
+        sb.append(decodeCore(k - 1));
+        sb.append(delimiter);
+        sb.append(getClipRight());
+        return sb.toString();
+    }
 
     public boolean isInvalid() {
         return invalid;

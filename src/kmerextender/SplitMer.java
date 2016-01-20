@@ -13,78 +13,100 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 package kmerextender;
 
 import shared.SequenceOps;
 
 /**
- * One of the two representations of a k-mer, with one of the ends (typically 1 base)
- * stored separately from the reminder (core - typically k-1 bases). 
- * The object has the core field filled and either the leftCLip or the rightCLip
- * Only used as a wrapper class when generating more compact PairMer 
+ * One of the two representations of a k-mer, with one of the ends (typically 1
+ * base) stored separately from the reminder (core - typically k-1 bases). The
+ * object has the core field filled and either the leftCLip or the rightCLip
+ * Only used as a wrapper class when generating more compact PairMer
+ *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class SplitMer {
 
-        private final String leftClip;
-        private final String core;
-        private final String rightClip;
+    private final String leftClip;
+    private final String core;
+    private final String rightClip;
 
-        public SplitMer(String kmerString, boolean frontClip, int overlapLength) {
-            //SPLIT THE INPUT INTO CORE AND CLIP
-            String coreTmp;
-            String clip;
-            int len = kmerString.length();
+    private final int MAX_1LONG_ENCODE = 32; //2bits per nucl, signed long so should be 31, but can use sign bit if lex ordering not needed, so 32 allowed 
+    private final int MAX_2LONG_ENCODE = 64;
+    private final int MAX_3LONG_ENCODE = 96;
+    private final int MAX_4LONG_ENCODE = 128;
+    private final int MAX_5LONG_ENCODE = 160;
+    
+    public SplitMer(String kmerString, boolean frontClip, int overlapLength) {
+        //SPLIT THE INPUT INTO CORE AND CLIP
+        String coreTmp;
+        String clip;
+        int len = kmerString.length();
+        if (frontClip) {
+            coreTmp = kmerString.substring(len - overlapLength);
+            clip = kmerString.substring(0, len - overlapLength);
+        } else {
+            coreTmp = kmerString.substring(0, overlapLength);
+            clip = kmerString.substring(overlapLength);
+        }
+
+        //ORIENTATE CORE AND CLIP BASED ON LEX ORDER OF CORE AND ITS REV-COMP
+        String coreRC = SequenceOps.getReverseComplementString(coreTmp);
+        if (coreRC.compareTo(coreTmp) < 0) {
+            //REV_COMP = TRUE
+            this.core = coreRC;
             if (frontClip) {
-                coreTmp = kmerString.substring(len - overlapLength);
-                clip = kmerString.substring(0, len - overlapLength);
+                this.leftClip = "";
+                this.rightClip = SequenceOps.getReverseComplementString(clip);
             } else {
-                coreTmp = kmerString.substring(0, overlapLength);
-                clip = kmerString.substring(overlapLength);
+                this.leftClip = SequenceOps.getReverseComplementString(clip);
+                this.rightClip = "";
             }
-
-            //ORIENTATE CORE AND CLIP BASED ON LEX ORDER OF CORE AND ITS REV-COMP
-            String coreRC = SequenceOps.getReverseComplementString(coreTmp);
-            if (coreRC.compareTo(coreTmp) < 0) {
-                //REV_COMP = TRUE
-                this.core = coreRC;
-                if (frontClip) {
-                    this.leftClip = "";
-                    this.rightClip = SequenceOps.getReverseComplementString(clip);
-                } else {
-                    this.leftClip = SequenceOps.getReverseComplementString(clip);
-                    this.rightClip = "";
-                }
+        } else {
+            this.core = coreTmp;
+            if (frontClip) {
+                this.leftClip = clip;
+                this.rightClip = "";
             } else {
-                this.core = coreTmp;
-                if (frontClip) {
-                    this.leftClip = clip;
-                    this.rightClip = "";
-                } else {
-                    this.leftClip = "";
-                    this.rightClip = clip;
-                }
+                this.leftClip = "";
+                this.rightClip = clip;
             }
-        }
-
-        public String getLeftClip() {
-            return leftClip;
-        }
-
-        public char getLeftClipChar() {
-            return leftClip.charAt(0);
-        }
-
-        public String getCore() {
-            return core;
-        }
-
-        public String getRightClip() {
-            return rightClip;
-        }
-
-        public char getRightClipChar() {
-            return rightClip.charAt(0);
         }
     }
+
+    public String getLeftClip() {
+        return leftClip;
+    }
+
+    public char getLeftClipChar() {
+        return leftClip.charAt(0);
+    }
+
+    public String getCore() {
+        return core;
+    }
+
+    public String getRightClip() {
+        return rightClip;
+    }
+
+    public char getRightClipChar() {
+        return rightClip.charAt(0);
+    }
+
+    public PairMer generatepairMer(String kmerString) {
+        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
+            return new PairMer1LongEncoded(this);
+        } else if (kmerString.length() - 1 <= MAX_2LONG_ENCODE) {
+            return new PairMer2LongEncoded(this);
+        } else if (kmerString.length() - 1 <= MAX_3LONG_ENCODE) {
+            return new PairMer3LongEncoded(this);
+        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
+            return new PairMer4LongEncoded(this);
+        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
+            return new PairMer5LongEncoded(this);
+        } else {
+            return new PairMerIntArrEncoded(this);
+        }
+    }
+}

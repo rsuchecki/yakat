@@ -27,8 +27,10 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.NavigableSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -42,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import shared.Sequence;
 
 /**
  *
@@ -51,10 +54,11 @@ public class KmerExtender {
 
 //    private PairMersMap pairMersMap = new PairMersMap(); //TODO user to give expected num of elems?
     private final ArrayList<String> inputFileNamesList = new ArrayList<>();
-    private Integer KMER_LENGTH;
+//    private Integer KMER_LENGTH;
     private Integer KMER_LENGTH_MIN;
     private Integer KMER_LENGTH_MAX;
     private Integer KMER_LENGTH_STEP;
+    private SeedSequences SEED_SEQUENCES;
     private Integer MIN_KMER_FREQUENCY;
     private int MAX_THREADS;
     private boolean OUTPUT_FASTA = false;
@@ -75,24 +79,59 @@ public class KmerExtender {
 
     public KmerExtender(String[] args, String callerName, String toolName) {
         TOOL_NAME = callerName + " " + toolName;
-
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
+        readArgValues(optSet);
+        if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
+//            new kmerextender.ideas.Alternative(MAX_THREADS, inputFileNamesList, KMER_LENGTH);
+        } else {
+            runKmerExtender();
+        }
+    }
 
-        if (optSet.getOpt("k").getValueOrDefault() != null) {
-            KMER_LENGTH = (int) optSet.getOpt("k").getValueOrDefault();
+    private void readArgValues(OptSet optSet) {
+        if (optSet.getOpt("k").isUsed()) {
+            setKmerLength((int) optSet.getOpt("k").getValueOrDefault());
+        } else {
+            if (optSet.getOpt("k-mer-min").isUsed()) {
+                KMER_LENGTH_MIN = (int) optSet.getOpt("k-mer-min").getValueOrDefault();
+            }
+            if (optSet.getOpt("k-mer-max").isUsed()) {
+                KMER_LENGTH_MAX = (int) optSet.getOpt("k-mer-max").getValueOrDefault();
+            }
+            KMER_LENGTH_STEP = (int) optSet.getOpt("k-mer-step").getValueOrDefault();
+            if (KMER_LENGTH_MIN != null & KMER_LENGTH_MAX != null) {
+                if (KMER_LENGTH_MAX < KMER_LENGTH_MIN) {
+                    Reporter.report("[ERROR]", "The k-mer-min value (" + KMER_LENGTH_MIN + ") set higher than k-mer-max value (" + KMER_LENGTH_MAX + "), adjusting to " + KMER_LENGTH_MAX + ",", TOOL_NAME);
+                    KMER_LENGTH_MAX = KMER_LENGTH_MIN;
+                }
+            } else if (KMER_LENGTH_MIN == null) {
+                KMER_LENGTH_MIN = KMER_LENGTH_MAX;
+            } else if (KMER_LENGTH_MAX == null) {
+                KMER_LENGTH_MAX = KMER_LENGTH_MIN;
+            }
         }
         
-        KMER_LENGTH_MIN = (int) optSet.getOpt("--k-mer-min").getValueOrDefault();
-        KMER_LENGTH_MAX = (int) optSet.getOpt("--k-mer-max").getValueOrDefault();
-        KMER_LENGTH_STEP = (int) optSet.getOpt("--k-mer-step").getValueOrDefault();
-        
+        if (optSet.getOpt("seed-file").isUsed()) {
+            SEED_SEQUENCES = new SeedSequences((String) optSet.getOpt("seed-file").getValueOrDefault());
+            if (SEED_SEQUENCES.getSeedSequences().isEmpty()) {
+                Reporter.report("[ERROR]", "No seeds found in " + (String) optSet.getOpt("seed-file").getValueOrDefault() + ", proceeding without...", TOOL_NAME);
+                if (KMER_LENGTH_MIN != KMER_LENGTH_MAX) {
+                    Reporter.report("[FATAL]", "Varied k implemented  (for now) for seed extension only - no seed(s) found", TOOL_NAME);
+                    System.exit(1);
+                }
+            }
+        }
+
 //        MIN_KMER_FREQUENCY = (int) optSet.getOpt("k").getValueOrDefault();
         MAX_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
-        if (optSet.getOpt("f").getValueOrDefault() != null) {
-            NAME_PREFIX = (String) optSet.getOpt("f").getValueOrDefault();
+
+        if (optSet.getOpt("f").isUsed()) {
             OUTPUT_FASTA = true;
+        }
+        if (optSet.getOpt("p").getValueOrDefault() != null) {
+            NAME_PREFIX = (String) optSet.getOpt("p").getValueOrDefault();
         }
         String outRedirect;
         String errRedirect;
@@ -103,7 +142,7 @@ public class KmerExtender {
                 printStream = new PrintStream(new FileOutputStream(file));
                 System.setOut(printStream);
             } catch (FileNotFoundException ex) {
-                Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, getClass().getSimpleName());
+                Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, TOOL_NAME);
             }
         }
         if ((errRedirect = (String) optSet.getOpt("e").getValueOrDefault()) != null) {
@@ -113,7 +152,7 @@ public class KmerExtender {
                 printStream = new PrintStream(new FileOutputStream(file));
                 System.setErr(printStream);
             } catch (FileNotFoundException ex) {
-                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, getClass().getSimpleName());
+                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, TOOL_NAME);
             }
         }
 
@@ -126,15 +165,6 @@ public class KmerExtender {
                 inputFileNamesList.addAll(po.getValues());
             }
         }
-
-//        System.exit(0);
-//        processArgs(args);
-        if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
-            new kmerextender.ideas.Alternative(MAX_THREADS, inputFileNamesList, KMER_LENGTH);
-        } else {
-
-            runKmerExtender();
-        }
     }
 
     private OptSet populateOptSet() {
@@ -143,41 +173,28 @@ public class KmerExtender {
         optSet.setListingGroupLabel("[Input settings - general extender]");
         optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of records (k-mers or FASTQ reads or pairs depending on input) "
-            + "passed to in-queue", 1024, 128, 8092));
+                + "passed to in-queue", 1024, 128, 8092));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
-            2, 1, 256));
+                2, 1, 256));
 //        optSet.addOpt(new Opt('m', "min-frequency", "....", 1,1,Integer.MAX_VALUE));
-//        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAA"));
-//        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
-        
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Varying k-mer size settings]");
+        int footId = 1;
+        String foot = "Warning! Exploring a large range of k values for a significant input [k-mers/FAST[A|Q]] "
+                + "will make the memory requirements explode, "
+                + "as it is done in parallel to avoid excessive I/O and preserve stdin handling";
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Variable k-mer size for longest extension of a single seed]");
         optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing a single entry (\"a seed\") to be extended", 1));
-        optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(4).setDefaultValue(15));
-        optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(5).setDefaultValue(55));
-        optSet.addOpt(new Opt(null, "k-mer-step", "",1).setMinValue(1).setDefaultValue(1));
-//        int footId = 1;
-//        String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
-//        optSet.addOpt(new Opt('r', "min-length-single-read", "Only output a read if length is no less than <arg> bp", 1, 1, null, 1, 1).addFootnote(footId, footText1));
-//        optSet.addOpt(new Opt('e', "min-length-pair-each", "Only output a read pair if length of each is no less than <arg> bp, otherwise process as single", 1, 1, null, 1, 1).addFootnote(footId, footText1));
-//        optSet.addOpt(new Opt('s', "min-length-pair-sum", "Only output a read pair if combined length is no less than <arg> bp, otherwise process as single", 2, 2, null, 1, 1).addFootnote(footId, footText1));
+        optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
+        optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
+        optSet.addOpt(new Opt(null, "k-mer-step", "", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, foot));
         //RUNTIME
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
-//        optSet.addOpt(new Opt('c', "only-count", "Do not output reads"));
         optSet.addOpt(new Opt('t', "threads", "Number threads for populating a set of implicitly connected k-mers",
-            1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+                1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
 
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
-        optSet.addOpt(new Opt('f', "fasta-prefix", "Output each k-mer as a separate FASTA record with identifier number prefixed by <arg> instead of just listing extended nucleotide sequences", 1));
-//        optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
-//        optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
-//        optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
-//        footId++;
-//        String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if encountering 'out of memory' errors.";
-//        optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
-//            + "passed to out-queue", 1024, 64, 8092).addFootnote(footId, footText2));
-//        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
-//            2, 1, 32).addFootnote(footId, footText2));
+        optSet.addOpt(new Opt('f', "fasta-out", "Output each k-mer as a separate FASTA record instead of just listing extended nucleotide sequences"));
+        optSet.addOpt(new Opt('p', "fasta-id-prefix", "Prefix each FASTA identifier with <arg> ", 1));
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
         optSet.addOpt(new Opt('s', "stats-file", "Write extension stats to this file", 1));
@@ -189,27 +206,27 @@ public class KmerExtender {
     }
 
     private void runKmerExtender() {
-        int longestSeedAfterExtension = 0;
-        String seed = "ACAACTACCTCATCATCAAGCGTATGAAGGGAATCGTACCCGTTCAAAGAATGAGATGACAGGGCAAACTAGGGTAGGAAAAGCAAGGCTTGATGGCATTACCCTCTTCTGATGAAAAATATCAGTAAGGGTTGCCAAAGG";
-        String seedToOutput = seed;
-        int kBest = -1;
+        Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", TOOL_NAME);
 
-        Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", getClass().getSimpleName());
         HashMap<Integer, PairMersMap> kSizeToPairMersMap = new HashMap<>();
         ArrayList<Integer> kSizes = new ArrayList<>();
-        for (int k = KMER_LENGTH_MIN; k < KMER_LENGTH_MAX+1; k += KMER_LENGTH_STEP) {
-            kSizeToPairMersMap.put(k, new PairMersMap());
-            kSizes.add(k);
+        if (KMER_LENGTH_MIN != null) {
+            for (int k = KMER_LENGTH_MIN; k < KMER_LENGTH_MAX + 1; k += KMER_LENGTH_STEP) {
+                kSizeToPairMersMap.put(k, new PairMersMap());
+                kSizes.add(k);
+            }
+        } else {
+            kSizes.add(0); // no k-size given, will be taken from input k-mers or the process will terminate if FASTA/FASTQ input
         }
+
+        //READ k-mers AND POPULATE A MAP FOR EACH SIZE OF k 
         readKmersAndPopulatePairMersMaps(kSizeToPairMersMap, kSizes);
 
         for (Integer k : kSizes) {
             PairMersMap pairMersMap = kSizeToPairMersMap.get(k);
-            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
+            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
         }
-
         for (Integer k : kSizes) {
-//        readKmersAndPopulatePairMersMap();      
             PairMersMap pairMersMap = kSizeToPairMersMap.get(k);
             long purged = pairMersMap.purge(k); //indicating large number of kmers overall        
             if (purged > 100000) {
@@ -221,72 +238,69 @@ public class KmerExtender {
                     }
                 }
             }
-            Reporter.report("[INFO]", "Finished purging map, k= "+k+", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
+            Reporter.report("[INFO]", "Finished purging map, k= " + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
 
-            //EXPERIMENTAL================================== BEGIN ============================
-            String trimmedSeed = seed.substring(1, seed.length() - 1); //hack to prevent end-pairmers from being thrown out 
-//            System.err.println(seed.length() + " " + trimmedSeed.length());
-            BlockingQueue<ArrayList<String>> dummyQueue = new ArrayBlockingQueue<>(2);
-            ArrayList<String> arrayList = new ArrayList<>(1);
-            arrayList.add(trimmedSeed);
-            PairMersMap trimmedSeedPairMersMap = new PairMersMap();
-            try {
-                dummyQueue.put(arrayList);
-                dummyQueue.put(new ArrayList<String>());
-            } catch (InterruptedException ex) {
-            }
-            PairMerMapPopulatorConsumer pairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(dummyQueue, trimmedSeedPairMersMap, 
-                true, k, MIN_KMER_FREQUENCY);
-            pairMerMapPopulatorConsumer.run(); //TODO move to a background thread earlier 
-
-            NavigableSet<PairMer> trimmedSeedPairMers = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet();
-
-            Iterator<PairMer> it = trimmedSeedPairMers.iterator();
-            ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap = pairMersMap.getPairMersSkipListMap();
-            long removedCount = 0L;
-            while (it.hasNext()) {
-                PairMer next = it.next();
-                PairMer removed = pairMersSkipListMap.remove(next);
-                if (removed != null) {
-                    removedCount++;
-//                    if (!next.getPairMerString(KMER_LENGTH).equals(removed.getPairMerString(KMER_LENGTH))) {
-//                        System.err.println("Seed-mer " + next.getPairMerString(KMER_LENGTH));
-//                        System.err.println("Removed  " + removed.getPairMerString(KMER_LENGTH));
-//                    } else {
-////                System.err.println("Nothing Removed  ");                                
-//                    }
+            //Seed-processing ================================== BEGIN ============================
+            if (SEED_SEQUENCES != null) {
+                BlockingQueue<ArrayList<String>> seedsDummyQueue = new ArrayBlockingQueue<>(2);
+                ArrayList<String> seedStrings = new ArrayList<>(1);
+                for(SeedSequence seed: SEED_SEQUENCES.getSeedSequences()) {
+                    String trimmedSeed = seed.getSequenceString().substring(1, seed.getSequenceString().length() - 1); //hack to prevent end-pairmers from being thrown out 
+                    seedStrings.add(trimmedSeed);
                 }
+                PairMersMap trimmedSeedPairMersMap = new PairMersMap();
+                try {
+                    seedsDummyQueue.put(seedStrings);
+                    seedsDummyQueue.put(new ArrayList<String>());
+                } catch (InterruptedException ex) {
+                }
+                PairMerMapPopulatorConsumer seedsPairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(seedsDummyQueue, trimmedSeedPairMersMap,
+                        true, k, MIN_KMER_FREQUENCY);
+                seedsPairMerMapPopulatorConsumer.run(); //TODO move to a background thread earlier  if needed
+                Iterator<PairMer> it = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet().iterator();
+                long removedCount = 0L;
+                while (it.hasNext()) {
+                    if (pairMersMap.getPairMersSkipListMap().remove(it.next()) != null) {
+                        removedCount++;
+                    }
+                }
+                Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount), TOOL_NAME);
             }
-            Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount), getClass().getSimpleName());
-            //EXPERIMENTAL================================== END ============================
+            //Seed-processing ================================== END ============================
 
-            PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE);
-            String extendedSeed = pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, seed);
-            if (extendedSeed != null) {
-                //            if (outputFasta) {
-//                if (inputSeedLen < seed.length()) {
-//                    System.out.println(">InputSeedID_extended_from_" + inputSeedLen + " " + seed.length());
+            PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
+            pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, SEED_SEQUENCES);
+//            if (seedPossiblyExtended != null) {
+//                if (longestSeedAfterExtension < seedPossiblyExtended.length()) {
+//                    longestSeedAfterExtension = seedPossiblyExtended.length();
+////                    kBest = k;
+//                    seedToOutput = seedPossiblyExtended;
+//                }
+////                System.out.println(seedPossiblyExtended.length() + " @ k = " + k);
+//            }
+        }
+        for(SeedSequence seed: SEED_SEQUENCES.getSeedSequences()) {        
+//            Reporter.report("[INFO]", "Longest extension of the provided seed is from " + seed.getSequenceString().length() + " to " + longestSeedAfterExtension + " at k = " + kBest, TOOL_NAME);
+            Map.Entry<Integer, String> longest = seed.getLongestExtended();            
+            if (OUTPUT_FASTA) {
+                if (!NAME_PREFIX.isEmpty()) {
+                    System.out.println(">" + NAME_PREFIX + " " + longest.getValue().length());
+                } else if(longest.getKey() == 0){ //NOEXTENSION BEYOND INPUT
+                    System.out.println(">" + seed.getId() + " not extended " + longest.getValue().length());
+                } else {
+                    System.out.println(">" + seed.getId() + " extended from " + seed.getSequenceString().length() + 
+                            " to " + longest.getValue().length() + " at k = " + longest.getKey());
+                }
+
 //                } else {
 //                    System.out.println(">InputSeedID " + inputSeedLen);
 //                }
-//                System.out.println(seed);
-//            } else {
-//                System.out.println(seed);// + "\t" + SequenceOps.getReverseComplementString(connected));
-//            }
-                if (longestSeedAfterExtension < extendedSeed.length()) {
-                    longestSeedAfterExtension = extendedSeed.length();
-                    kBest = k;
-                    seedToOutput = extendedSeed;
-                }
-                System.out.println(extendedSeed.length() + " @ k = " + k);
+//                System.out.println(seed);            
             }
-        }
-        if (longestSeedAfterExtension > 0) {
-            Reporter.report("[INFO]", "Longest extension of the provided seed is from ... to " + longestSeedAfterExtension + " at k = " + kBest, getClass().getSimpleName());
-            System.out.println(seedToOutput);
+            System.out.println(longest.getValue());
 
         }
-        Reporter.report("[INFO]", "Finished extending k-mers", getClass().getSimpleName());
+        Reporter.report("[INFO]", "Finished extending k-mers", TOOL_NAME);
     }
 
     /**
@@ -294,9 +308,11 @@ public class KmerExtender {
      * generate PairMer objects and populate a Map
      */
     private HashMap<Integer, PairMersMap> readKmersAndPopulatePairMersMaps(HashMap<Integer, PairMersMap> kSizeToPairMersMap,
-        ArrayList<Integer> kValues) {
+            ArrayList<Integer> kValues) {
 
         HashMap<Integer, BlockingQueue> kSizeToinputQueue = new HashMap<>();
+
+        //POSSIBLY single 0 value when k is to be picked-up from input (if list of k-mers given)
         for (Integer kValue : kValues) {
             kSizeToinputQueue.put(kValue, new ArrayBlockingQueue(1024));
         }
@@ -307,14 +323,15 @@ public class KmerExtender {
 //            int threads = Math.max(Runtime.getRuntime().availableProcessors(), 6);
             int threads = MAX_THREADS;
 //            BlockingQueue inputQueue = new ArrayBlockingQueue(65536);
-//            BlockingQueue inputQueue = new ArrayBlockingQueue(65536);
+//            BlockingQueue inputQueue = new ArrayBlockingQueue(1024);
 //            boolean stranded = false;
             ArrayList<Future<?>> futures = new ArrayList<>(threads + 1);
             final ExecutorService readAndPopulateDbExecutor = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
             //SPAWN INPUT READING THREAD
             InputReaderProducer inputReaderProducer = new InputReaderProducer(kSizeToinputQueue, kValues, inputFileNamesList, TOOL_NAME);
-//            InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFileNamesList, KMER_LENGTH, pairMersMap, TOOL_NAME);
+//                inputReaderProducer = new InputReaderProducer(inputQueue, inputFileNamesList, KMER_LENGTH, pairMersMap, TOOL_NAME);
+
             Future<?> future = readAndPopulateDbExecutor.submit(inputReaderProducer);
             futures.add(future);
             boolean splitInputSequenceIntoKmers = true;
@@ -329,26 +346,31 @@ public class KmerExtender {
                 try {
                     //IF nothing happens after 5 seconds
                     if (System.currentTimeMillis() - timeStart > 5000 && (count++ % 50 == 0)) {
-                        Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", getClass().getSimpleName());
+                        Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", TOOL_NAME);
                     }
                     Thread.sleep(100); //wait for 1/10 of a second
                 } catch (InterruptedException ex) {
                 }
             }
+            Integer kSizeFromInput = null;
             if (inputReaderProducer.getGuessedInputFormat().equals(InputReaderProducer.GuessedInputFormat.KMERS)) {
                 splitInputSequenceIntoKmers = false;
-                KMER_LENGTH = inputReaderProducer.getKmerLength();
+                kSizeFromInput = setKmerLength(inputReaderProducer.getKmerLength());
             }
 
             //SPAWN THREADS TO POPULATE MAP
             for (Integer kValue : kValues) {
+                BlockingQueue queue = kSizeToinputQueue.get(kValue);
+                if (kValue == 0) {   //single dummy-entry
+                    kValue = kSizeFromInput;
+                }
+                threads = Math.max(1, threads / kValues.size()); //REDUCE NUM_THREADS BASED ON NUMER OF k-values To BE INVESTIGATED
                 for (int i = 0; i < threads; i++) {
-                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(kSizeToinputQueue.get(kValue), kSizeToPairMersMap.get(kValue), splitInputSequenceIntoKmers, kValue, MIN_KMER_FREQUENCY);
+                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(queue, kSizeToPairMersMap.get(kValue), splitInputSequenceIntoKmers, kValue, MIN_KMER_FREQUENCY);
 //                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(inputQueue, pairMersMap, splitInputSequenceIntoKmers, KMER_LENGTH, MIN_KMER_FREQUENCY);
                     futures.add(readAndPopulateDbExecutor.submit(consumer));
                 }
             }
-
             readAndPopulateDbExecutor.shutdown();
             try {
                 for (Future<?> f : futures) {
@@ -356,22 +378,22 @@ public class KmerExtender {
                 }
                 readAndPopulateDbExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
             } catch (InterruptedException e) {
-                Reporter.report("[ERROR]", "PairMerSet populator interrupted exception!", getClass().getSimpleName());
+                Reporter.report("[ERROR]", "PairMerSet populator interrupted exception!", TOOL_NAME);
             } catch (ExecutionException ex) {
-                Reporter.report("[ERROR]", "PairMerSet populator execution exception!", getClass().getSimpleName());
+                Reporter.report("[ERROR]", "PairMerSet populator execution exception!", TOOL_NAME);
                 ex.getMessage();
 
             } catch (TimeoutException ex) {
                 Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
-                Reporter.report("[ERROR]", "PairMerSet populator timeout exception!", getClass().getSimpleName());
+                Reporter.report("[ERROR]", "PairMerSet populator timeout exception!", TOOL_NAME);
             }
 
 //            if (pairMersMap.isOutOfMemory()) {
-//                Reporter.report("[ERROR]", "Terminating, out of memory while populating the Map, k=" + KMER_LENGTH + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
+//                Reporter.report("[ERROR]", "Terminating, out of memory while populating the Map, k=" + KMER_LENGTH + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
 //                System.exit(1);
 //            }
         } catch (OutOfMemoryError e) {
-            Reporter.report("[ERROR]", "Out of memory error!", getClass().getSimpleName());
+            Reporter.report("[ERROR]", "Out of memory error!", TOOL_NAME);
 //            printStatus("Reference set n = " + NumberFormat.getNumberInstance().format(clipMersMap.getClipMersMap().size()));
             System.exit(1);
         }
@@ -380,6 +402,20 @@ public class KmerExtender {
 
     }
 
+    private int setKmerLength(int k) {
+        KMER_LENGTH_MIN = k;
+        KMER_LENGTH_MAX = k;
+        KMER_LENGTH_STEP = 1;
+        return k;
+    }
+
+//    private int getKmerLength() {
+//        if (KMER_LENGTH_MIN == KMER_LENGTH_MAX) {
+//            return KMER_LENGTH_MIN;
+//        } else {            
+//            return -1; 
+//        }
+//    }
 //    /**
 //     * Supposedly POSIX-compliant CLI args processor
 //     *
@@ -457,7 +493,7 @@ public class KmerExtender {
 //            } else if (a.equals("-D") || a.equalsIgnoreCase("--debug-file")) {
 //                if (it.hasNext()) {
 //                    DEBUG_FILE = it.next();
-//                    Reporter.writeToFile(DEBUG_FILE, Reporter.formatReport("[DEBUG]", "Debugging trace", getClass().getSimpleName()), false);
+//                    Reporter.writeToFile(DEBUG_FILE, Reporter.formatReport("[DEBUG]", "Debugging trace", TOOL_NAME), false);
 //                }
 //            } else if (a.equals("-S") || a.equalsIgnoreCase("--stats-file")) {
 //                if (it.hasNext()) {
@@ -533,7 +569,7 @@ public class KmerExtender {
 //        System.out.println("Given a set of k-mers, performs their unmabiguous extension.");
 //        System.out.println("Input may be passed through stdin. Output is printed to stdout. ");
 //        System.out.println("Progress information, warnings errors etc. are printed to stderr, usage:");
-//        System.out.println("java -jar " + this.getClass().getSimpleName() + ".jar [options] [INPUT_FILENAME(s)] ");
+//        System.out.println("java -jar " + this.TOOL_NAME + ".jar [options] [INPUT_FILENAME(s)] ");
 //        System.out.println(" -h, --help                     : Print this help screen and exit");
 //        System.out.println(" -k, --kmer-length <int>        : Required only if input other than a list of k-mers");
 //        System.out.println(" -t, --threads <int>            : Number of threads, defaults to " + MAX_THREADS);

@@ -34,6 +34,7 @@ public class PairMersMap extends shared.MerMap {
     private final int MAX_3LONG_ENCODE = 96;
     private final int MAX_4LONG_ENCODE = 128;
     private final int MAX_5LONG_ENCODE = 160;
+    
 
 //    private boolean OutOfMemory;
 
@@ -58,21 +59,9 @@ public class PairMersMap extends shared.MerMap {
         SplitMer splitMer = new SplitMer(kmerString, frontClip, overlapLength);
 //        System.err.println("Adding\t"+kmerString+"\t"+frontClip+"\t"+splitMer.getLeftClip()+"_"+splitMer.getCore()+"_"+splitMer.getRightClip());
 
-        PairMer pairMer;
+        PairMer pairMer = splitMer.generatepairMer(kmerString);
 
-        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
-            pairMer = new PairMer1LongEncoded(splitMer);
-        } else if (kmerString.length() - 1 <= MAX_2LONG_ENCODE) {
-            pairMer = new PairMer2LongEncoded(splitMer);
-        } else if (kmerString.length() - 1 <= MAX_3LONG_ENCODE) {
-            pairMer = new PairMer3LongEncoded(splitMer);
-        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
-            pairMer = new PairMer4LongEncoded(splitMer);
-        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
-            pairMer = new PairMer5LongEncoded(splitMer);
-        } else {
-            pairMer = new PairMerIntArrEncoded(splitMer);
-        }
+        
 
         //Atomic operation START
         PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
