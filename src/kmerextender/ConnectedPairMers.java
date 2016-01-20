@@ -142,9 +142,9 @@ public class ConnectedPairMers {
             Reporter.report("[WARNING]", "No terminal PairMerNodes ", getClass().getSimpleName() );
             return null;
         } else if (terminal1 != null) {
-            return traverseAssemble(terminal1, k, null, null);
+            return traverse(terminal1, k, true, null);
         } else if (terminal2 != null) {
-            return traverseAssemble(terminal2, k, null, null);
+            return traverse(terminal2, k, true, null);
         } else {
             //not possible            
             Reporter.report("[BUG?]", "No terminal or sungleton PairMerNodes in ConnectedPairMers? ", getClass().getSimpleName() );
@@ -164,16 +164,12 @@ public class ConnectedPairMers {
         return terminal1 != null || terminal2 != null || singletonNode != null;
     }
  
-    public String traverseAssemble(PairMerNode currentNode, int k, String currentString, PairMerNode alreadyVisited) {
+    private String traverse(PairMerNode currentNode, int k, boolean isInitial, PairMerNode alreadyVisited) {
         StringBuilder sb = new StringBuilder();
-//        String currentString = new String();
-//        if (isInitial) {            
-//            currentString = currentNode.getPairMer().getPairMerString(k);
-//            isInitial = false;
-//        }
-        //DONE FOR INITIAL MER ONLY
-        if (currentString == null) {            
+        String currentString = new String();
+        if (isInitial) {
             currentString = currentNode.getPairMer().getPairMerString(k);
+            isInitial = false;
         }
 //        System.err.println(currentNode.getPairMer().getPairMerString(k) + " <-current");
 
@@ -187,11 +183,11 @@ public class ConnectedPairMers {
             if (alreadyVisited == null || previous != alreadyVisited) {
                 if (currentNode.isPreviousRc()) {
 //                    System.err.println(SequenceOps.getReverseComplementString(previous.getPairMer().getPairMerString(k))+" <- (RC) recursion to previous");
-                    sb.append(SequenceOps.getReverseComplementString(traverseAssemble(previous, k, currentString, currentNode)));
+                    sb.append(SequenceOps.getReverseComplementString(traverse(previous, k, false, currentNode)));
                     sb.append(SequenceOps.complement(currentNode.getPrevious().getClipRight()));
                 } else {
 //                    System.err.println(previous.getPairMer().getPairMerString(k)+" <- recursion to previous");
-                    sb.append(traverseAssemble(previous, k, currentString, currentNode));
+                    sb.append(traverse(previous, k, false, currentNode));
                     sb.append(currentNode.getPrevious().getClipLeft());
                 }
                 sb.append(currentString);
@@ -207,11 +203,11 @@ public class ConnectedPairMers {
                 if (currentNode.isNextRc()) {
 //                    System.err.println(SequenceOps.getReverseComplementString(next.getPairMer().getPairMerString(k))+" <- (RC) recursion to next");
                     sb.append(SequenceOps.complement(currentNode.getNext().getClipLeft()));
-                    sb.append(SequenceOps.getReverseComplementString(traverseAssemble(next, k, currentString, currentNode)));
+                    sb.append(SequenceOps.getReverseComplementString(traverse(next, k, false, currentNode)));
                 } else {
 //                    System.err.println(next.getPairMer().getPairMerString(k)+" <- recursion to next");
                     sb.append(currentNode.getNext().getClipRight());
-                    sb.append(traverseAssemble(next, k, currentString, currentNode));
+                    sb.append(traverse(next, k, false, currentNode));
                 }
             } else {
             }
@@ -262,7 +258,7 @@ public class ConnectedPairMers {
             this.previousRc = isPreviousRC;
         }
 
-        public void addNext(PairMer next, boolean isNextRC) {
+        public void addNExt(PairMer next, boolean isNextRC) {
             this.next = next;
             this.nextRc = isNextRC;
         }
