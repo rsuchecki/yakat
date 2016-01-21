@@ -21,7 +21,9 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
+import java.util.Set;
 
 /**
  * Generic reporting interface
@@ -89,7 +91,7 @@ public class Reporter {
         long free = runtime.freeMemory();
         usedMem = total - free;
         SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd EEE HH:mm:ss");
-        String format = "%s %-20s %-10s %s %s" + newline;
+        String format = "%s %-22s %-10s %s %s" + newline;
         String memUse = "";
         if (printMemoryUsage) {
             memUse = "[" + CommonMaths.getBytesMultiple(usedMem) + " used]";

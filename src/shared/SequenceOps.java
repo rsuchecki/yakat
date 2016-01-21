@@ -54,6 +54,8 @@ public class SequenceOps {
             case 'n':
                 c = 'n';
                 break;
+            case  ' ':
+                c = ' ';
             default: {
 //                c = Character.toUpperCase(c);
 //                System.err.println("Error reverse-complementing, fallen over char: " + c);

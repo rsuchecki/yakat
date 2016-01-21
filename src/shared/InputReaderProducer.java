@@ -86,13 +86,13 @@ public class InputReaderProducer implements Runnable {
         ArrayList<String> inputFiles, String toolName) {
         if (kSizeToQueue.size() == 1) {
             this.queue = kSizeToQueue.values().iterator().next();
+            this.KMER_LENGTH = kSizeToQueue.keySet().iterator().next();            
         } else {
             this.kSizeToQueue = kSizeToQueue;
             this.kValues = kValues;
         }
         this.inputFiles = inputFiles;
         
-        KMER_LENGTH = -1;
         if (map != null) {
             this.map = map;
         }
@@ -144,7 +144,7 @@ public class InputReaderProducer implements Runnable {
                 }
 
                 String line;
-                if (guessedInputFormat == GuessedInputFormat.KMERS || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && KMER_LENGTH < 0) || (guessedInputFormat == GuessedInputFormat.FASTQ_SE_ONE_LINE && KMER_LENGTH < 0)) { //READ KMERS
+                if (guessedInputFormat == GuessedInputFormat.KMERS || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && !kMerIsSet()) || (guessedInputFormat == GuessedInputFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())) { //READ KMERS
                     ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
                     bufferList.addAll(testLines);
 //                    queue.put(testLines);
@@ -172,7 +172,7 @@ public class InputReaderProducer implements Runnable {
                     Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME + " read-in", TOOL_NAME);
 //                    queue.put(bufferList);
                     putOnQueue(bufferList);
-                } else if (KMER_LENGTH == null) {
+                } else if (!kMerIsSet()) {
                     Reporter.report("[ERROR]", "Fatal error, k-mer lenght must be specified for input other than a list of k-mers, terminating!", TOOL_NAME);
 //                    queue.put(new ArrayList<String>()); //queue.put("TERMINATE"); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
                     putOnQueue(new ArrayList<String>(0));
@@ -315,6 +315,10 @@ public class InputReaderProducer implements Runnable {
 
     public Integer getKmerLength() {
         return KMER_LENGTH;
+    }
+    
+    private boolean kMerIsSet() {
+        return (KMER_LENGTH != null && KMER_LENGTH > 0) || (kValues !=null && !kValues.isEmpty());
     }
 
     private void putOnQueue(ArrayList<String> list) throws InterruptedException {

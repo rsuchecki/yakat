@@ -28,7 +28,7 @@ public class SeedSequence {
     private final String id;
     private final ConcurrentHashMap<Integer, String> kToExtendedSequence;
 //    private final ConcurrentHashMap<Integer, Integer> kToExtensionCount;
-    private int[] extensionCounts = new int[101];
+    private final int[] extensionCounts = new int[101];
 
     public SeedSequence(String id, String sequenceString) {
         this.id = id;
@@ -44,7 +44,7 @@ public class SeedSequence {
                 if (previous.length() < extendedSequenceString.length()) {
                     kToExtendedSequence.put(k, extendedSequenceString);
                     extensionCounts[k]++;
-                    System.err.println("at k=" + k + " current count = " + extensionCounts[k]);
+//                    System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" updated ");
 //                    System.err.println(extendedSequenceString);
                 }
 //            Reporter.report("[ERROR]", "Unexpected value present at k=" + k, this.getClass().getSimpleName());
@@ -54,9 +54,12 @@ public class SeedSequence {
 //            }
             } else {
                 extensionCounts[k]++;
-                System.err.println("at k=" + k + " current count = " + extensionCounts[k]);
+//                System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" new ");
 //                System.err.println(extendedSequenceString);
             }
+        } else {
+            System.err.println("trying to store short extension - investigate "+this.getClass().getName());
+            
         }
 //        Integer previousCount = kToExtensionCount.putIfAbsent(k, extensions);
 //        if(previousCount != null) {

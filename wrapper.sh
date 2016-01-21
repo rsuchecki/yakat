@@ -1,6 +1,6 @@
 #!/bin/bash
-
+COLUMNS=$(tput cols)
 export COLUMNS
 
-java -jar dist/merutensils.jar ${@} 
+java -jar $(ls dist/*.jar) ${@} 
 

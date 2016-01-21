@@ -15,6 +15,7 @@
  */
 package kmerextender;
 
+import java.util.ArrayList;
 import shared.SequenceOps;
 import shared.Reporter;
 import java.util.HashMap;
@@ -225,14 +226,27 @@ public class ConnectedPairMers {
         return pairMerNodes.keySet();
     }
 
-    public PairMer getTerminal1() {
-        return terminal1.getPairMer();
-    }
+//    public PairMer getTerminal1() {
+//        return terminal1.getPairMer();
+//    }
+//
+//    public PairMer getTerminal2() {
+//        return terminal2.getPairMer();
+//    }
 
-    public PairMer getTerminal2() {
-        return terminal2.getPairMer();
+    public ArrayList<PairMer> terminalMersOrSingleton() {
+        ArrayList<PairMer> list = new ArrayList<>(2);
+        if(terminal1 != null ) {
+            list.add(terminal1.getPairMer());
+        }
+        if(terminal2 != null ) {
+            list.add(terminal2.getPairMer());
+        }        
+        if(singletonNode != null ) {
+            list.add(singletonNode.getPairMer());
+        }
+        return list;
     }
-
     
     /**
      * Class facilitates generation of a graph connecting matching PairMers

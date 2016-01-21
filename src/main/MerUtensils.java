@@ -64,12 +64,13 @@ public class MerUtensils {
         System.out.println();
         System.out.println("java -jar " + this.getClass().getSimpleName() + ".jar <command> ");
         System.out.println("Commands:");
-        System.out.println("   extend    : extend k-mers to unambiguous contigs");
-        System.out.println("   match     : a.k.a bait");
-        System.out.println("   merge     : given sorted input, merge k-mer sets summing frequencies if available ");
-        System.out.println("   split     : split FASTQ GBS reads by barcodes, trim barcodes and adapters");
-        System.out.println("   ppileup   : extract some stats from (m)pileup ");
-        System.out.println("   mmers     : count (and analyse?) k-mers in multiple input sets");
+        System.out.println("   kextend    : extend k-mers to unambiguous contigs");
+        System.out.println("   kmatch     : a.k.a bait");
+        System.out.println("   kmerge     : given sorted input, merge k-mer sets summing frequencies if available ");
+        System.out.println("              :");
+        System.out.println("   split      : split FASTQ GBS reads by barcodes, trim barcodes and adapters - TODO move elswhere? to a GBS-tools suite?");
+        System.out.println("   ppileup    : extract some stats from (m)pileup TODO: move elswhere on under anoither sub-command");
+        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets TODO???");
         
 //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
 //                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "

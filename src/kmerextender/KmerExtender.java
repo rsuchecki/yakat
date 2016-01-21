@@ -287,10 +287,10 @@ public class KmerExtender {
                     if (!NAME_PREFIX.isEmpty()) {
                         System.out.println(">" + NAME_PREFIX + " " + longest.getValue().length());
                     } else if (longest.getKey() == 0) { //NOEXTENSION BEYOND INPUT
-                        System.out.println(">" + seed.getId() + " not extended " + longest.getValue().length());
+                        System.out.println(">" + seed.getId() + " not_extended=" + longest.getValue().length());
                     } else {
-                        System.out.println(">" + seed.getId() + " extended from " + seed.getSequenceString().length()
-                                + " to " + longest.getValue().length() + " at k = " + longest.getKey());
+                        System.out.println(">" + seed.getId() + " extended from=" + seed.getSequenceString().length()
+                                + " to=" + longest.getValue().length() + " at k=" + longest.getKey());
                     }
 
                 }

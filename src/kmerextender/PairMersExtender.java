@@ -93,15 +93,15 @@ public class PairMersExtender {
                     if (connectedPairMers.hasTerminalOrSingletonNode()) {
                         extendedNumber++;
 //                        System.err.println(connectedPairMers.getKeys().size() + " pairMers == " + connectedMers.length() + " bp");
-                        if (seedSequences != null) { //EXTENDING SPECIFIC SEED ONLY
-                            for (SeedSequence seed : seedSequences.getSeedSequences()) {
-//                                if (checkExtendSeed(connectedPairMers, seed.getSequenceString(), k)) {
+                        if (seedSequences != null) { //EXTENDING SPECIFIC SEEDS ONLY
+                            for (SeedSequence seed : seedSequences.getSeedSequences()) {                                
+                                if (checkIfExtensionPossible(connectedPairMers, seed.getSequenceString(), k)) {
                                     String connectedMers = connectedPairMers.toString(k);
-                                    String extension = tryExtendSeed(connectedMers, tryExtendSeed(SequenceOps.getReverseComplementString(connectedMers), seed.getExtendedOrOriginal(k), k), k);
+                                    String extension = extendSeed(connectedMers, extendSeed(SequenceOps.getReverseComplementString(connectedMers), seed.getExtendedOrOriginal(k), k), k);
                                     seed.setExtended(k, extension);
-//                                }
+                                }
                             }
-                        } else { //STANDARD OPERATION
+                        } else { //STANDARD OPERATION, k-mer extension - NO SEEDS
                             String connectedMers = connectedPairMers.toString(k);
                             int len = connectedMers.length();
                             if (len > longest) {
@@ -122,11 +122,11 @@ public class PairMersExtender {
                             }
                         }
                     } else {
-                        String message = "No terminal PairMer identified in cluster " + clusterNumber;
+                        String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k="+k;
                         Reporter.report("[WARNING]", message, TOOL_NAME);
                         if (DEBUG_FILE != null) {
                             ArrayList<String> toReport = new ArrayList<>();
-                            toReport.add("No terminal PairMer identified in cluster " + clusterNumber + " PairMers in cluster:");
+                            toReport.add("No terminal PairMer identified in cluster " + clusterNumber + " @ k="+k+" PairMers in cluster:");
                             for (PairMer pm : connectedPairMers.getKeys()) {
                                 toReport.add(pm.getPairMerString(k));
                             }
@@ -158,7 +158,7 @@ public class PairMersExtender {
 
     }
 
-    private String tryExtendSeed(String connectedMers, String seed, int k) {
+    private String extendSeed(String connectedMers, String seed, int k) {
         //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
         String connectedMersHead = connectedMers.substring(0, k);
         if (seed.endsWith(connectedMersHead)) {
@@ -177,10 +177,11 @@ public class PairMersExtender {
         return seed;
     }
 
-    private boolean checkExtendSeed(ConnectedPairMers connectedPairMers, String seed, int k) {
+    private boolean checkIfExtensionPossible(ConnectedPairMers connectedPairMers, String seed, int k) {
         //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
 //        PairMer terminal1 = connectedPairMers.getTerminal1();
-        for (PairMer terminal : new PairMer[]{connectedPairMers.getTerminal1(), connectedPairMers.getTerminal2()}) {
+//            for (PairMer terminal : new PairMer[]{connectedPairMers.getTerminal1(), connectedPairMers.getTerminal2()}) {
+        for (PairMer terminal : connectedPairMers.terminalMersOrSingleton()) {
             String core = terminal.decodeCore(k - 1);
             if (seed.endsWith(core) || seed.startsWith(core)) {
                 return true;
