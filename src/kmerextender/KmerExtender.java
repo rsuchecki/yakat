@@ -222,19 +222,20 @@ public class KmerExtender {
 
         //READ k-mers AND POPULATE A MAP FOR EACH SIZE OF k
         int actualK = readKmersAndPopulatePairMersMaps(kSizeToPairMersMap, kSizes);
-         
 
         for (Integer k : kSizes) {
-            if(k > 0) {
-                actualK = k;
-            }
+            actualK = k > 0 ? k : actualK;            
             PairMersMap pairMersMap = kSizeToPairMersMap.get(k);
             Reporter.report("[INFO]", "Finished populating map, k=" + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
         }
+        
+        int threads = MAX_THREADS;
+        ArrayList<Future<?>> futures = new ArrayList<>(threads);
+        final ExecutorService purgeMapAndExtendExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+
+        
         for (Integer k : kSizes) {
-            if(k > 0) {
-                actualK = k;
-            }
+            actualK = k > 0 ? k : actualK;            
             PairMersMap pairMersMap = kSizeToPairMersMap.get(k);
             long purged = pairMersMap.purge(k); //indicating large number of kmers overall        
             if (purged > 100000) {
@@ -276,9 +277,34 @@ public class KmerExtender {
             }
             //Seed-processing ================================== END ============================
 
+            
+            
             PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
             pairMersExtender.matchAndExtendKmers(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, SEED_SEQUENCES);
+            
+//            futures.add(purgeMapAndExtendExecutorService.submit(consumer));
+            
         }
+        
+//        purgeMapAndExtendExecutorService.shutdown();
+//        try {
+//            for (Future<?> f : futures) {
+//                f.get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+//            }
+//            purgeMapAndExtendExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+//        } catch (InterruptedException e) {
+//            Reporter.report("[ERROR]", "purgeMapAndExtendExecutorService interrupted exception!", TOOL_NAME);
+//        } catch (ExecutionException ex) {
+//            Reporter.report("[ERROR]", "purgeMapAndExtendExecutorService execution exception!", TOOL_NAME);
+//            ex.printStackTrace();
+//
+//        } catch (TimeoutException ex) {
+//            Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
+//            Reporter.report("[ERROR]", "purgeMapAndExtendExecutorService timeout exception!", TOOL_NAME);
+//        }
+        
+        
+        
         if (SEED_SEQUENCES != null) {
             for (SeedSequence seed : SEED_SEQUENCES.getSeedSequences()) {
 //            Reporter.report("[INFO]", "Longest extension of the provided seed is from " + seed.getSequenceString().length() + " to " + longestSeedAfterExtension + " at k = " + kBest, TOOL_NAME);
@@ -308,7 +334,7 @@ public class KmerExtender {
     private int readKmersAndPopulatePairMersMaps(HashMap<Integer, PairMersMap> kSizeToPairMersMap,
             ArrayList<Integer> kValues) {
         int kReturn = 0;
-        
+
         HashMap<Integer, BlockingQueue> kSizeToinputQueue = new HashMap<>();
 
         //POSSIBLY single 0 value when k is to be picked-up from input (if list of k-mers given as input)
