@@ -39,6 +39,15 @@ public class PairMersMap extends shared.MerMap {
         pairMersSkipListMap = new ConcurrentSkipListMap<>();
     }
 
+    public PairMersMap(boolean empty) {
+        pairMersSkipListMap = null;
+    }
+    
+    public boolean isEmpty() {
+        return pairMersSkipListMap == null;
+    }
+    
+
     /**
      * First tries to atomically add a k-mer to the Map, if this fails,
      * synchronized method is used to update the previously stored PairMer

@@ -36,8 +36,16 @@ public class PairMerGenerator {
     private static final int MAX_4LONG_ENCODE = 128;
     private static final int MAX_5LONG_ENCODE = 160;
 
-    public static PairMer generatePairMer(String kmerString, boolean frontClip, int overlapLength) {
-        
+    /**
+     * GeneRatePairMer object with k-1 core separated from 1 base clip 
+     * Clip end is selected based on frontClip param
+     * 
+     * @param kmerString
+     * @param frontClip 
+     * @param overlapLength - i.e. k-1
+     * @return 
+     */
+    public static PairMer generatePairMer(String kmerString, boolean frontClip, int overlapLength) {        
         char leftClip = '#';
         String core;
         char rightClip = '#';
@@ -49,12 +57,9 @@ public class PairMerGenerator {
         if (frontClip) {
             coreTmp = kmerString.substring(len - overlapLength);
             clip = kmerString.charAt(0);
-//            System.err.println("  "+coreTmp+" <-coreTmp");
-//            clip = kmerString.substring(0, len - overlapLength);
         } else {
             coreTmp = kmerString.substring(0, overlapLength);
             clip = kmerString.charAt(overlapLength);
-//            System.err.println(" "+coreTmp+"  <-coreTmp");
         }
 
         //ORIENTATE CORE AND CLIP BASED ON LEX ORDER OF CORE AND ITS REV-COMP
@@ -63,29 +68,18 @@ public class PairMerGenerator {
             //REV_COMP = TRUE
             core = coreRC;
             if (frontClip) {
-//                leftClip = ' ';
                 rightClip = SequenceOps.complement(clip);
-//                System.out.println(clip+"-"+rightClip);
-//                rightClip = SequenceOps.getReverseComplementString(clip);
             } else {
-//                System.out.println(clip+"-"+leftClip);
                 leftClip = SequenceOps.complement(clip);
-//                rightClip = ' ';
             }
         } else {
             core = coreTmp;
             if (frontClip) {
                 leftClip = clip;
-//                rightClip = " ";
             } else {
-//                leftClip = " ";
                 rightClip = clip;
             }
         }
-//        if(leftClip == '#')
-//            System.err.println(leftClip+""+core+""+rightClip+" <-Generated");
-//        else 
-//            System.err.println(" "+leftClip+""+core+""+rightClip+" <-Generated");
             
         if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
             return new PairMer1LongEncoded(leftClip, core, rightClip);
@@ -125,39 +119,4 @@ public class PairMerGenerator {
             return new PairMerIntArrEncoded(core);
         }
     }
-
-//    public String getLeftClip() {
-//        return leftClip;
-//    }
-//
-//    public char getLeftClipChar() {
-//        return leftClip.charAt(0);
-//    }
-//
-//    public String getCore() {
-//        return core;
-//    }
-//
-//    public String getRightClip() {
-//        return rightClip;
-//    }
-//
-//    public char getRightClipChar() {
-//        return rightClip.charAt(0);
-//    }
-//    public PairMer generatepairMer(String kmerString) {
-//        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
-//            return new PairMer1LongEncoded();
-////        } else if (kmerString.length() - 1 <= MAX_2LONG_ENCODE) {
-////            return new PairMer2LongEncoded(this);
-////        } else if (kmerString.length() - 1 <= MAX_3LONG_ENCODE) {
-////            return new PairMer3LongEncoded(this);
-////        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
-////            return new PairMer4LongEncoded(this);
-////        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
-////            return new PairMer5LongEncoded(this);
-////        } else {
-////            return new PairMerIntArrEncoded(this);
-//        }
-//    }
 }
