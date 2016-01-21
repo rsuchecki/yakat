@@ -31,10 +31,12 @@ public class PairMer2LongEncoded extends PairMer implements Comparable<PairMer2L
     /**
      * Proper constructor
      *
-     * @param splitMer
+     * @param leftClip
+     * @param core
+     * @param rightClip
      */
-    public PairMer2LongEncoded(SplitMer splitMer) {
-        addFirstKmer(splitMer);
+    public PairMer2LongEncoded(char leftClip, String core, char rightClip) {
+        addFirstKmer(leftClip, core, rightClip);
     }
 
     /**
@@ -46,20 +48,14 @@ public class PairMer2LongEncoded extends PairMer implements Comparable<PairMer2L
         encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
     }
 
-    /**
-     * Add first kmer (encoded as a SplitMer)
-     *
-     * @param split : SplitMer representation of a k-mer
-     */
-    private void addFirstKmer(SplitMer split) {
+    public final void addFirstKmer(char leftClip, String core, char rightClip) {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-
-            encodeCore(split.getCore());
-            if (!split.getLeftClip().isEmpty()) {
-                setClipLeft(split.getLeftClipChar());
+            encodeCore(core);
+            if (leftClip != '#') {
+                setClipLeft(leftClip);
             }
-            if (!split.getRightClip().isEmpty()) {
-                setClipRight(split.getRightClipChar());
+            if (rightClip != '#') {
+                setClipRight(rightClip);
             }
             incrementStoredCount();
         } else {
@@ -74,7 +70,7 @@ public class PairMer2LongEncoded extends PairMer implements Comparable<PairMer2L
 
     @Override
     public int hashCode() {
-        return (int) (kmerCoreBits1 ^ kmerCoreBits2 );
+        return (int) (kmerCoreBits1 ^ kmerCoreBits2);
     }
 
     @Override

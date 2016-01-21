@@ -32,10 +32,27 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
     /**
      * Proper constructor
      *
-     * @param splitMer
+     * @param leftClip
+     * @param core
+     * @param rightClip
      */
-    public PairMer3LongEncoded(SplitMer splitMer) {
-        addFirstKmer(splitMer);
+    public PairMer3LongEncoded(char leftClip, String core, char rightClip) {
+        addFirstKmer(leftClip, core, rightClip);
+    }
+
+    public final void addFirstKmer(char leftClip, String core, char rightClip) {
+        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
+            encodeCore(core);
+            if (leftClip != '#') {
+                setClipLeft(leftClip);
+            }
+            if (rightClip != '#') {
+                setClipRight(rightClip);
+            }
+            incrementStoredCount();
+        } else {
+            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
+        }
     }
 
     /**
@@ -45,26 +62,6 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
      */
     public PairMer3LongEncoded(String kmerCoreOnly) {
         encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
-    }
-
-    /**
-     * Add first kmer (encoded as a SplitMer)
-     *
-     * @param split : SplitMer representation of a k-mer
-     */
-    private void addFirstKmer(SplitMer split) {
-        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-            encodeCore(split.getCore());
-            if (!split.getLeftClip().isEmpty()) {
-                setClipLeft(split.getLeftClipChar());
-            }
-            if (!split.getRightClip().isEmpty()) {
-                setClipRight(split.getRightClipChar());
-            }
-            incrementStoredCount();
-        } else {
-            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!! ", getClass().getSimpleName());
-        }
     }
 
     @Override
@@ -81,9 +78,9 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
     public int compareTo(PairMer3LongEncoded anotherKmer) {
         return CoreCoder.compareCores(getBitFields(), anotherKmer.getBitFields());
     }
-    
+
     public long[] getBitFields() {
-        long bitsArray[] = {kmerCoreBits1, kmerCoreBits2, kmerCoreBits3}; 
+        long bitsArray[] = {kmerCoreBits1, kmerCoreBits2, kmerCoreBits3};
         return bitsArray;
     }
 
@@ -92,10 +89,10 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
         long bitsArray[] = {kmerCoreBits1, kmerCoreBits2, kmerCoreBits3};
         return CoreCoder.decodeCore(coreLength, bitsArray);
     }
-    
+
     private void encodeCore(String kmerCoreOnly) {
         long[] encodeCoreLong = CoreCoder.encodeCoreLong(kmerCoreOnly);
-        if(encodeCoreLong.length != 3) {
+        if (encodeCoreLong.length != 3) {
             Reporter.report("[BUG?]", " 3*long values expected from core encoding", getClass().getSimpleName());
         } else {
             kmerCoreBits1 = encodeCoreLong[0];
@@ -110,5 +107,4 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
 //        }
     }
 
-    
 }

@@ -95,11 +95,11 @@ public class PairMersExtender {
 //                        System.err.println(connectedPairMers.getKeys().size() + " pairMers == " + connectedMers.length() + " bp");
                         if (seedSequences != null) { //EXTENDING SPECIFIC SEED ONLY
                             for (SeedSequence seed : seedSequences.getSeedSequences()) {
-                                if (checkExtendSeed(connectedPairMers, seed.getSequenceString(), k)) {
+//                                if (checkExtendSeed(connectedPairMers, seed.getSequenceString(), k)) {
                                     String connectedMers = connectedPairMers.toString(k);
                                     String extension = tryExtendSeed(connectedMers, tryExtendSeed(SequenceOps.getReverseComplementString(connectedMers), seed.getExtendedOrOriginal(k), k), k);
                                     seed.setExtended(k, extension);
-                                }
+//                                }
                             }
                         } else { //STANDARD OPERATION
                             String connectedMers = connectedPairMers.toString(k);

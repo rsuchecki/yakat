@@ -28,12 +28,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class PairMersMap extends shared.MerMap {
 
     private final ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
-
-    private final int MAX_1LONG_ENCODE = 32; //2bits per nucl, signed long so should be 31, but can use sign bit if lex ordering not needed, so 32 allowed 
-    private final int MAX_2LONG_ENCODE = 64;
-    private final int MAX_3LONG_ENCODE = 96;
-    private final int MAX_4LONG_ENCODE = 128;
-    private final int MAX_5LONG_ENCODE = 160;
     
 
 //    private boolean OutOfMemory;
@@ -56,10 +50,12 @@ public class PairMersMap extends shared.MerMap {
      * input, false if k-mers extracted directly from FASTA/FASTQ
      */
     public void addToPairMersMap(String kmerString, boolean frontClip, int overlapLength, boolean inputKmersUnique) {
-        SplitMer splitMer = new SplitMer(kmerString, frontClip, overlapLength);
+//        SplitMer splitMer = new SplitMer(kmerString, frontClip, overlapLength);
 //        System.err.println("Adding\t"+kmerString+"\t"+frontClip+"\t"+splitMer.getLeftClip()+"_"+splitMer.getCore()+"_"+splitMer.getRightClip());
 
-        PairMer pairMer = splitMer.generatepairMer(kmerString);
+//        PairMer pairMer = splitMer.generatepairMer(kmerString);
+    
+        PairMer pairMer = PairMerGenerator.generatePairMer(kmerString, frontClip, overlapLength);
 
         
 
@@ -80,20 +76,7 @@ public class PairMersMap extends shared.MerMap {
      * @return PairMer if present in Map, null otherwise
      */
     public PairMer get(String core, int k) {
-
-        if (k - 1 <= MAX_1LONG_ENCODE) {
-            return pairMersSkipListMap.get(new PairMer1LongEncoded(core));
-        } else if (k - 1 <= MAX_2LONG_ENCODE) {
-            return pairMersSkipListMap.get(new PairMer2LongEncoded(core));
-        } else if (k - 1 <= MAX_3LONG_ENCODE) {
-            return pairMersSkipListMap.get(new PairMer3LongEncoded(core));
-        } else if (k - 1 <= MAX_4LONG_ENCODE) {
-            return pairMersSkipListMap.get(new PairMer4LongEncoded(core));
-        } else if (k - 1 <= MAX_5LONG_ENCODE) {
-            return pairMersSkipListMap.get(new PairMer5LongEncoded(core));
-        } else {
-            return pairMersSkipListMap.get(new PairMerIntArrEncoded(core));
-        }
+        return pairMersSkipListMap.get(PairMerGenerator.getPairMer(core, k));
     }
 
     /**

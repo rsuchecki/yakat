@@ -36,18 +36,27 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
     //then round to multi of 8
 
     
-
-
-    /**
+/**
      * Proper constructor
      *
-     * @param splitMer
+     * @param leftClip
+     * @param core
+     * @param rightClip
      */
-    public PairMerIntArrEncoded(SplitMer splitMer) {
-        addFirstKmer(splitMer);
-//        tmpCore = splitMer.getCore();
+    public PairMerIntArrEncoded(char leftClip, String core, char rightClip) {
+        addFirstKmer(leftClip, core, rightClip);
     }
-    
+
+//    /**
+//     * Proper constructor
+//     *
+//     * @param splitMer
+//     */
+//    public PairMerIntArrEncoded(SplitMer splitMer) {
+//        addFirstKmer(splitMer);
+////        tmpCore = splitMer.getCore();
+//    }
+//    
     /**
      * Does not generate a complete PairMer, just the core, for Set/Maps lookups
      *
@@ -61,23 +70,25 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      /**
      * Add first kmer (encoded as a SplitMer)
      *
-     * @param split : SplitMer representation of a k-mer
+     * @param leftClip
+     * @param core
+     * @param rightClip
      */
-    private void addFirstKmer(SplitMer split ) {
+    protected final void addFirstKmer(char leftClip, String core, char rightClip) {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-            
-                encodeCore(split.getCore());
-            if (!split.getLeftClip().isEmpty()) {
-                setClipLeft(split.getLeftClipChar());
+            encodeCore(core);
+            if (leftClip != '#') {
+                setClipLeft(leftClip);
             }
-            if (!split.getRightClip().isEmpty()) {
-                setClipRight(split.getRightClipChar());
+            if (rightClip != '#') {
+                setClipRight(rightClip);
             }
             incrementStoredCount();
         } else {
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }
     }
+    
     @Override
     public boolean equals(Object anotherKmer) {
         return compareTo((PairMerIntArrEncoded) anotherKmer) == 0;

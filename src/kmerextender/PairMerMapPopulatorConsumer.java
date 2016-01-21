@@ -91,7 +91,8 @@ public class PairMerMapPopulatorConsumer implements Runnable {
 
     private boolean addKmerToMap(String kmerString, int overlapLength) {
         try {
-
+//            System.err.println("");
+//            System.err.println(" "+kmerString+" <-Generating from");
             pairMersMap.addToPairMersMap(kmerString, true, overlapLength, !SPLIT_INPUT_INTO_KMERS);
             pairMersMap.addToPairMersMap(kmerString, false, overlapLength, !SPLIT_INPUT_INTO_KMERS);
         } catch (OutOfMemoryError e) {

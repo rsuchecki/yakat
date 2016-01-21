@@ -30,10 +30,12 @@ public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1L
     /**
      * Proper constructor
      *
-     * @param splitMer
+     * @param leftClip
+     * @param core
+     * @param rightClip
      */
-    public PairMer1LongEncoded(SplitMer splitMer) {
-        addFirstKmer(splitMer);
+    public PairMer1LongEncoded(char leftClip, String core, char rightClip) {
+        addFirstKmer(leftClip, core, rightClip);
     }
 
     /**
@@ -45,27 +47,56 @@ public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1L
         encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
     }
 
-    /**
-     * Add first kmer (encoded as a SplitMer)
-     *
-     * @param split : SplitMer representation of a k-mer
-     */
-    private void addFirstKmer(SplitMer split) {
+    
+    public final void addFirstKmer(char leftClip, String core, char rightClip) {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-
-            encodeCore(split.getCore());
-            if (!split.getLeftClip().isEmpty()) {
-                setClipLeft(split.getLeftClipChar());
+            encodeCore(core);
+            if (leftClip != '#') {
+                setClipLeft(leftClip);
             }
-            if (!split.getRightClip().isEmpty()) {
-                setClipRight(split.getRightClipChar());
+            if (rightClip != '#') {
+                setClipRight(rightClip);
             }
             incrementStoredCount();
         } else {
-            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName() );
+            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }
     }
 
+//    /**
+//     * Add first kmer (encoded as a SplitMer)
+//     *
+//     * @param split : SplitMer representation of a k-mer
+//     */
+//    private void addFirstKmer(SplitMer split) {
+//        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
+//
+//            encodeCore(split.getCore());
+//            if (!split.getLeftClip().isEmpty()) {
+//                setClipLeft(split.getLeftClipChar());
+//            }
+//            if (!split.getRightClip().isEmpty()) {
+//                setClipRight(split.getRightClipChar());
+//            }
+//            incrementStoredCount();
+//        } else {
+//            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName() );
+//        }
+//    }
+//    private void addFirstKmer(char leftClip, String core, char rightClip) {
+//        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
+//            encodeCore(core);
+//            if (leftClip != ' ') {
+//                setClipLeft(leftClip);
+//            }
+//            if (rightClip != ' ') {
+//                setClipRight(rightClip);
+//            }
+//            incrementStoredCount();
+//        } else {
+//            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName() );
+//        }
+//    }
     @Override
     public boolean equals(Object anotherKmer) {
         return compareTo((PairMer1LongEncoded) anotherKmer) == 0;
@@ -119,15 +150,15 @@ public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1L
 //        }
 
         for (int j = startPrintingBitsFrom; j > -1; j -= 2) {
-            long twoBits = kmerCoreBits >> j-1 & 3;
-            if(twoBits == 0) {
-                sb.append("A");                
-            } else if(twoBits == 1) {
-                sb.append("C");                
-            } else if(twoBits == 2) {
-                sb.append("G");                
-            } else if(twoBits == 3) {
-                sb.append("T");                
+            long twoBits = kmerCoreBits >> j - 1 & 3;
+            if (twoBits == 0) {
+                sb.append("A");
+            } else if (twoBits == 1) {
+                sb.append("C");
+            } else if (twoBits == 2) {
+                sb.append("G");
+            } else if (twoBits == 3) {
+                sb.append("T");
             }
 //            long b1 = kmerCoreBits >> j & 1;
 //            long b2 = kmerCoreBits >> j - 1 & 1;

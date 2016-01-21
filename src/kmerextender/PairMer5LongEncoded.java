@@ -34,10 +34,12 @@ public class PairMer5LongEncoded extends PairMer implements Comparable<PairMer5L
     /**
      * Proper constructor
      *
-     * @param splitMer
+     * @param leftClip
+     * @param core
+     * @param rightClip
      */
-    public PairMer5LongEncoded(SplitMer splitMer) {
-        addFirstKmer(splitMer);
+    public PairMer5LongEncoded(char leftClip, String core, char rightClip) {
+        addFirstKmer(leftClip, core, rightClip);
     }
 
     /**
@@ -49,23 +51,18 @@ public class PairMer5LongEncoded extends PairMer implements Comparable<PairMer5L
         encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
     }
 
-    /**
-     * Add first kmer (encoded as a SplitMer)
-     *
-     * @param split : SplitMer representation of a k-mer
-     */
-    private void addFirstKmer(SplitMer split) {
+public final void addFirstKmer(char leftClip, String core, char rightClip) {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-            encodeCore(split.getCore());
-            if (!split.getLeftClip().isEmpty()) {
-                setClipLeft(split.getLeftClipChar());
+            encodeCore(core);
+            if (leftClip != '#') {
+                setClipLeft(leftClip);
             }
-            if (!split.getRightClip().isEmpty()) {
-                setClipRight(split.getRightClipChar());
+            if (rightClip != '#') {
+                setClipRight(rightClip);
             }
             incrementStoredCount();
         } else {
-            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!! ",getClass().getSimpleName());
+            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }
     }
 

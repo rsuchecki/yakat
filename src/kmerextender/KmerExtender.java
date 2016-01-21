@@ -112,7 +112,7 @@ public class KmerExtender {
                 KMER_LENGTH_MAX = KMER_LENGTH_MIN;
             }
         }
-        
+
         if (optSet.getOpt("seed-file").isUsed()) {
             SEED_SEQUENCES = new SeedSequences((String) optSet.getOpt("seed-file").getValueOrDefault());
             if (SEED_SEQUENCES.getSeedSequences().isEmpty()) {
@@ -217,16 +217,24 @@ public class KmerExtender {
             }
         } else {
             kSizes.add(0); // no k-size given, will be taken from input k-mers or the process will terminate if FASTA/FASTQ input
+            kSizeToPairMersMap.put(0, new PairMersMap());
         }
 
-        //READ k-mers AND POPULATE A MAP FOR EACH SIZE OF k 
-        readKmersAndPopulatePairMersMaps(kSizeToPairMersMap, kSizes);
+        //READ k-mers AND POPULATE A MAP FOR EACH SIZE OF k
+        int actualK = readKmersAndPopulatePairMersMaps(kSizeToPairMersMap, kSizes);
+         
 
         for (Integer k : kSizes) {
+            if(k > 0) {
+                actualK = k;
+            }
             PairMersMap pairMersMap = kSizeToPairMersMap.get(k);
-            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
+            Reporter.report("[INFO]", "Finished populating map, k=" + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
         }
         for (Integer k : kSizes) {
+            if(k > 0) {
+                actualK = k;
+            }
             PairMersMap pairMersMap = kSizeToPairMersMap.get(k);
             long purged = pairMersMap.purge(k); //indicating large number of kmers overall        
             if (purged > 100000) {
@@ -238,13 +246,13 @@ public class KmerExtender {
                     }
                 }
             }
-            Reporter.report("[INFO]", "Finished purging map, k= " + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
+            Reporter.report("[INFO]", "Finished purging map, k= " + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
 
             //Seed-processing ================================== BEGIN ============================
             if (SEED_SEQUENCES != null) {
                 BlockingQueue<ArrayList<String>> seedsDummyQueue = new ArrayBlockingQueue<>(2);
                 ArrayList<String> seedStrings = new ArrayList<>(1);
-                for(SeedSequence seed: SEED_SEQUENCES.getSeedSequences()) {
+                for (SeedSequence seed : SEED_SEQUENCES.getSeedSequences()) {
                     String trimmedSeed = seed.getSequenceString().substring(1, seed.getSequenceString().length() - 1); //hack to prevent end-pairmers from being thrown out 
                     seedStrings.add(trimmedSeed);
                 }
@@ -269,36 +277,26 @@ public class KmerExtender {
             //Seed-processing ================================== END ============================
 
             PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
-            pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, SEED_SEQUENCES);
-//            if (seedPossiblyExtended != null) {
-//                if (longestSeedAfterExtension < seedPossiblyExtended.length()) {
-//                    longestSeedAfterExtension = seedPossiblyExtended.length();
-////                    kBest = k;
-//                    seedToOutput = seedPossiblyExtended;
-//                }
-////                System.out.println(seedPossiblyExtended.length() + " @ k = " + k);
-//            }
+            pairMersExtender.matchAndExtendKmers(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, SEED_SEQUENCES);
         }
-        for(SeedSequence seed: SEED_SEQUENCES.getSeedSequences()) {        
+        if (SEED_SEQUENCES != null) {
+            for (SeedSequence seed : SEED_SEQUENCES.getSeedSequences()) {
 //            Reporter.report("[INFO]", "Longest extension of the provided seed is from " + seed.getSequenceString().length() + " to " + longestSeedAfterExtension + " at k = " + kBest, TOOL_NAME);
-            Map.Entry<Integer, String> longest = seed.getLongestExtended();            
-            if (OUTPUT_FASTA) {
-                if (!NAME_PREFIX.isEmpty()) {
-                    System.out.println(">" + NAME_PREFIX + " " + longest.getValue().length());
-                } else if(longest.getKey() == 0){ //NOEXTENSION BEYOND INPUT
-                    System.out.println(">" + seed.getId() + " not extended " + longest.getValue().length());
-                } else {
-                    System.out.println(">" + seed.getId() + " extended from " + seed.getSequenceString().length() + 
-                            " to " + longest.getValue().length() + " at k = " + longest.getKey());
+                Map.Entry<Integer, String> longest = seed.getLongestExtended();
+                if (OUTPUT_FASTA) {
+                    if (!NAME_PREFIX.isEmpty()) {
+                        System.out.println(">" + NAME_PREFIX + " " + longest.getValue().length());
+                    } else if (longest.getKey() == 0) { //NOEXTENSION BEYOND INPUT
+                        System.out.println(">" + seed.getId() + " not extended " + longest.getValue().length());
+                    } else {
+                        System.out.println(">" + seed.getId() + " extended from " + seed.getSequenceString().length()
+                                + " to " + longest.getValue().length() + " at k = " + longest.getKey());
+                    }
+
                 }
+                System.out.println(longest.getValue());
 
-//                } else {
-//                    System.out.println(">InputSeedID " + inputSeedLen);
-//                }
-//                System.out.println(seed);            
             }
-            System.out.println(longest.getValue());
-
         }
         Reporter.report("[INFO]", "Finished extending k-mers", TOOL_NAME);
     }
@@ -307,37 +305,29 @@ public class KmerExtender {
      * Producer-consumer multi-threading to read input (k-mers, FASTA, etc)
      * generate PairMer objects and populate a Map
      */
-    private HashMap<Integer, PairMersMap> readKmersAndPopulatePairMersMaps(HashMap<Integer, PairMersMap> kSizeToPairMersMap,
+    private int readKmersAndPopulatePairMersMaps(HashMap<Integer, PairMersMap> kSizeToPairMersMap,
             ArrayList<Integer> kValues) {
-
+        int kReturn = 0;
+        
         HashMap<Integer, BlockingQueue> kSizeToinputQueue = new HashMap<>();
 
-        //POSSIBLY single 0 value when k is to be picked-up from input (if list of k-mers given)
+        //POSSIBLY single 0 value when k is to be picked-up from input (if list of k-mers given as input)
         for (Integer kValue : kValues) {
             kSizeToinputQueue.put(kValue, new ArrayBlockingQueue(1024));
         }
 
         try {
-//            Integer k;
             //READ INPUT AND POPULATE PairMers MAP
-//            int threads = Math.max(Runtime.getRuntime().availableProcessors(), 6);
             int threads = MAX_THREADS;
-//            BlockingQueue inputQueue = new ArrayBlockingQueue(65536);
-//            BlockingQueue inputQueue = new ArrayBlockingQueue(1024);
-//            boolean stranded = false;
             ArrayList<Future<?>> futures = new ArrayList<>(threads + 1);
             final ExecutorService readAndPopulateDbExecutor = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
             //SPAWN INPUT READING THREAD
             InputReaderProducer inputReaderProducer = new InputReaderProducer(kSizeToinputQueue, kValues, inputFileNamesList, TOOL_NAME);
-//                inputReaderProducer = new InputReaderProducer(inputQueue, inputFileNamesList, KMER_LENGTH, pairMersMap, TOOL_NAME);
 
             Future<?> future = readAndPopulateDbExecutor.submit(inputReaderProducer);
             futures.add(future);
             boolean splitInputSequenceIntoKmers = true;
-//            if(KMER_LENGTH == null) {
-//               splitInputSequenceIntoKmers = false;
-//            }
 
             //ENSURING WE KNOW THE INPUT FORMAT BEFORE CONSUMER THREADS ARE SPAWNED
             long timeStart = System.currentTimeMillis();
@@ -361,12 +351,14 @@ public class KmerExtender {
             //SPAWN THREADS TO POPULATE MAP
             for (Integer kValue : kValues) {
                 BlockingQueue queue = kSizeToinputQueue.get(kValue);
+                PairMersMap pairMersMap = kSizeToPairMersMap.get(kValue);
                 if (kValue == 0) {   //single dummy-entry
                     kValue = kSizeFromInput;
+                    kReturn = kSizeFromInput;
                 }
                 threads = Math.max(1, threads / kValues.size()); //REDUCE NUM_THREADS BASED ON NUMER OF k-values To BE INVESTIGATED
                 for (int i = 0; i < threads; i++) {
-                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(queue, kSizeToPairMersMap.get(kValue), splitInputSequenceIntoKmers, kValue, MIN_KMER_FREQUENCY);
+                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(queue, pairMersMap, splitInputSequenceIntoKmers, kValue, MIN_KMER_FREQUENCY);
 //                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(inputQueue, pairMersMap, splitInputSequenceIntoKmers, KMER_LENGTH, MIN_KMER_FREQUENCY);
                     futures.add(readAndPopulateDbExecutor.submit(consumer));
                 }
@@ -381,7 +373,7 @@ public class KmerExtender {
                 Reporter.report("[ERROR]", "PairMerSet populator interrupted exception!", TOOL_NAME);
             } catch (ExecutionException ex) {
                 Reporter.report("[ERROR]", "PairMerSet populator execution exception!", TOOL_NAME);
-                ex.getMessage();
+                ex.printStackTrace();
 
             } catch (TimeoutException ex) {
                 Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
@@ -398,7 +390,7 @@ public class KmerExtender {
             System.exit(1);
         }
 
-        return kSizeToPairMersMap;
+        return kReturn;
 
     }
 
@@ -409,159 +401,6 @@ public class KmerExtender {
         return k;
     }
 
-//    private int getKmerLength() {
-//        if (KMER_LENGTH_MIN == KMER_LENGTH_MAX) {
-//            return KMER_LENGTH_MIN;
-//        } else {            
-//            return -1; 
-//        }
-//    }
-//    /**
-//     * Supposedly POSIX-compliant CLI args processor
-//     *
-//     * @param args
-//     */
-//    private void processArgs(String[] args) {
-//        ArrayList<String> allArgs = new ArrayList<>();
-//        //SPLIT-UP POSIX STYLE (-abcd) IF ANY
-//        for (String arg : args) {
-//            if (arg.startsWith("--")) {
-//                allArgs.add(arg);
-//            } else if (arg.startsWith("-")) {
-//                if (arg.length() > 2) {
-//                    char[] chars = arg.toCharArray();
-//                    StringBuilder sb = new StringBuilder();
-//                    for (int i = 1; i < chars.length; i++) {
-//                        char c = chars[i];
-////                        System.out.println(c + " ASCII value " + (int) c);
-//                        if ((int) c >= 48 && (int) c <= 57) {
-//                            sb.append(c);
-//                        } else {
-//                            allArgs.add("-" + c);
-//                        }
-//                    }
-//                    String toString = sb.toString();
-//                    if (!toString.isEmpty()) {
-//                        allArgs.add(toString);
-//                    }
-//
-//                } else {
-//                    allArgs.add(arg);
-//                }
-//            } else if (!arg.isEmpty()) { //we get en empty oone after tool/module name has been removed by outer wrapper
-//                allArgs.add(arg);
-//            }
-//        }
-//        //Now process args
-//        Iterator<String> it = allArgs.iterator();
-//
-//        while (it.hasNext()) {
-//            String a = it.next();
-//            //
-//            if (a.equals("-h") || a.equals("--help")) {
-//                printHelp();
-//                System.exit(0);
-//            } else if (a.equals("-k") || a.equalsIgnoreCase("--kmer-length")) {
-//                if (it.hasNext()) {
-//                    String optionValue = it.next();
-//                    try {
-//                        KMER_LENGTH = Integer.parseInt(optionValue);
-//                        if (KMER_LENGTH < 4) {
-//                            System.err.println("Fatal error! \"k\" must be set to at least 4, currently set to: " + KMER_LENGTH);
-//                            System.exit(1);
-//                        }
-//                    } catch (NumberFormatException e) {
-//                        System.err.println("Fatal error! The k-mer lenght must be given as an integer, offending argument: \"" + optionValue + "\"");
-//                    }
-//                }
-//            } else if (a.equals("-t") || a.equalsIgnoreCase("--threads")) {
-//                if (it.hasNext()) {
-//                    String optionValue = it.next();
-//                    try {
-//                        MAX_THREADS = Integer.parseInt(optionValue);
-//                        if (MAX_THREADS < 1) {
-//                            System.err.println("Fatal error! \"threads\" must be set to a positive integer, currently set to: " + MAX_THREADS);
-//                            System.exit(1);
-//                        } else if (MAX_THREADS > Runtime.getRuntime().availableProcessors()) {
-//                            MAX_THREADS = Runtime.getRuntime().availableProcessors();
-//                            System.err.println("Warning, number of threads reset to the maximum available (" + MAX_THREADS + ") CPU cores, offending argument: \"" + optionValue + "\"");
-//                        }
-//                    } catch (NumberFormatException e) {
-//                        System.err.println("Fatal error! Number of threads must be given as an integer, offending argument: \"" + optionValue + "\"");
-//                    }
-//                }
-//            } else if (a.equals("-D") || a.equalsIgnoreCase("--debug-file")) {
-//                if (it.hasNext()) {
-//                    DEBUG_FILE = it.next();
-//                    Reporter.writeToFile(DEBUG_FILE, Reporter.formatReport("[DEBUG]", "Debugging trace", TOOL_NAME), false);
-//                }
-//            } else if (a.equals("-S") || a.equalsIgnoreCase("--stats-file")) {
-//                if (it.hasNext()) {
-//                    STATS_FILE = it.next();
-//                }
-//            } else if (a.equals("-N") || a.equalsIgnoreCase("--name-prefix")) {
-//                if (it.hasNext()) {
-//                    NAME_PREFIX = it.next();
-//                }
-//            } else if (a.equals("-F") || a.equalsIgnoreCase("--fasta-out")) {
-//                OUTPUT_FASTA = true;
-//            } else if (a.equals("-O") || a.equalsIgnoreCase("--out-redirect")) {
-//                if (it.hasNext()) {
-//                    OUT_REDIRECT = it.next();
-//                }
-//            } else if (a.equals("-E") || a.equalsIgnoreCase("--err-redirect")) {
-//                if (it.hasNext()) {
-//                    ERR_REDIRECT = it.next();
-//                }
-//            } else if (a.equalsIgnoreCase("--ideas")) {
-//                RUN_SOME_WILD_AND_WONDERFUL_STUFF = true;
-////            } else if (a.equals("-M") || a.equalsIgnoreCase("--multipass-compress")) {
-////                if (it.hasNext()) {
-////                    String optionValue = it.next();
-////                    try {
-////                        MULTIPASS_COMPRESS = Integer.parseInt(optionValue);
-////                    } catch (NumberFormatException e) {
-////                        System.err.println("Fatal error! The number iterations set with -m, --multipass-compress must be given as an integer, offending argument: \"" + optionValue + "\"");
-////                    }
-////                }
-////            } else if (a.equals("-H") || a.equalsIgnoreCase("--hash-array-size")) {
-////                if (it.hasNext()) {
-////                    String optionValue = it.next();
-////                    try {
-////                        HASH_ARRAY_SIZE = Integer.parseInt(optionValue.replaceAll(",", ""));
-////                        if (HASH_ARRAY_SIZE > 4) {
-////                            System.err.println("Fatal error! The -H, --hash-array-size must be equal or less than " + (Integer.MAX_VALUE - 3));
-////                            System.exit(1);
-////                        }
-////                    } catch (NumberFormatException e) {
-////                        System.err.println("Fatal error! The -H, --hash-array-size must  be given as an integer, offending argument: \"" + optionValue + "\"");
-////                    }
-////                }
-//            } else if (a.equals("-f") || a.equalsIgnoreCase("--min-kmer-frequency")) {
-//                if (it.hasNext()) {
-//                    String optionValue = it.next();
-//                    try {
-//                        MIN_KMER_FREQUENCY = Integer.parseInt(optionValue.replaceAll(",", ""));
-//                        if (MIN_KMER_FREQUENCY < 1) {
-//                            System.err.println("Fatal error! The -f, --min-kmer-frequency must be equal or less than 1");
-//                            System.exit(1);
-//                        }
-//                    } catch (NumberFormatException e) {
-//                        System.err.println("Fatal error! The -f, --min-kmer-frequency must  be given as an integer, offending argument: \"" + optionValue + "\"");
-//                    }
-//                }
-//            } else if (a.startsWith("-")) {
-//                System.out.println("Unrecognized argument " + a + ", try -h or --help. Terminating...");
-//                System.exit(1);
-//            } else {
-//                inputFileNamesList.add(a);
-//            }
-//        }
-////        if (inputFileNamesList.isEmpty() && MULTIPASS_COMPRESS != null) {
-////            System.out.println("Use of -M, --multi-pass-compress requires that an input file is specified, it will not work correctly with stdin");
-////            System.exit(1);
-////        }
-//    }
 //
 //    private void printHelp() {
 //
