@@ -185,28 +185,37 @@ public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1L
         char[] kmerCharArray = coreString.toCharArray();
         while (position < stringLength) {
             kmerCoreBits <<= 1;
-            if (kmerCharArray[position] == 'A' || kmerCharArray[position] == 'a') {
-                //if A : 00
-                kmerCoreBits <<= 1;
-            } else if (kmerCharArray[position] == 'C' || kmerCharArray[position] == 'c') {
-                //if C : 01 
-                kmerCoreBits <<= 1;
-                kmerCoreBits++;
-            } else if (kmerCharArray[position] == 'G' || kmerCharArray[position] == 'g') {
-                //if G : 10
-                kmerCoreBits++;
-                kmerCoreBits <<= 1;
-            } else if (kmerCharArray[position] == 'T' || kmerCharArray[position] == 't') {
-                //if T : 11
-                kmerCoreBits++;
-                kmerCoreBits <<= 1;
-                kmerCoreBits++;
-            } else {
-                System.err.println("Failed ecoding kmerstring to long....");
-                System.err.println("Offending char: " + kmerCharArray[position]);
-                System.err.println("in " + coreString);
-                System.err.println("....exiting");
-                System.exit(1);
+            switch (kmerCharArray[position]) {
+                case 'A':
+                case 'a':
+                    //if A : 00
+                    kmerCoreBits <<= 1;
+                    break;
+                case 'C':
+                case 'c':
+                    //if C : 01
+                    kmerCoreBits <<= 1;
+                    kmerCoreBits++;
+                    break;
+                case 'G':
+                case 'g':
+                    //if G : 10
+                    kmerCoreBits++;
+                    kmerCoreBits <<= 1;
+                    break;
+                case 'T':
+                case 't':
+                    //if T : 11
+                    kmerCoreBits++;
+                    kmerCoreBits <<= 1;
+                    kmerCoreBits++;
+                    break;
+                default:
+                    System.err.println("Failed ecoding kmerstring to long....");
+                    System.err.println("Offending char: " + kmerCharArray[position]);
+                    System.err.println("in " + coreString);
+                    System.err.println("....exiting");
+                    System.exit(1);
             }
             position++;
         }

@@ -229,10 +229,11 @@ public class KmerExtender {
             Reporter.report("[INFO]", "Finished populating map, k=" + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
         }
         
-        int threads = MAX_THREADS;
-        ArrayList<Future<?>> futures = new ArrayList<>(threads);
-        final ExecutorService purgeMapAndExtendExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+//        int threads = MAX_THREADS;
+//        ArrayList<Future<?>> futures = new ArrayList<>(threads);
+//        final ExecutorService purgeMapAndExtendExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
+     
         
         for (Integer k : kSizes) {
             actualK = k > 0 ? k : actualK;            
@@ -250,10 +251,14 @@ public class KmerExtender {
             Reporter.report("[INFO]", "Finished purging map, k= " + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
 
             //Seed-processing ================================== BEGIN ============================
+            PairMerToSeedMap pairMerToSeedMap = null;
             if (SEED_SEQUENCES != null) {
+                
                 BlockingQueue<ArrayList<String>> seedsDummyQueue = new ArrayBlockingQueue<>(2);
                 ArrayList<String> seedStrings = new ArrayList<>(1);
                 for (SeedSequence seed : SEED_SEQUENCES.getSeedSequences()) {
+                    //PairMerize seed ends for faster lookups against 
+                    pairMerToSeedMap = new PairMerToSeedMap(SEED_SEQUENCES, k);
                     String trimmedSeed = seed.getSequenceString().substring(1, seed.getSequenceString().length() - 1); //hack to prevent end-pairmers from being thrown out 
                     seedStrings.add(trimmedSeed);
                 }
@@ -280,7 +285,7 @@ public class KmerExtender {
             
             
             PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
-            pairMersExtender.matchAndExtendKmers(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, SEED_SEQUENCES);
+            pairMersExtender.matchAndExtendKmers(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, pairMerToSeedMap);
             
 //            futures.add(purgeMapAndExtendExecutorService.submit(consumer));
             

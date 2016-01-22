@@ -51,8 +51,6 @@ public class SeedSequences {
                 String line = inputLine.trim();
                 if (line.startsWith(">")) {
                     if (seqBuilder.length() > 0) {
-                        String identifierString[] = id.split(" ");
-                        String key = identifierString[0];
                         sequencesList.add(new SeedSequence(id, seqBuilder.toString()));
                         seqBuilder = new StringBuilder();
                     }

@@ -119,4 +119,55 @@ public class PairMerGenerator {
             return new PairMerIntArrEncoded(core);
         }
     }
+    
+//    public static PairMer generatePairMer(CharSequence kmerContainingString, int from , int to, boolean frontClip, int overlapLength) {        
+//        char leftClip = '#';
+//        String core;
+//        char rightClip = '#';
+//
+//        //SPLIT THE INPUT INTO CORE AND CLIP
+//        String coreTmp;
+//        char clip;
+//        int len = to - from +1;
+//        if (frontClip) {
+//            coreTmp = kmerString.substring(len - overlapLength);
+//            clip = kmerString.charAt(0);
+//        } else {
+//            coreTmp = kmerString.substring(0, overlapLength);
+//            clip = kmerString.charAt(overlapLength);
+//        }
+//
+//        //ORIENTATE CORE AND CLIP BASED ON LEX ORDER OF CORE AND ITS REV-COMP
+//        String coreRC = SequenceOps.getReverseComplementString(coreTmp);
+//        if (coreRC.compareTo(coreTmp) < 0) {
+//            //REV_COMP = TRUE
+//            core = coreRC;
+//            if (frontClip) {
+//                rightClip = SequenceOps.complement(clip);
+//            } else {
+//                leftClip = SequenceOps.complement(clip);
+//            }
+//        } else {
+//            core = coreTmp;
+//            if (frontClip) {
+//                leftClip = clip;
+//            } else {
+//                rightClip = clip;
+//            }
+//        }
+//            
+//        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
+//            return new PairMer1LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_2LONG_ENCODE) {
+//            return new PairMer2LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_3LONG_ENCODE) {
+//            return new PairMer3LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
+//            return new PairMer4LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
+//            return new PairMer5LongEncoded(leftClip, core, rightClip);
+//        } else {
+//            return new PairMerIntArrEncoded(leftClip, core, rightClip);
+//        }
+//    }
 }

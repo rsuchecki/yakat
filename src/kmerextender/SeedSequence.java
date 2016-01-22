@@ -15,6 +15,7 @@
  */
 package kmerextender;
 
+import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -30,11 +31,16 @@ public class SeedSequence {
 //    private final ConcurrentHashMap<Integer, Integer> kToExtensionCount;
     private final int[] extensionCounts = new int[101];
 
+//    private ConcurrentHashMap<Integer, PairMer> kToHeadMer;
+//    private ConcurrentHashMap<Integer, PairMer> kToTailMer;
+
     public SeedSequence(String id, String sequenceString) {
         this.id = id;
         kToExtendedSequence = new ConcurrentHashMap<>();
         kToExtendedSequence.put(0, sequenceString);
-//        kToExtensionCount = new ConcurrentHashMap<>();
+//        kToHeadMer = new ConcurrentHashMap<>();
+//        kToTailMer = new ConcurrentHashMap<>();
+////        kToExtensionCount = new ConcurrentHashMap<>();
     }
 
     public synchronized void setExtended(int k, String extendedSequenceString) { //, int extensions) {
@@ -57,9 +63,9 @@ public class SeedSequence {
 //                System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" new ");
 //                System.err.println(extendedSequenceString);
             }
-        } else {
-            System.err.println("trying to store short extension - investigate "+this.getClass().getName());
-            
+//        } else {
+//            System.err.println("trying to store short extension - investigate "+this.getClass().getName());
+//            
         }
 //        Integer previousCount = kToExtensionCount.putIfAbsent(k, extensions);
 //        if(previousCount != null) {
@@ -123,4 +129,12 @@ public class SeedSequence {
     public String getSequenceString() {
         return kToExtendedSequence.get(0);
     }
+
+//    public void generateEndPairMers(int k) {
+//            PairMer headMer = PairMerGenerator.generatePairMer(getSequenceString().substring(0, k), false, k - 1);
+//            int len = getSequenceString().length();
+//            PairMer tailMer = PairMerGenerator.generatePairMer(getSequenceString().substring(len - k, len), true, k - 1);
+//            kToHeadMer.putIfAbsent(k, headMer);
+//            kToTailMer.putIfAbsent(k, tailMer);
+//    }
 }
