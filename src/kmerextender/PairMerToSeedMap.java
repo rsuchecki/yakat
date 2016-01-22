@@ -28,9 +28,11 @@ public class PairMerToSeedMap {
     public PairMerToSeedMap(SeedSequences seedSequences, int k) {
         pairMerToSeedMap = new ConcurrentSkipListMap<>();
         for (SeedSequence s : seedSequences.getSeedSequences()) {
-            addToPairMersMap(s.getSequenceString().substring(0, k), false, k - 1, s);
-            int len = s.getSequenceString().length();
-            addToPairMersMap(s.getSequenceString().substring(len - k, len), true, k - 1, s);
+            if (s.getSequenceString().length() >= k) {
+                addToPairMersMap(s.getSequenceString().substring(0, k), false, k - 1, s);
+                int len = s.getSequenceString().length();
+                addToPairMersMap(s.getSequenceString().substring(len - k, len), true, k - 1, s);
+            }
         }
     }
 

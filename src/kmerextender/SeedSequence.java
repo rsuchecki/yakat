@@ -29,7 +29,7 @@ public class SeedSequence {
     private final String id;
     private final ConcurrentHashMap<Integer, String> kToExtendedSequence;
 //    private final ConcurrentHashMap<Integer, Integer> kToExtensionCount;
-    private final int[] extensionCounts = new int[101];
+//    private final int[] extensionCounts = new int[101];
 
 //    private ConcurrentHashMap<Integer, PairMer> kToHeadMer;
 //    private ConcurrentHashMap<Integer, PairMer> kToTailMer;
@@ -49,7 +49,7 @@ public class SeedSequence {
             if (previous != null) {
                 if (previous.length() < extendedSequenceString.length()) {
                     kToExtendedSequence.put(k, extendedSequenceString);
-                    extensionCounts[k]++;
+//                    extensionCounts[k]++;
 //                    System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" updated ");
 //                    System.err.println(extendedSequenceString);
                 }
@@ -59,7 +59,7 @@ public class SeedSequence {
 //                System.err.println(extendedSequenceString + "<-new");
 //            }
             } else {
-                extensionCounts[k]++;
+//                extensionCounts[k]++;
 //                System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" new ");
 //                System.err.println(extendedSequenceString);
             }
@@ -111,12 +111,12 @@ public class SeedSequence {
             longest = (longest == null || (longest.getValue().length() < value.length())) ? entry : longest;
 //            lens[entry.getKey()] = entry.getValue().length();
         }
-        System.err.println(id);
-        for (int i = 0; i < extensionCounts.length; i++) {
-            if (extensionCounts[i] > 0) {
-                System.err.println("[" + i + "] = " + extensionCounts[i]);
-            }
-        }
+//        System.err.println(id);
+//        for (int i = 0; i < extensionCounts.length; i++) {
+//            if (extensionCounts[i] > 0) {
+//                System.err.println("[" + i + "] = " + extensionCounts[i]);
+//            }
+//        }
 
         return longest.getValue().length() == getSequenceString().length() ? input : longest;
 
