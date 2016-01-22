@@ -285,7 +285,10 @@ public class KmerExtender {
             
             
             PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
-            pairMersExtender.matchAndExtendKmers(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS, pairMerToSeedMap);
+            if(SEED_SEQUENCES == null)
+                pairMersExtender.matchAndExtendKmers(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX);
+            else 
+                pairMersExtender.matchAndExtendSeeds(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, pairMerToSeedMap);
             
 //            futures.add(purgeMapAndExtendExecutorService.submit(consumer));
             

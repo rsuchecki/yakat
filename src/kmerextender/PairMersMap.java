@@ -87,7 +87,15 @@ public class PairMersMap extends shared.MerMap {
     public PairMer get(String core, int k) {
         return pairMersSkipListMap.get(PairMerGenerator.getPairMer(core, k));
     }
-
+ /**
+     * Retrieve a PairMer with a matching core
+     *
+     * @param anotherPairMer
+     * @return
+     */
+    public PairMer get(PairMer anotherPairMer) {
+        return pairMersSkipListMap.get(anotherPairMer);
+    }
     /**
      *
      * @return the underlying data structure
