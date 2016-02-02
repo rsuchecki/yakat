@@ -29,7 +29,7 @@ public class PairMer {//implements Comparable<PairMer> {
 //    private int[] kmerCoreBitsArray;  //12B + len*4 Bytes 
     private char clipLeft = '#';   //2B                     ///*TODO*/: encode to 2-3b if sticking to int array
     private char clipRight = '#';  //2B                     //TODO: encode to 2-3b
-    private byte storedCount;  //1B
+    private byte storedCount;  //1B    //switch to short since all those add up to 7 bytes, 1 wasted
     private boolean invalid;  //1B
     private boolean visited;//1B
     //then round to multi of 8
@@ -39,6 +39,10 @@ public class PairMer {//implements Comparable<PairMer> {
     //6,5,4    left clip:  \fi,A,C,G,T or X for extensions conflict
     //3,2,1    right clip: \fi,A,C,G,T or X for extensions conflict
     //0        wasVisited: 0==false, 1==true 
+    
+    //could save even more if encoded along core in long, 2*long etc.
+    //in such case, use masks for core-comparisons that ignore these encoded fields
+    
     /**
      * It is assumed that the input PairMer matches this one (another.core ==
      * this.core)

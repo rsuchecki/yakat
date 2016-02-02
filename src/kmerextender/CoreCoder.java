@@ -18,7 +18,13 @@ package kmerextender;
 import java.util.Arrays;
 
 /**
- *
+ * CAREFUL!  - using all bits in signed fields, 
+ * may cause errors if used for comparisons without decoding 
+ * (for example lex order of core vs it's RC)
+ * 
+ * 
+ * 
+ * 
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class CoreCoder {
@@ -36,28 +42,37 @@ public class CoreCoder {
         while (position < stringLength) {
             while ((positionInInt < INT_LENGTH) && (position < stringLength)) {
                 kmerCoreBitsArray[currentInt] <<= 1;
-                if (kmerCharArray[position] == 'A' || kmerCharArray[position] == 'a') {
-                    //if A : 00
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                } else if (kmerCharArray[position] == 'C' || kmerCharArray[position] == 'c') {
-                    //if C : 01 
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                    kmerCoreBitsArray[currentInt]++;
-                } else if (kmerCharArray[position] == 'G' || kmerCharArray[position] == 'g') {
-                    //if G : 10
-                    kmerCoreBitsArray[currentInt]++;
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                } else if (kmerCharArray[position] == 'T' || kmerCharArray[position] == 't') {
-                    //if T : 11
-                    kmerCoreBitsArray[currentInt]++;
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                    kmerCoreBitsArray[currentInt]++;
-                } else {
-                    System.err.println("Failed ecoding kmerstring to int array....");
-                    System.err.println("Offending char: " + kmerCharArray[position]);
-                    System.err.println("in " + kmerString);
-                    System.err.println("....exiting");
-                    System.exit(1);
+                switch (kmerCharArray[position]) {
+                    case 'A':
+                    case 'a':
+                        //if A : 00
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        break;
+                    case 'C':
+                    case 'c':
+                        //if C : 01
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        kmerCoreBitsArray[currentInt]++;
+                        break;
+                    case 'G':
+                    case 'g':
+                        //if G : 10
+                        kmerCoreBitsArray[currentInt]++;
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        break;
+                    case 'T':
+                    case 't':
+                        //if T : 11
+                        kmerCoreBitsArray[currentInt]++;
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        kmerCoreBitsArray[currentInt]++;
+                        break;
+                    default:
+                        System.err.println("Failed ecoding kmerstring to int array....");
+                        System.err.println("Offending char: " + kmerCharArray[position]);
+                        System.err.println("in " + kmerString);
+                        System.err.println("....exiting");
+                        System.exit(1);
                 }
                 positionInInt += 2;
                 position++;
@@ -109,28 +124,37 @@ public class CoreCoder {
         while (position < stringLength) {
             while ((positionInInt < LONG_LENGTH) && (position < stringLength)) {
                 kmerCoreBitsArray[currentInt] <<= 1;
-                if (kmerCharArray[position] == 'A' || kmerCharArray[position] == 'a') {
-                    //if A : 00
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                } else if (kmerCharArray[position] == 'C' || kmerCharArray[position] == 'c') {
-                    //if C : 01 
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                    kmerCoreBitsArray[currentInt]++;
-                } else if (kmerCharArray[position] == 'G' || kmerCharArray[position] == 'g') {
-                    //if G : 10
-                    kmerCoreBitsArray[currentInt]++;
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                } else if (kmerCharArray[position] == 'T' || kmerCharArray[position] == 't') {
-                    //if T : 11
-                    kmerCoreBitsArray[currentInt]++;
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                    kmerCoreBitsArray[currentInt]++;
-                } else {
-                    System.err.println("Failed ecoding kmerstring to int array....");
-                    System.err.println("Offending char: " + kmerCharArray[position]);
-                    System.err.println("in " + coreString);
-                    System.err.println("....exiting");
-                    System.exit(1);
+                switch (kmerCharArray[position]) {
+                    case 'A':
+                    case 'a':
+                        //if A : 00
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        break;
+                    case 'C':
+                    case 'c':
+                        //if C : 01
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        kmerCoreBitsArray[currentInt]++;
+                        break;
+                    case 'G':
+                    case 'g':
+                        //if G : 10
+                        kmerCoreBitsArray[currentInt]++;
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        break;
+                    case 'T':
+                    case 't':
+                        //if T : 11
+                        kmerCoreBitsArray[currentInt]++;
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        kmerCoreBitsArray[currentInt]++;
+                        break;
+                    default:
+                        System.err.println("Failed ecoding kmerstring to int array....");
+                        System.err.println("Offending char: " + kmerCharArray[position]);
+                        System.err.println("in " + coreString);
+                        System.err.println("....exiting");
+                        System.exit(1);
                 }
                 positionInInt += 2;
                 position++;
