@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerIntArrEncoded>  {
+public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerIntArrEncoded> {
 
     //Object overhead 8 B
     private int[] kmerCoreBitsArray;  //12B + len*4 Bytes 
@@ -36,8 +36,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //    private boolean visited;
     //then round to multi of 8
 
-    
-/**
+    /**
      * Proper constructor
      *
      * @param leftClip
@@ -46,6 +45,18 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      */
     public PairMerIntArrEncoded(char leftClip, String core, char rightClip) {
         addFirstKmer(leftClip, core, rightClip);
+    }
+
+    /**
+     * Experimental constructor
+     *
+     * @param sequence
+     * @param from
+     * @param to inclusive
+     * @param frontClip
+     */
+    public PairMerIntArrEncoded(CharSequence sequence, int from, int to, boolean frontClip) {
+        addFirstKmer(sequence, from, to, frontClip);
     }
 
 //    /**
@@ -68,7 +79,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
     }
 
-     /**
+    /**
      * Add first kmer (encoded as a SplitMer)
      *
      * @param leftClip
@@ -89,7 +100,46 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }
     }
-    
+
+    /**
+     * Add first kmer
+     *
+     * @param leftClipAt
+     * @param sequence
+     * @param rightClipAt
+     * @param coreStart
+     * @param coreEnd inclusive
+     *
+     * TODO - simplify, no need for explicit info on clips, just coordinates
+     *
+     */
+//    protected final void addFirstKmer(int leftClipAt, CharSequence sequence, int rightClipAt, int coreStart, int coreEnd) {
+    protected final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip) {
+        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
+            int coreStart = frontClip ? from + 1 : from;
+            int coreEnd = frontClip ? to : to - 1;
+
+            boolean storedInForwardOrient = encodeCoreCanonical(sequence, coreStart, coreEnd);
+//            int[] coreInRC = encodeCoreRC(sequence, coreStart, coreEnd);
+
+            if (storedInForwardOrient) {
+                if (frontClip) {
+                    setClipLeft(sequence.charAt(from));
+                } else {
+                    setClipRight(sequence.charAt(to));
+                }
+            } else if (frontClip) {
+                setClipRight(SequenceOps.complement(sequence.charAt(from)));
+            } else {
+                setClipLeft(SequenceOps.complement(sequence.charAt(to)));
+            }
+
+            incrementStoredCount();
+        } else {
+            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
+        }
+    }
+
     @Override
     public boolean equals(Object anotherKmer) {
         return compareTo((PairMerIntArrEncoded) anotherKmer) == 0;
@@ -123,6 +173,19 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             }
         }
         return 0;
+    }
+
+    public boolean storeCanonical(int[] forward, int[] reverseComplement) {
+        for (int i = 0; i < forward.length; i++) {
+            if (forward[i] < reverseComplement[i]) {
+                break;
+            } else if (forward[i] > reverseComplement[i]) {
+                kmerCoreBitsArray = reverseComplement;
+                return false;
+            }
+        }
+        kmerCoreBitsArray = forward;
+        return true;
     }
 
     public int[] getKmerCoreBitsArray() {
@@ -177,28 +240,37 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         while (position < stringLength) {
             while ((positionInInt < INT_LENGTH) && (position < stringLength)) {
                 kmerCoreBitsArray[currentInt] <<= 1;
-                if (kmerCharArray[position] == 'A' || kmerCharArray[position] == 'a') {
-                    //if A : 00
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                } else if (kmerCharArray[position] == 'C' || kmerCharArray[position] == 'c') {
-                    //if C : 01 
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                    kmerCoreBitsArray[currentInt]++;
-                } else if (kmerCharArray[position] == 'G' || kmerCharArray[position] == 'g') {
-                    //if G : 10
-                    kmerCoreBitsArray[currentInt]++;
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                } else if (kmerCharArray[position] == 'T' || kmerCharArray[position] == 't') {
-                    //if T : 11
-                    kmerCoreBitsArray[currentInt]++;
-                    kmerCoreBitsArray[currentInt] <<= 1;
-                    kmerCoreBitsArray[currentInt]++;
-                } else {
-                    System.err.println("Failed ecoding kmerstring to int array....");
-                    System.err.println("Offending char: " + kmerCharArray[position]);
-                    System.err.println("in " + kmerString);
-                    System.err.println("....exiting");
-                    System.exit(1);
+                switch (kmerCharArray[position]) {
+                    case 'A':
+                    case 'a':
+                        //if A : 00
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        break;
+                    case 'C':
+                    case 'c':
+                        //if C : 01
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        kmerCoreBitsArray[currentInt]++;
+                        break;
+                    case 'G':
+                    case 'g':
+                        //if G : 10
+                        kmerCoreBitsArray[currentInt]++;
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        break;
+                    case 'T':
+                    case 't':
+                        //if T : 11
+                        kmerCoreBitsArray[currentInt]++;
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        kmerCoreBitsArray[currentInt]++;
+                        break;
+                    default:
+                        System.err.println("Failed ecoding kmerstring to int array....");
+                        System.err.println("Offending char: " + kmerCharArray[position]);
+                        System.err.println("in " + kmerString);
+                        System.err.println("....exiting");
+                        System.exit(1);
                 }
                 positionInInt += 2;
                 position++;
@@ -207,8 +279,148 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             positionInInt = 0;
         }
     }
-    
 
+    /**
+     *
+     * @param sequence
+     * @param from inclusive
+     * @param to inclusive
+     * @return true if stored forward, false if RC
+     */
+    public boolean encodeCoreCanonical(CharSequence sequence, int from, int to) {
+//        System.err.println("Encoding seq len=" + kmerString.length());
+
+        int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
+//        int stringLength = kmerString.length();
+        int stringLength = to - from + 1;
+        int intsNeeded = (int) Math.ceil((double) stringLength * 2 / INT_LENGTH); //number of ints needed to store this String 
+//        System.out.println("Need "+intsNeeded+" "+ INT_LENGTH +" bit word(s) to encode "+kmerString.length()+ " nucl sequence");
+        int currentInt = 0;
+//        int position = 0;
+        int position = from;
+        int positionInInt = intsNeeded * INT_LENGTH - stringLength * 2;
+        int[] kmerCoreBitsArray = new int[intsNeeded];
+        int[] kmerCoreBitsArrayRC = new int[intsNeeded];
+        int currentIntRc = intsNeeded - 1;
+//        char[] kmerCharArray = kmerString.toCharArray();
+        int positionInIntRc = 0;//positionInInt;
+        while (position <= to) {
+            while ((positionInInt < INT_LENGTH) && (position <= to)) {
+                kmerCoreBitsArray[currentInt] <<= 1;
+                if (positionInIntRc >= INT_LENGTH) {
+                    --currentIntRc;
+                    positionInIntRc = 0;
+                }
+                switch (sequence.charAt(position)) {
+                    case 'A':
+                    case 'a':
+                        //if A : 00
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        //11 in Reverse-Complement                        
+                        kmerCoreBitsArrayRC[currentIntRc] ^= 1 << positionInIntRc++;
+                        kmerCoreBitsArrayRC[currentIntRc] ^= 1 << positionInIntRc++;
+                        break;
+                    case 'C':
+                    case 'c':
+                        //if C : 01
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        kmerCoreBitsArray[currentInt]++;
+                        //10 in Reverse-Complement                        
+                        positionInIntRc++;
+                        kmerCoreBitsArrayRC[currentIntRc] ^= 1 << positionInIntRc++;
+                        break;
+                    case 'G':
+                    case 'g':
+                        //if G : 10
+                        kmerCoreBitsArray[currentInt]++;
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        //01 in Reverse-Complement                        
+                        kmerCoreBitsArrayRC[currentIntRc] ^= 1 << positionInIntRc++;
+                        positionInIntRc++;
+
+                        break;
+                    case 'T':
+                    case 't':
+                        //if T : 11
+                        kmerCoreBitsArray[currentInt]++;
+                        kmerCoreBitsArray[currentInt] <<= 1;
+                        kmerCoreBitsArray[currentInt]++;
+                        //00 in Reverse-Complement                        
+                        positionInIntRc += 2;
+                        break;
+                    default:
+                        System.err.println("Failed ecoding kmerstring to int array....");
+                        System.err.println("Offending char: " + sequence.charAt(position));
+                        System.err.println("in " + sequence);
+                        System.err.println("....exiting");
+                        System.exit(1);
+                }
+                positionInInt += 2;
+                position++;
+            }
+            currentInt++;
+            positionInInt = 0;
+        }
+        return storeCanonical(kmerCoreBitsArray, kmerCoreBitsArrayRC);
+    }
+
+//    /**
+//     *
+//     * @param sequence
+//     * @param from inclusive
+//     * @param to exclusive
+//     * @return
+//     */
+//    public final int[] encodeCoreRC(CharSequence sequence, int from, int to) {
+////        System.err.println("Encoding seq len=" + kmerString.length());
+//        int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
+//        int stringLength = to - from;
+//        int intsNeeded = (int) Math.ceil((double) stringLength * 2 / INT_LENGTH); //number of ints needed to store this String 
+////        System.out.println("Need "+intsNeeded+" "+ INT_LENGTH +" bit word(s) to encode "+kmerString.length()+ " nucl sequence");
+//        int currentInt = 0;
+//        int positionInSequence = to - 1;
+//        int positionInInt = intsNeeded * INT_LENGTH - stringLength * 2;
+//        int[] coreRC = new int[intsNeeded];
+////        char[] kmerCharArray = kmerString.toCharArray();
+//        while (positionInSequence > from - 1) {
+//            while ((positionInInt < INT_LENGTH) && (positionInSequence > from - 1)) {
+//                coreRC[currentInt] <<= 1;
+//                switch (sequence.charAt(positionInSequence)) {
+//                    case 'T':
+//                    case 't':
+//                        coreRC[currentInt] <<= 1;
+//                        break;
+//                    case 'G':
+//                    case 'g':
+//                        coreRC[currentInt] <<= 1;
+//                        coreRC[currentInt]++;
+//                        break;
+//                    case 'C':
+//                    case 'c':
+//                        coreRC[currentInt]++;
+//                        coreRC[currentInt] <<= 1;
+//                        break;
+//                    case 'A':
+//                    case 'a':
+//                        coreRC[currentInt]++;
+//                        coreRC[currentInt] <<= 1;
+//                        coreRC[currentInt]++;
+//                        break;
+//                    default:
+//                        System.err.println("Failed ecoding kmerstring to int array....");
+//                        System.err.println("Offending char: " + sequence.charAt(positionInSequence));
+//                        System.err.println("in " + sequence);
+//                        System.err.println("....exiting");
+//                        System.exit(1);
+//                }
+//                positionInInt += 2;
+//                --positionInSequence;
+//            }
+//            currentInt++;
+//            positionInInt = 0;
+//        }
+//        return coreRC;
+//    }
 //    public int compareToAnotherCore(String anotherKmerCore) {
 //        int[] bitArrayAnother = encodeCore(anotherKmerCore);
 //        for (int i = 0; i < kmerCoreBitsArray.length; i++) {
@@ -230,7 +442,23 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //        }
 //        return 0;
 //    }
+    @Override
+    public void printPaddedEncoded() {
+        for (int i = 0; i < kmerCoreBitsArray.length; i++) {
+            System.err.print(leftPad(Integer.toBinaryString(this.kmerCoreBitsArray[i]), 30, '0')+" ");
+        }
+        System.err.println();
+        for (int i = 0; i < kmerCoreBitsArray.length; i++) {
+            System.err.printf("%30s ", kmerCoreBitsArray[i]);
+        }
+        System.err.println();
+    }
 
-
-
+    private CharSequence leftPad(String bitString, int len, char pad) {
+        StringBuilder s = new StringBuilder();
+        for (int i = 0; i < len - bitString.length(); i++) {
+            s.append(pad);
+        }
+        return s.append(bitString);
+    }
 }

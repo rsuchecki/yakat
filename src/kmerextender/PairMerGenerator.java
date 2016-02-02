@@ -46,9 +46,11 @@ public class PairMerGenerator {
      * @return 
      */
     public static PairMer generatePairMer(String kmerString, boolean frontClip, int overlapLength) {        
-        char leftClip = '#';
+        char leftClip = '#'; 
         String core;
         char rightClip = '#';
+        
+        
 
         //SPLIT THE INPUT INTO CORE AND CLIP
         String coreTmp;
@@ -81,19 +83,44 @@ public class PairMerGenerator {
             }
         }
             
-        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
-            return new PairMer1LongEncoded(leftClip, core, rightClip);
-        } else if (kmerString.length() - 1 <= MAX_2LONG_ENCODE) {
-            return new PairMer2LongEncoded(leftClip, core, rightClip);
-        } else if (kmerString.length() - 1 <= MAX_3LONG_ENCODE) {
-            return new PairMer3LongEncoded(leftClip, core, rightClip);
-        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
-            return new PairMer4LongEncoded(leftClip, core, rightClip);
-        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
-            return new PairMer5LongEncoded(leftClip, core, rightClip);
-        } else {
+//        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
+//            return new PairMer1LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_2LONG_ENCODE) {
+//            return new PairMer2LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_3LONG_ENCODE) {
+//            return new PairMer3LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
+//            return new PairMer4LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
+//            return new PairMer5LongEncoded(leftClip, core, rightClip);
+//        } else {
             return new PairMerIntArrEncoded(leftClip, core, rightClip);
-        }
+//        }
+    }
+    /**
+     * GeneratePairMer object with k-1 core separated from 1 base clip 
+     * 
+     * @param sequence
+     * @param kmerFrom
+     * @param kmerTo
+     * @param frontClip
+     * @return 
+     */
+    public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip) {        
+            
+//        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
+//            return new PairMer1LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_2LONG_ENCODE) {
+//            return new PairMer2LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_3LONG_ENCODE) {
+//            return new PairMer3LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
+//            return new PairMer4LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
+//            return new PairMer5LongEncoded(leftClip, core, rightClip);
+//        } else {
+            return new PairMerIntArrEncoded(sequence, kmerFrom, kmerTo, frontClip);
+//        }
     }
     
     /**
@@ -105,19 +132,19 @@ public class PairMerGenerator {
      * @return PairMer to be used for interrogating a Map
      */
     public static PairMer getPairMer(String core, int k) {
-        if (k - 1 <= MAX_1LONG_ENCODE) {
-            return new PairMer1LongEncoded(core);
-        } else if (k - 1 <= MAX_2LONG_ENCODE) {
-            return new PairMer2LongEncoded(core);
-        } else if (k - 1 <= MAX_3LONG_ENCODE) {
-            return new PairMer3LongEncoded(core);
-        } else if (k - 1 <= MAX_4LONG_ENCODE) {
-            return new PairMer4LongEncoded(core);
-        } else if (k - 1 <= MAX_5LONG_ENCODE) {
-            return new PairMer5LongEncoded(core);
-        } else {
+//        if (k - 1 <= MAX_1LONG_ENCODE) {
+//            return new PairMer1LongEncoded(core);
+//        } else if (k - 1 <= MAX_2LONG_ENCODE) {
+//            return new PairMer2LongEncoded(core);
+//        } else if (k - 1 <= MAX_3LONG_ENCODE) {
+//            return new PairMer3LongEncoded(core);
+//        } else if (k - 1 <= MAX_4LONG_ENCODE) {
+//            return new PairMer4LongEncoded(core);
+//        } else if (k - 1 <= MAX_5LONG_ENCODE) {
+//            return new PairMer5LongEncoded(core);
+//        } else {
             return new PairMerIntArrEncoded(core);
-        }
+//        }
     }
     
 //    public static PairMer generatePairMer(CharSequence kmerContainingString, int from , int to, boolean frontClip, int overlapLength) {        

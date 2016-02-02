@@ -56,7 +56,7 @@ public class PairMer {//implements Comparable<PairMer> {
 //                    System.err.println("Adding same kmer again");
             } else { //it is a different k-mer
                 if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                    setIsInvalid();
+                    setIsInvalid(); //has clip at the same end but not identical (as implied by unmet if above )
                 } else if (!hasLeftClip() && another.hasLeftClip()) {
                     setClipLeft(another.getClipLeft());
                 } else if (!hasRightClip() && another.hasRightClip()) {
@@ -66,9 +66,9 @@ public class PairMer {//implements Comparable<PairMer> {
                 }
                 incrementStoredCount();
             }
-        } else { //i.e. input k-mers are unique (no duplicates which we need to ignore)
-            if (hasBothClips()) {
-                setIsInvalid();
+        } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
+            if (hasBothClips()) { 
+                setIsInvalid(); //because already two different k-mers represented in this PairMer
             } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
                 setIsInvalid();
             } else if (!hasLeftClip() && another.hasLeftClip()) {
@@ -188,4 +188,7 @@ public class PairMer {//implements Comparable<PairMer> {
         this.visited = true;
     }
 
+    public void printPaddedEncoded() {
+        
+    }
 }

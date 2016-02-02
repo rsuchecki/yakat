@@ -182,7 +182,7 @@ public class KmerExtender {
                 + "will make the memory requirements explode, "
                 + "as it is done in parallel to avoid excessive I/O and preserve stdin handling";
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Variable k-mer size for longest extension of a single seed]");
-        optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing a single entry (\"a seed\") to be extended", 1));
+        optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing \"seeds\" to be extended", 1));
         optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-step", "", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, foot));
@@ -229,9 +229,9 @@ public class KmerExtender {
             Reporter.report("[INFO]", "Finished populating map, k=" + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
         }
         
-//        int threads = MAX_THREADS;
-//        ArrayList<Future<?>> futures = new ArrayList<>(threads);
-//        final ExecutorService purgeMapAndExtendExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        int threads = MAX_THREADS;
+        ArrayList<Future<?>> futures = new ArrayList<>(threads);
+        final ExecutorService purgeMapAndExtendExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
      
         
@@ -248,29 +248,25 @@ public class KmerExtender {
                     }
                 }
             }
-            Reporter.report("[INFO]", "Finished purging map, k= " + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
+            Reporter.report("[INFO]", "Finished purging map, k=" + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
 
             //Seed-processing ================================== BEGIN ============================
             PairMerToSeedMap pairMerToSeedMap = null;
             if (SEED_SEQUENCES != null) {
                 
+                pairMerToSeedMap = new PairMerToSeedMap(SEED_SEQUENCES, k);
                 BlockingQueue<ArrayList<String>> seedsDummyQueue = new ArrayBlockingQueue<>(2);
-                ArrayList<String> seedStrings = new ArrayList<>(1);
-                for (SeedSequence seed : SEED_SEQUENCES.getSeedSequences()) {
-                    //PairMerize seed ends for faster lookups against 
-                    pairMerToSeedMap = new PairMerToSeedMap(SEED_SEQUENCES, k);
-                    String trimmedSeed = seed.getSequenceString().substring(1, seed.getSequenceString().length() - 1); //hack to prevent end-pairmers from being thrown out 
-                    seedStrings.add(trimmedSeed);
-                }
                 PairMersMap trimmedSeedPairMersMap = new PairMersMap();
                 try {
-                    seedsDummyQueue.put(seedStrings);
+//                    seedsDummyQueue.put(seedStrings);
+                    seedsDummyQueue.put(SEED_SEQUENCES.getSeedSequenceStrings());
                     seedsDummyQueue.put(new ArrayList<String>());
                 } catch (InterruptedException ex) {
                 }
-                PairMerMapPopulatorConsumer seedsPairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(seedsDummyQueue, trimmedSeedPairMersMap,
-                        true, k, MIN_KMER_FREQUENCY);
+                PairMerMapPopulatorConsumer seedsPairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(seedsDummyQueue, 
+                    trimmedSeedPairMersMap, true, k, MIN_KMER_FREQUENCY, true);
                 seedsPairMerMapPopulatorConsumer.run(); //TODO move to a background thread earlier  if needed
+                Reporter.report("[INFO]", "Seed-mers map populated, k=" + actualK, TOOL_NAME);
                 Iterator<PairMer> it = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet().iterator();
                 long removedCount = 0L;
                 while (it.hasNext()) {
@@ -290,8 +286,7 @@ public class KmerExtender {
             else 
                 pairMersExtender.matchAndExtendSeeds(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, pairMerToSeedMap);
             
-//            futures.add(purgeMapAndExtendExecutorService.submit(consumer));
-            
+//            futures.add(purgeMapAndExtendExecutorService.submit(consumer));            
         }
         
 //        purgeMapAndExtendExecutorService.shutdown();
@@ -337,7 +332,7 @@ public class KmerExtender {
 
     /**
      * Producer-consumer multi-threading to read input (k-mers, FASTA, etc)
-     * generate PairMer objects and populate a Map
+     * generate PairMer objects and populate Map(s)
      */
     private int readKmersAndPopulatePairMersMaps(HashMap<Integer, PairMersMap> kSizeToPairMersMap,
             ArrayList<Integer> kValues) {
@@ -383,6 +378,8 @@ public class KmerExtender {
             }
 
             //SPAWN THREADS TO POPULATE MAP
+            threads = Math.max(1, threads / kValues.size()); //REDUCE NUM_THREADS BASED ON NUMER OF k-values To BE INVESTIGATED
+            Reporter.report("[INFO]", "Allocated "+threads+" thread(s) to map populating for each k-size", TOOL_NAME);                
             for (Integer kValue : kValues) {
                 BlockingQueue queue = kSizeToinputQueue.get(kValue);
                 PairMersMap pairMersMap = kSizeToPairMersMap.get(kValue);
@@ -390,9 +387,9 @@ public class KmerExtender {
                     kValue = kSizeFromInput;
                     kReturn = kSizeFromInput;
                 }
-                threads = Math.max(1, threads / kValues.size()); //REDUCE NUM_THREADS BASED ON NUMER OF k-values To BE INVESTIGATED
                 for (int i = 0; i < threads; i++) {
-                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(queue, pairMersMap, splitInputSequenceIntoKmers, kValue, MIN_KMER_FREQUENCY);
+                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(queue, pairMersMap, 
+                        splitInputSequenceIntoKmers, kValue, MIN_KMER_FREQUENCY, false);
 //                    PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(inputQueue, pairMersMap, splitInputSequenceIntoKmers, KMER_LENGTH, MIN_KMER_FREQUENCY);
                     futures.add(readAndPopulateDbExecutor.submit(consumer));
                 }

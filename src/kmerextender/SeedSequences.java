@@ -28,18 +28,26 @@ import shared.Reporter;
  * @author rad
  */
 public class SeedSequences {
-    private final ArrayList<SeedSequence> seedSequences;
+    private ArrayList<SeedSequence> seedSequences;
+    private ArrayList<String> seedSequenceStrings;
 
     public SeedSequences(String fastaFileName) {
-        this.seedSequences = listOfSequencesFromFasta(fastaFileName);        
+        listOfSequencesFromFasta(fastaFileName);        
     }
 
     public ArrayList<SeedSequence> getSeedSequences() {
         return seedSequences;
     }                
+
+    public ArrayList<String> getSeedSequenceStrings() {
+        return seedSequenceStrings;
+    }
     
-    private ArrayList<SeedSequence> listOfSequencesFromFasta(String fastaFileName) {
-        ArrayList<SeedSequence> sequencesList = new ArrayList<>();
+    
+    
+    private void listOfSequencesFromFasta(String fastaFileName) {
+        seedSequences = new ArrayList<>();
+        seedSequenceStrings = new ArrayList<>();
         File newFile = new File(fastaFileName);
         BufferedReader myData = null;
         try {
@@ -51,7 +59,9 @@ public class SeedSequences {
                 String line = inputLine.trim();
                 if (line.startsWith(">")) {
                     if (seqBuilder.length() > 0) {
-                        sequencesList.add(new SeedSequence(id, seqBuilder.toString()));
+                        String seqString = seqBuilder.toString();
+                        seedSequences.add(new SeedSequence(id, seqString));
+                        seedSequenceStrings.add(seqString);
                         seqBuilder = new StringBuilder();
                     }
                     id = line.substring(1); //get rid of ">"
@@ -63,9 +73,10 @@ public class SeedSequences {
                 System.err.println("Error reading FASTA [" + fastaFileName + "]. No identifier lines? Terminating... ");
                 System.exit(1);
             } else {
-                String identifierString[] = id.split(" ");
-                String key = identifierString[0];
-                sequencesList.add(new SeedSequence(id, seqBuilder.toString()));
+//                String identifierString[] = id.split(" ");
+                String seqString = seqBuilder.toString();
+                seedSequences.add(new SeedSequence(id, seqString));
+                seedSequenceStrings.add(seqString);
             }
 
         } catch (FileNotFoundException ex) {
@@ -81,6 +92,5 @@ public class SeedSequences {
                 ex.printStackTrace();
             }
         }
-        return sequencesList;
     }
 }

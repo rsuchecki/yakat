@@ -29,9 +29,9 @@ public class PairMerToSeedMap {
         pairMerToSeedMap = new ConcurrentSkipListMap<>();
         for (SeedSequence s : seedSequences.getSeedSequences()) {
             if (s.getSequenceString().length() >= k) {
-                addToPairMersMap(s.getSequenceString().substring(0, k), false, k - 1, s);
+                addToSeedPairMersMap(s.getSequenceString().substring(0, k), false, k - 1, s);
                 int len = s.getSequenceString().length();
-                addToPairMersMap(s.getSequenceString().substring(len - k, len), true, k - 1, s);
+                addToSeedPairMersMap(s.getSequenceString().substring(len - k, len), true, k - 1, s);
             }
         }
     }
@@ -50,7 +50,7 @@ public class PairMerToSeedMap {
      * @param inputKmersUnique : true when a list of unique k-mers given as
      * input, false if k-mers extracted directly from FASTA/FASTQ
      */
-    public final void addToPairMersMap(String kmerString, boolean frontClip, int overlapLength, SeedSequence seedSequence) {//, boolean inputKmersUnique) {
+    public final void addToSeedPairMersMap(String kmerString, boolean frontClip, int overlapLength, SeedSequence seedSequence) {//, boolean inputKmersUnique) {
 
         PairMer pairMer = PairMerGenerator.generatePairMer(kmerString, frontClip, overlapLength);
 

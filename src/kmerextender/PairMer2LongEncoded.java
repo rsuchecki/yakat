@@ -130,24 +130,33 @@ public class PairMer2LongEncoded extends PairMer implements Comparable<PairMer2L
         while (position < stringLength) {
             kmerCoreBits1 <<= 1;
             kmerCoreBits2 <<= 1;
-            if (kmerCharArray[position] == 'A' || kmerCharArray[position] == 'a') {
-                //if A : 00
-            } else if (kmerCharArray[position] == 'C' || kmerCharArray[position] == 'c') {
-                //if C : 01 
-                kmerCoreBits2++;
-            } else if (kmerCharArray[position] == 'G' || kmerCharArray[position] == 'g') {
-                //if G : 10
-                kmerCoreBits1++;
-            } else if (kmerCharArray[position] == 'T' || kmerCharArray[position] == 't') {
-                //if T : 11
-                kmerCoreBits1++;
-                kmerCoreBits2++;
-            } else {
-                System.err.println("Failed ecoding kmerstring to long....");
-                System.err.println("Offending char: " + kmerCharArray[position]);
-                System.err.println("in " + coreString);
-                System.err.println("....exiting");
-                System.exit(1);
+            switch (kmerCharArray[position]) {
+            //if A : 00
+                case 'A':
+                case 'a':
+                    break;
+                case 'C':
+                case 'c':
+                    //if C : 01
+                    kmerCoreBits2++;
+                    break;
+                case 'G':
+                case 'g':
+                    //if G : 10
+                    kmerCoreBits1++;
+                    break;
+                case 'T':
+                case 't':
+                    //if T : 11
+                    kmerCoreBits1++;
+                    kmerCoreBits2++;
+                    break;
+                default:
+                    System.err.println("Failed ecoding kmerstring to long....");
+                    System.err.println("Offending char: " + kmerCharArray[position]);
+                    System.err.println("in " + coreString);
+                    System.err.println("....exiting");
+                    System.exit(1);
             }
             position++;
         }

@@ -28,7 +28,6 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class PairMersMap extends shared.MerMap {
 
     private final ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
-    
 
 //    private boolean OutOfMemory;
 
@@ -48,26 +47,42 @@ public class PairMersMap extends shared.MerMap {
     }
     
 
-    /**
-     * First tries to atomically add a k-mer to the Map, if this fails,
-     * synchronized method is used to update the previously stored PairMer
-     *
-     * @param kmerString
-     * @param frontClip
-     * @param overlapLength : normally k-1
-     * @param inputKmersUnique : true when a list of unique k-mers given as
-     * input, false if k-mers extracted directly from FASTA/FASTQ
-     */
-    public void addToPairMersMap(String kmerString, boolean frontClip, int overlapLength, boolean inputKmersUnique) {
-//        SplitMer splitMer = new SplitMer(kmerString, frontClip, overlapLength);
-//        System.err.println("Adding\t"+kmerString+"\t"+frontClip+"\t"+splitMer.getLeftClip()+"_"+splitMer.getCore()+"_"+splitMer.getRightClip());
-
-//        PairMer pairMer = splitMer.generatepairMer(kmerString);
+//    /**
+//     * First tries to atomically add a k-mer to the Map, if this fails,
+//     * synchronized method is used to update the previously stored PairMer
+//     *
+//     * @param kmerString
+//     * @param frontClip
+//     * @param overlapLength : normally k-1
+//     * @param inputKmersUnique : true when a list of unique k-mers given as
+//     * input, false if k-mers extracted directly from FASTA/FASTQ
+//     */
+//    public void addToPairMersMap(String kmerString, boolean frontClip, int overlapLength, boolean inputKmersUnique) {
+//        PairMer pairMer = PairMerGenerator.generatePairMer(kmerString, frontClip, overlapLength);
+//
+//        //Atomic operation START
+//        PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
+//        //Atomic operation END
+//        if (previousStoredPairMer != null) {
+//            //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
+//            previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
+//        }
+//    }
     
-        PairMer pairMer = PairMerGenerator.generatePairMer(kmerString, frontClip, overlapLength);
-
+    /**
+     * First tries to atomically add a k-mer to the Map, if this fails, 
+     * synchronized method is used to update the
+     * previously stored PairMer
+     *
+     * @param sequence
+     * @param from
+     * @param to
+     * @param frontClip
+     * @param inputKmersUnique 
+     */
+    public void addToPairMersMap(CharSequence sequence, int from, int to, boolean frontClip, boolean inputKmersUnique) {
+        PairMer pairMer = PairMerGenerator.generatePairMer(sequence, from, to, frontClip);
         
-
         //Atomic operation START
         PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
         //Atomic operation END
@@ -103,7 +118,8 @@ public class PairMersMap extends shared.MerMap {
     public ConcurrentSkipListMap getPairMersSkipListMap() {
         return pairMersSkipListMap;
     }
-
+    
+    
     /**
      * Removes from the Map each PairMer which (i) represents ambiguous
      * extension (>2 k-mers matching the core) or (ii) has no extensions (only
@@ -188,4 +204,8 @@ public class PairMersMap extends shared.MerMap {
 //        
 //    }
 
+    
+    
+  
+    
 }
