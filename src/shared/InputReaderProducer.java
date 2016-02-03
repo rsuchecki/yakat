@@ -25,8 +25,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.zip.GZIPInputStream;
@@ -39,9 +37,9 @@ public class InputReaderProducer implements Runnable {
 
     private BlockingQueue queue; //Either
     private HashMap<Integer, BlockingQueue> kSizeToQueue; //or
-    
+
     private ArrayList<Integer> kValues;
-    
+
     private Integer KMER_LENGTH; // ignored if <0 but not if null
     private ArrayList<String> inputFiles;
     private GuessedInputFormat guessedInputFormat;
@@ -54,13 +52,11 @@ public class InputReaderProducer implements Runnable {
     private int KMER_BUFFER_SIZE = 8192; // //THAT MANY KMERS 
 //    private final int KMER_REPORTING_MULTIPLY = 2; //nice to use 2 if KMER_BUFFER_SIZE is a power of2 or 10 if it is a power of 10 
     private final String TOOL_NAME;
-    private String RECORD_NAME = "kmers";
+//    private String RECORD_NAME = "kmers";
 
     public enum GuessedInputFormat {
-
         KMERS, FASTA_SE_ONE_LINE, FASTA_PE_ONE_LINE, FASTQ_SE_ONE_LINE, FASTQ_PE_ONE_LINE, FASTA, FASTQ, UNSUPPORTED_OR_UNRECOGNIZED;
     }
-//    private final Task task; //readFastqNotKmerSet;
 
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, String toolName, String RECORD_NAME, int RECORD_BUFFER_SIZE) {
         this.queue = queue;
@@ -69,7 +65,7 @@ public class InputReaderProducer implements Runnable {
         TOOL_NAME = toolName;
         KMER_BUFFER_SIZE = RECORD_BUFFER_SIZE;
         FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
-        this.RECORD_NAME = RECORD_NAME;
+//        this.RECORD_NAME = RECORD_NAME;
     }
 
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, MerMap map, String toolName) {
@@ -82,20 +78,30 @@ public class InputReaderProducer implements Runnable {
         TOOL_NAME = toolName;
     }
 
+    /**
+     * Used for kmer extender
+     *
+     * @param kSizeToQueue
+     * @param kValues
+     * @param inputFiles
+     * @param toolName
+     */
     public InputReaderProducer(HashMap<Integer, BlockingQueue> kSizeToQueue, ArrayList<Integer> kValues,
-        ArrayList<String> inputFiles, String toolName) {
+        ArrayList<String> inputFiles, int RECORD_BUFFER_SIZE, String toolName) {
         if (kSizeToQueue.size() == 1) {
             this.queue = kSizeToQueue.values().iterator().next();
-            this.KMER_LENGTH = kSizeToQueue.keySet().iterator().next();            
+            this.KMER_LENGTH = kSizeToQueue.keySet().iterator().next();
         } else {
             this.kSizeToQueue = kSizeToQueue;
             this.kValues = kValues;
         }
         this.inputFiles = inputFiles;
-        
+
         if (map != null) {
             this.map = map;
         }
+        KMER_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+        FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
         TOOL_NAME = toolName;
     }
 
@@ -114,14 +120,12 @@ public class InputReaderProducer implements Runnable {
             for (String inputFile : inputFiles) {
                 if (inputFile.equals("-")) { //READSTDIN
                     content = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
+                } else if (inputFile.endsWith(".gz")) {// reading kmers from a compressed file
+                    InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputFile), READER_BUFFER_SIZE);
+                    content = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
                 } else {
-                    if (inputFile.endsWith(".gz")) {// reading kmers from a compressed file
-                        InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputFile), READER_BUFFER_SIZE);
-                        content = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
-                    } else {
-                        content = new BufferedReader(new FileReader(new File(inputFile)), READER_BUFFER_SIZE);//reading kmers from a text file
+                    content = new BufferedReader(new FileReader(new File(inputFile)), READER_BUFFER_SIZE);//reading kmers from a text file
 //                        content = new BufferedReader(new FileReader(new File(inputFile)));//reading kmers from a text file
-                    }
                 }
                 String line1;
                 //TAKE UP TO 4 FIRST LINES AND TRY TO GUESS THE INPUT FORMAT
@@ -162,14 +166,14 @@ public class InputReaderProducer implements Runnable {
 //                                    reportThreshold *= KMER_REPORTING_MULTIPLY;
                                     reportThreshold <<= 1; // *= 2
                                 }
-                                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME + " read-in so far", TOOL_NAME);
+                                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + guessedInputFormat.toString() + " read-in so far", TOOL_NAME);
                             }
                         }
                         bufferList.add(line);
 //                        queue.put(line);
                     }
                     kmerCount += bufferList.size();
-                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + RECORD_NAME + " read-in", TOOL_NAME);
+                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + guessedInputFormat.toString() + " read-in", TOOL_NAME);
 //                    queue.put(bufferList);
                     putOnQueue(bufferList);
                 } else if (!kMerIsSet()) {
@@ -194,6 +198,8 @@ public class InputReaderProducer implements Runnable {
                     for (int i = 1; i < testLines.size(); i += 4) {
                         bufferList.add(testLines.get(i));
                     }
+                    long fastqCount = 0L;
+                    long reportThreshold = (long) FASTQ_BUFFER_SIZE;
                     int countFastqLine = 1; //WE ONLY WANT THE NUCL SEQ FROM FASTQ NOT THE OTHER THREE LINES OF EACH RECORD
                     while ((line = content.readLine()) != null && !line.isEmpty()) {
                         if (countFastqLine++ == 2) {
@@ -201,6 +207,15 @@ public class InputReaderProducer implements Runnable {
 //                                queue.put(bufferList);
                                 putOnQueue(bufferList);
                                 bufferList = new ArrayList<>();
+                                fastqCount += FASTQ_BUFFER_SIZE;
+                                if (fastqCount % reportThreshold == 0) {
+                                    if (reportThreshold < 1e9) {
+//                                    reportThreshold *= 10;
+//                                    reportThreshold *= KMER_REPORTING_MULTIPLY;
+                                        reportThreshold <<= 1; // *= 2
+                                    }
+                                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(fastqCount) + " " + guessedInputFormat.toString() + " read-in so far", TOOL_NAME);
+                                }
                             }
                             bufferList.add(line);
                         }
@@ -210,6 +225,8 @@ public class InputReaderProducer implements Runnable {
                     }
 //                    queue.put(bufferList);
                     putOnQueue(bufferList);
+                    fastqCount += bufferList.size();
+                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(fastqCount) + " " + guessedInputFormat.toString() + " read-in", TOOL_NAME);
                 }
             }
 //            queue.put(new ArrayList<String>()); //TELLS CONSUMERS, NO MORE DATA
@@ -316,18 +333,18 @@ public class InputReaderProducer implements Runnable {
     public Integer getKmerLength() {
         return KMER_LENGTH;
     }
-    
+
     private boolean kMerIsSet() {
-        return (KMER_LENGTH != null && KMER_LENGTH > 0) || (kValues !=null && !kValues.isEmpty());
+        return (KMER_LENGTH != null && KMER_LENGTH > 0) || (kValues != null && !kValues.isEmpty());
     }
 
     private void putOnQueue(ArrayList<String> list) throws InterruptedException {
-        if(queue != null ) {
+        if (queue != null) {
             queue.put(list);
         } else {
             for (Integer k : kValues) {
                 kSizeToQueue.get(k).put(list);
-            }            
+            }
         }
     }
 }
