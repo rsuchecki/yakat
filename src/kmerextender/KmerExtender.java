@@ -34,6 +34,7 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -58,7 +59,7 @@ public class KmerExtender {
     private Integer KMER_LENGTH_MIN;
     private Integer KMER_LENGTH_MAX;
     private Integer KMER_LENGTH_STEP;
-    private SeedSequences SEED_SEQUENCES;
+    private SeedSequences seedSequences;
     private Integer MIN_KMER_FREQUENCY;
     private int MAX_THREADS;
     private int INPUT_BUFFER_SIZE;
@@ -120,8 +121,8 @@ public class KmerExtender {
         }
 
         if (optSet.getOpt("seed-file").isUsed()) {
-            SEED_SEQUENCES = new SeedSequences((String) optSet.getOpt("seed-file").getValueOrDefault());
-            if (SEED_SEQUENCES.getSeedSequences().isEmpty()) {
+            seedSequences = new SeedSequences((String) optSet.getOpt("seed-file").getValueOrDefault());
+            if (seedSequences.getSeedSequences().isEmpty()) {
                 Reporter.report("[ERROR]", "No seeds found in " + (String) optSet.getOpt("seed-file").getValueOrDefault() + ", proceeding without...", TOOL_NAME);
                 if (KMER_LENGTH_MIN != KMER_LENGTH_MAX) {
                     Reporter.report("[FATAL]", "Varied k implemented  (for now) for seed extension only - no seed(s) found", TOOL_NAME);
@@ -240,50 +241,29 @@ public class KmerExtender {
         for (Integer k : kSizes) {
             actualK = k > 0 ? k : actualK;
             PairMersMap pairMersMap = kSizeToPairMersMap.get(k);
-
-//            long purged = pairMersMap.purge(); //indicating large number of kmers overall        
-//            if (purged > 100000) {
-//                gc(5, 500); //force GC 
-//            }
             Reporter.report("[INFO]", "Finished purging map, k=" + actualK + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
-
-            //Seed-processing ================================== BEGIN ============================
-            PairMerToSeedMap pairMerToSeedMap = null;
-            if (SEED_SEQUENCES != null) {
-                pairMerToSeedMap = new PairMerToSeedMap(SEED_SEQUENCES, k);
-                BlockingQueue<ArrayList<String>> seedsDummyQueue = new ArrayBlockingQueue<>(2);
-                PairMersMap trimmedSeedPairMersMap = new PairMersMap();
-                try {
-                    seedsDummyQueue.put(SEED_SEQUENCES.getSeedSequenceStrings());
-                    seedsDummyQueue.put(new ArrayList<String>());
-                } catch (InterruptedException ex) {
-                }
-                PairMerMapPopulatorConsumer seedsPairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(seedsDummyQueue,
-                    trimmedSeedPairMersMap, true, k, MIN_KMER_FREQUENCY, true);
-                seedsPairMerMapPopulatorConsumer.run(); //TODO move to a background thread earlier  if needed
-                Reporter.report("[INFO]", "Seed-mers map populated, k=" + actualK, TOOL_NAME);
-                Iterator<PairMer> it = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet().iterator();
-                long removedCount = 0L;
-                while (it.hasNext()) {
-                    if (pairMersMap.getPairMersSkipListMap().remove(it.next()) != null) {
-                        removedCount++;
-                    }
-                }
-                Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount), TOOL_NAME);
-            }
-            //Seed-processing ================================== END ============================
-
-            PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
-            if (SEED_SEQUENCES == null) {
-                pairMersExtender.matchAndExtendKmers(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX);
-            } else {
-                pairMersExtender.matchAndExtendSeeds(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, pairMerToSeedMap);
-            }
-
         }
 
-        if (SEED_SEQUENCES != null) {
-            for (SeedSequence seed : SEED_SEQUENCES.getSeedSequences()) {
+        //Seed-processing ================================== BEGIN ============================
+        ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers = null;
+        if (seedSequences != null) {
+            kToSeedMers = populateSeedMersMaps(kSizes, kSizeToPairMersMap, actualK);
+        }
+        //Seed-processing ================================== END ============================
+
+        for (Integer k : kSizes) {
+            actualK = k > 0 ? k : actualK;
+            PairMersMap pairMersMap = kSizeToPairMersMap.get(k);
+            PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
+            if (seedSequences == null) {
+                pairMersExtender.matchAndExtendKmers(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX);
+            } else {
+                pairMersExtender.matchAndExtendSeeds(actualK, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, kToSeedMers.get(actualK));
+            }
+        }
+
+        if (seedSequences != null) {
+            for (SeedSequence seed : seedSequences.getSeedSequences()) {
 //            Reporter.report("[INFO]", "Longest extension of the provided seed is from " + seed.getSequenceString().length() + " to " + longestSeedAfterExtension + " at k = " + kBest, TOOL_NAME);
                 Map.Entry<Integer, String> longest = seed.getLongestExtended();
                 if (OUTPUT_FASTA) {
@@ -399,7 +379,7 @@ public class KmerExtender {
 
     private void purgePopulatedPairMersMaps(HashMap<Integer, PairMersMap> kToMap) {
         //PREPARE QUEUE OF MAPS TO BE PICKED-UP BY THREADS
-        ArrayBlockingQueue<PairMersMap> mapsQueue = new ArrayBlockingQueue(kToMap.size()+1);
+        ArrayBlockingQueue<PairMersMap> mapsQueue = new ArrayBlockingQueue(kToMap.size() + 1);
         Iterator<PairMersMap> it = kToMap.values().iterator();
         try {
             while (it.hasNext()) {
@@ -434,12 +414,66 @@ public class KmerExtender {
             Reporter.report("[ERROR]", "PairMerSet purger timeout exception!", TOOL_NAME);
         }
     }
-    
-    private void PopulatedEedPairMersMaps(HashMap<Integer, PairMersMap> kToMap) {
+
+    private ConcurrentHashMap<Integer, PairMerToSeedMap> populateSeedMersMaps(ArrayList<Integer> kSizes,
+        HashMap<Integer, PairMersMap> kToMap, int actualK) {
+
+        ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeeds = new ConcurrentHashMap<>();
+      
+        //PREPARE EXECUTOR SERVICE
+        int threads = MAX_THREADS;
+        ArrayList<Future<?>> futures = new ArrayList<>(threads);
+        final ExecutorService processSeedsExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+
+        //INIT THREADS
+        for (Integer k : kSizes) {
+            actualK = k > 0 ? k : actualK;
+            SeedMerProcessor processor = new SeedMerProcessor(seedSequences, kToSeeds, MIN_KMER_FREQUENCY, TOOL_NAME, kToMap.get(actualK), actualK);
+            futures.add(processSeedsExecutorService.submit(processor));            
+        }
+        
+        //WAIT UNTIL DONE
+        processSeedsExecutorService.shutdown();
+        try {
+            for (Future<?> f : futures) {
+                f.get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            }
+            processSeedsExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            Reporter.report("[ERROR]", "SeedsProcessor interrupted exception!", TOOL_NAME);
+        } catch (ExecutionException ex) {
+            Reporter.report("[ERROR]", "SeedsProcessor execution exception!", TOOL_NAME);
+//            ex.printStackTrace();
+        } catch (TimeoutException ex) {
+            Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
+            Reporter.report("[ERROR]", "SeedsProcessor timeout exception!", TOOL_NAME);
+        }
         
         
         
-        
+//            PairMersMap pairMersMap = kToMap.get(k);
+//            PairMerToSeedMap pairMerToSeedMap = new PairMerToSeedMap(seedSequences, k);
+//            kToSeeds.put(actualK, pairMerToSeedMap);
+//            BlockingQueue<ArrayList<String>> seedsDummyQueue = new ArrayBlockingQueue<>(2);
+//            PairMersMap trimmedSeedPairMersMap = new PairMersMap();
+//            try {
+//                seedsDummyQueue.put(seedSequences.getSeedSequenceStrings());
+//                seedsDummyQueue.put(new ArrayList<String>());
+//            } catch (InterruptedException ex) {
+//            }
+//            PairMerMapPopulatorConsumer seedsPairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(seedsDummyQueue,
+//                trimmedSeedPairMersMap, true, k, MIN_KMER_FREQUENCY, true);
+//            seedsPairMerMapPopulatorConsumer.run(); //TODO move to a background thread earlier  if needed
+//            Reporter.report("[INFO]", "Seed-mers map populated, k=" + actualK, TOOL_NAME);
+//            Iterator<PairMer> it = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet().iterator();
+//            long removedCount = 0L;
+//            while (it.hasNext()) {
+//                if (pairMersMap.getPairMersSkipListMap().remove(it.next()) != null) {
+//                    removedCount++;
+//                }
+//            }
+//            Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount), TOOL_NAME);
+//        }
 //        //PREPARE QUEUE OF MAPS TO BE PICKED-UP BY THREADS
 //        ArrayBlockingQueue<PairMersMap> mapsQueue = new ArrayBlockingQueue(kToMap.size()+1);
 //        Iterator<PairMersMap> it = kToMap.values().iterator();
@@ -475,6 +509,8 @@ public class KmerExtender {
 //            Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
 //            Reporter.report("[ERROR]", "PairMerSet purger timeout exception!", TOOL_NAME);
 //        }
+        
+        return kToSeeds;
     }
 
     private int setKmerLength(int k) {
