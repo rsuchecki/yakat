@@ -61,6 +61,9 @@ public class KmerExtender {
     private SeedSequences SEED_SEQUENCES;
     private Integer MIN_KMER_FREQUENCY;
     private int MAX_THREADS;
+    private int INPUT_BUFFER_SIZE;
+    private int INPUT_QUEUE;
+    
     private boolean OUTPUT_FASTA = false;
     private String NAME_PREFIX = "";
     private String DEBUG_FILE;
@@ -91,6 +94,9 @@ public class KmerExtender {
     }
 
     private void readArgValues(OptSet optSet) {
+        INPUT_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
+        INPUT_QUEUE = (int) optSet.getOpt("Q").getValueOrDefault();
+        
         if (optSet.getOpt("k").isUsed()) {
             setKmerLength((int) optSet.getOpt("k").getValueOrDefault());
         } else {
@@ -171,7 +177,7 @@ public class KmerExtender {
         OptSet optSet = new OptSet();
         //INPUT
         optSet.setListingGroupLabel("[Input settings - general extender]");
-        optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));
+        optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));        
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of records (k-mers or FASTQ reads or pairs depending on input) "
                 + "passed to in-queue", 1024, 128, 8092));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
@@ -342,7 +348,7 @@ public class KmerExtender {
 
         //POSSIBLY single 0 value when k is to be picked-up from input (if list of k-mers given as input)
         for (Integer kValue : kValues) {
-            kSizeToinputQueue.put(kValue, new ArrayBlockingQueue(1024));
+            kSizeToinputQueue.put(kValue, new ArrayBlockingQueue(INPUT_QUEUE));
         }
 
         try {
@@ -352,7 +358,7 @@ public class KmerExtender {
             final ExecutorService readAndPopulateDbExecutor = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
             //SPAWN INPUT READING THREAD
-            InputReaderProducer inputReaderProducer = new InputReaderProducer(kSizeToinputQueue, kValues, inputFileNamesList, TOOL_NAME);
+            InputReaderProducer inputReaderProducer = new InputReaderProducer(kSizeToinputQueue, kValues, inputFileNamesList, INPUT_BUFFER_SIZE, TOOL_NAME);
 
             Future<?> future = readAndPopulateDbExecutor.submit(inputReaderProducer);
             futures.add(future);
