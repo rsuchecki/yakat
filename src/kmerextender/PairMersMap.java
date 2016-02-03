@@ -38,12 +38,9 @@ public class PairMersMap extends shared.MerMap {
         pairMersSkipListMap = new ConcurrentSkipListMap<>();
     }
 
-    public PairMersMap(boolean empty) {
-        pairMersSkipListMap = null;
-    }
     
     public boolean isEmpty() {
-        return pairMersSkipListMap == null;
+        return pairMersSkipListMap == null || pairMersSkipListMap.isEmpty();
     }
     
 
@@ -118,6 +115,8 @@ public class PairMersMap extends shared.MerMap {
     public ConcurrentSkipListMap getPairMersSkipListMap() {
         return pairMersSkipListMap;
     }
+
+    
     
     
     /**
@@ -127,14 +126,15 @@ public class PairMersMap extends shared.MerMap {
      * (matching core, but both extending in the same direction) Run only when
      * the set/map is fully populated.
      *
-     * @param k : k-mer length
+     * Could be parallelized by applying the purge method to subsets see .subSet()
+     * 
      * @return the number of elements removed
      */
-    public long purge(int k) {
+    public long purge() {
         long count = 0L;
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
 
-        int total = 0;
+//        int total = 0;
         while (it.hasNext()) {
             PairMer next = it.next();
             if (next.isInvalid() || next.getStoredCount() != 2) {
@@ -149,20 +149,22 @@ public class PairMersMap extends shared.MerMap {
         }
         
         
-        //EXPERIMENTS only
-        it = pairMersSkipListMap.keySet().iterator();
-        int buckets = pairMersSkipListMap.size();
-        byte[] hashKeys = new byte[buckets];
-        while (it.hasNext()) {
-            PairMer next = it.next();
-            int hashcode = next.hashCode() % buckets;
-            if (hashcode < 0) {
-                hashKeys[-hashcode]++;
-            } else {
-                hashKeys[hashcode]++;
-            }
-            total++;
-        }
+//        //EXPERIMENTS only
+//        it = pairMersSkipListMap.keySet().iterator();
+//        int buckets = pairMersSkipListMap.size();
+//        byte[] hashKeys = new byte[buckets];
+//        while (it.hasNext()) {
+//            PairMer next = it.next();
+//            int hashcode = next.hashCode() % buckets;
+//            if (hashcode < 0) {
+//                hashKeys[-hashcode]++;
+//            } else {
+//                hashKeys[hashcode]++;
+//            }
+//            total++;
+//        }
+        
+        
 //        double mean = (double) total / buckets;
 //        double deviation = 0;
 //        int single = 0;

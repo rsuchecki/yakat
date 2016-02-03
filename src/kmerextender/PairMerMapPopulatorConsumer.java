@@ -15,9 +15,11 @@
  */
 package kmerextender;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
+import shared.Reporter;
 
 /**
  *
@@ -71,6 +73,7 @@ public class PairMerMapPopulatorConsumer implements Runnable {
                 }
             }
             queue.put(new ArrayList<String>()); //inform other threads
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

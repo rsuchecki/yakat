@@ -15,22 +15,18 @@
  */
 package kmerextender;
 
-import java.util.ArrayList;
-import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 
 /**
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class PairMerMapPurgerExtender implements Runnable {
+public class PairMerMapPurger implements Runnable {
 
     private final BlockingQueue<PairMersMap> queue;
-    private final Integer KMER_LENGTH;
 
-    public PairMerMapPurgerExtender(BlockingQueue<PairMersMap> queue, Integer KMER_LENGTH) {
+    public PairMerMapPurger(BlockingQueue<PairMersMap> queue) {
         this.queue = queue;
-        this.KMER_LENGTH = KMER_LENGTH;
     }
 
     @Override
@@ -38,6 +34,10 @@ public class PairMerMapPurgerExtender implements Runnable {
         try {
             PairMersMap map;
             while (!(map = queue.take()).isEmpty()) {
+                long purged = map.purge();
+                if (purged > 100000) {
+                    gc(5, 500); //force GC 
+                }
             }
             queue.put(new PairMersMap()); //inform other threads
         } catch (InterruptedException e) {
@@ -45,4 +45,13 @@ public class PairMerMapPurgerExtender implements Runnable {
         }
     }
 
+     private void gc(int iterations, int sleep) {
+        for (int i = 0; i < iterations; i++) {
+            System.gc();
+            try {
+                Thread.sleep(sleep);
+            } catch (InterruptedException ex) {
+            }
+        }
+    }
 }
