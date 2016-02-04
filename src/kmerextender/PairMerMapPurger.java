@@ -39,7 +39,7 @@ public class PairMerMapPurger implements Runnable {
                     gc(5, 500); //force GC 
                 }
             }
-            queue.put(new PairMersMap()); //inform other threads
+            queue.put(new PairMersMap(null)); //inform other threads
         } catch (InterruptedException e) {
             e.printStackTrace();
         }

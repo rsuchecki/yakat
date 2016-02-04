@@ -28,14 +28,17 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class PairMersMap extends shared.MerMap {
 
     private final ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
+    private final Integer k;
 
 //    private boolean OutOfMemory;
 
     /**
      * Instantiate the Map
+     * @param k
      */
-    public PairMersMap() {
+    public PairMersMap(Integer k) {
         pairMersSkipListMap = new ConcurrentSkipListMap<>();
+        this.k = k;
     }
 
     

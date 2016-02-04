@@ -36,11 +36,11 @@ import java.util.zip.GZIPInputStream;
 public class InputReaderProducer implements Runnable {
 
     private BlockingQueue queue; //Either
-    private HashMap<Integer, BlockingQueue> kSizeToQueue; //or
+//    private HashMap<Integer, BlockingQueue> kSizeToQueue; //or
 
-    private ArrayList<Integer> kValues;
+    private ArrayList<Integer> kLengths;
 
-    private Integer KMER_LENGTH; // ignored if <0 but not if null
+//    private Integer KMER_LENGTH; // ignored if <0 but not if null
     private ArrayList<String> inputFiles;
     private GuessedInputFormat guessedInputFormat;
     private final int READER_BUFFER_SIZE = 8192;
@@ -61,7 +61,9 @@ public class InputReaderProducer implements Runnable {
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, String toolName, String RECORD_NAME, int RECORD_BUFFER_SIZE) {
         this.queue = queue;
         this.inputFiles = inputFiles;
-        KMER_LENGTH = k;
+//        KMER_LENGTH = k;
+        kLengths = new ArrayList<>(1);
+        kLengths.add(k);
         TOOL_NAME = toolName;
         KMER_BUFFER_SIZE = RECORD_BUFFER_SIZE;
         FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
@@ -71,7 +73,9 @@ public class InputReaderProducer implements Runnable {
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, MerMap map, String toolName) {
         this.queue = queue;
         this.inputFiles = inputFiles;
-        KMER_LENGTH = k;
+        kLengths = new ArrayList<>(1);
+        kLengths.add(k);
+//        KMER_LENGTH = k;
 //        if (map != null) {
 //            this.map = map;
 //        }
@@ -81,20 +85,22 @@ public class InputReaderProducer implements Runnable {
     /**
      * Used for kmer extender
      *
-     * @param kSizeToQueue
-     * @param kValues
+     * @param queue
+     * @param kSizes
+     * @param RECORD_BUFFER_SIZE
      * @param inputFiles
      * @param toolName
      */
-    public InputReaderProducer(HashMap<Integer, BlockingQueue> kSizeToQueue, ArrayList<Integer> kValues,
+//    public InputReaderProducer(HashMap<Integer, BlockingQueue> kSizeToQueue, ArrayList<Integer> kValues,
+    public InputReaderProducer(BlockingQueue queue, ArrayList<Integer> kSizes,
         ArrayList<String> inputFiles, int RECORD_BUFFER_SIZE, String toolName) {
-        if (kSizeToQueue.size() == 1) {
-            this.queue = kSizeToQueue.values().iterator().next();
-            this.KMER_LENGTH = kSizeToQueue.keySet().iterator().next();
-        } else {
-            this.kSizeToQueue = kSizeToQueue;
-            this.kValues = kValues;
-        }
+//        if (kSizeToQueue.size() == 1) {
+            this.queue = queue; // kSizeToQueue.values().iterator().next();
+//            this.KMER_LENGTH = kSizeToQueue.keySet().iterator().next();
+//        } else {
+//            this.kSizeToQueue = kSizeToQueue;
+//        }
+        this.kLengths = kSizes;
         this.inputFiles = inputFiles;
 
 //        if (map != null) {
@@ -306,7 +312,8 @@ public class InputReaderProducer implements Runnable {
             String[] split0 = testLines.get(0).split("\t| ");
             String[] split1 = testLines.get(1).split("\t| ");
             if (split0[0].matches("^[A|T|C|G]+$") && split1[0].matches("^[A|T|C|G]+$") && split0[0].length() == split1[0].length()) {
-                setKmerLength(split0[0].trim().length());
+//                setKmerLength(split0[0].trim().length());
+                addKmerLength(split0[0].trim().length());
                 return GuessedInputFormat.KMERS;
             } else {
                 return GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED;
@@ -347,25 +354,37 @@ public class InputReaderProducer implements Runnable {
         return guessedInputFormat;
     }
 
-    private void setKmerLength(int k) {
-        this.KMER_LENGTH = k;
+//    private void setKmerLength(int k) {
+//        this.KMER_LENGTH = k;
+//    }
+    
+    private synchronized void addKmerLength(int k) {
+        //if list contains just a dummy entrance (0) - replace it
+        if(kLengths.size() == 1 && kLengths.get(0) == 0) {
+            kLengths.remove(0);
+        }
+        kLengths.add(k);
     }
 
-    public Integer getKmerLength() {
-        return KMER_LENGTH;
+    public ArrayList<Integer> getKmerLengths() {
+        return kLengths;
     }
+//    public Integer getKmerLength() {
+//        return KMER_LENGTH;
+//    }
 
     private boolean kMerIsSet() {
-        return (KMER_LENGTH != null && KMER_LENGTH > 0) || (kValues != null && !kValues.isEmpty());
+//        return (KMER_LENGTH != null && KMER_LENGTH > 0) || (kValues != null && !kValues.isEmpty());
+        return kLengths != null && !kLengths.isEmpty() && kLengths.get(0) != 0;
     }
 
     private void putOnQueue(ArrayList<String> list) throws InterruptedException {
-        if (queue != null) {
+//        if (queue != null) {
             queue.put(list);
-        } else {
-            for (Integer k : kValues) {
-                kSizeToQueue.get(k).put(list);
-            }
-        }
+//        } else {
+//            for (Integer k : kLengths) {
+//                kSizeToQueue.get(k).put(list);
+//            }
+//        }
     }
 }

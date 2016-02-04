@@ -247,7 +247,7 @@ public class KmerMatch {
             }
             if (inputReaderProducer.getGuessedInputFormat().equals(InputReaderProducer.GuessedInputFormat.KMERS)) {
                 splitInputSequenceIntoKmers = false;
-                KMER_LENGTH = inputReaderProducer.getKmerLength();
+                KMER_LENGTH = inputReaderProducer.getKmerLengths().get(0);
             }
 
             //SPAWN THREADS TO POPULATE CLIPMERS MAP
