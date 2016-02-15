@@ -139,20 +139,13 @@ public class PairMersExtender {
     }
 
     public void matchAndExtendSeeds(int k, PairMersMap pairMersMap, boolean outputFasta, String namePrefix,
-            PairMerToSeedMap pairMerToSeedMap) {
+        PairMerToSeedMap pairMerToSeedMap) {
         if (!namePrefix.isEmpty() && !namePrefix.endsWith("_")) {
             namePrefix += "_";
         }
         long clusterNumber = 0; //Connected-component in the de-bruijn graph
-        long extendedNumber = 0;
-        int[] extendedLengths = null;
-        int longest = 0;
-        int MAX_LENGTH_STATS = 2000;
-        if (STATS_FILE != null) {
-            Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", "Kmer extrending stats", TOOL_NAME), false);
-            extendedLengths = new int[MAX_LENGTH_STATS];
-        }
 
+        //Iterate through PairMers (2 per seed, corresponding to it's ends)
         Iterator<PairMer> it = pairMerToSeedMap.getPairMersSkipListMap().keySet().iterator();
         while (it.hasNext()) {
             PairMer seedMer = it.next();
@@ -163,16 +156,12 @@ public class PairMersExtender {
                 connectedPairMers.connectPairMers(pairMer, k, pairMersMap);
                 try {
                     if (connectedPairMers.hasTerminalOrSingletonNode()) {
-                        extendedNumber++;
-//                        ArrayList<PairMer> terminalMersOrSingleton = connectedPairMers.terminalMersOrSingleton();
-//                        for (PairMer endMer : terminalMersOrSingleton) {
-                            SeedSequence seedSequence = pairMerToSeedMap.get(seedMer);
-                            if (seedSequence != null) {
-                                String connectedMers = connectedPairMers.toString(k);
-                                String extension = extendSeed(connectedMers, extendSeed(SequenceOps.getReverseComplementString(connectedMers), seedSequence.getExtendedOrOriginal(k), k), k);
-                                seedSequence.setExtended(k, extension);
-                            }
-//                        }
+                        SeedSequence seedSequence = pairMerToSeedMap.get(seedMer);
+                        if (seedSequence != null) {
+                            String connectedMers = connectedPairMers.toString(k);
+                            String extension = extendSeed(connectedMers, extendSeed(SequenceOps.getReverseComplementString(connectedMers), seedSequence.getExtendedOrOriginal(k), k), k);
+                            seedSequence.setExtended(k, extension);
+                        }
                     } else {
                         String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
                         Reporter.report("[WARNING]", message, TOOL_NAME);
