@@ -209,6 +209,10 @@ public class PairMersMap extends shared.MerMap {
 //        
 //    }
 
+    public Integer getK() {
+        return k;
+    }
+
     
     
   

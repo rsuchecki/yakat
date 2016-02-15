@@ -50,6 +50,18 @@ public class ConnectedPairMers {
             PairMer otherPairMer1 =  pairMersMap.get(otherCoreOfKmer1, k);
             String otherCoreOfKmer2 = wrapper.getOtherCoreOfKmer2();
             PairMer otherPairMer2 =  pairMersMap.get(otherCoreOfKmer2, k);
+            
+                        
+            
+            System.err.println(pairMer.getOtherCores(k));
+            System.err.println(otherCoreOfKmer1);
+            System.err.println(otherCoreOfKmer2);
+            
+            
+            
+            
+            
+            
 //            if(pairMer.getPairMerString(k).equals("TACAAATACATATCCTTAACATACAAGATCAATGATAGAGAACGTG")) {
 //            System.err.println(pairMer.getPairMerString(k) + "\tPairMer");
 //            System.err.println(wrapper.getKmer1String() + "\tk1");

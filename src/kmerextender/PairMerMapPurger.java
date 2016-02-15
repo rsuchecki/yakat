@@ -15,7 +15,9 @@
  */
 package kmerextender;
 
+import java.text.NumberFormat;
 import java.util.concurrent.BlockingQueue;
+import shared.Reporter;
 
 /**
  *
@@ -24,9 +26,11 @@ import java.util.concurrent.BlockingQueue;
 public class PairMerMapPurger implements Runnable {
 
     private final BlockingQueue<PairMersMap> queue;
+    private final String TOOL_NAME;
 
-    public PairMerMapPurger(BlockingQueue<PairMersMap> queue) {
+    public PairMerMapPurger(BlockingQueue<PairMersMap> queue, String toolName) {
         this.queue = queue;
+        this.TOOL_NAME = toolName;
     }
 
     @Override
@@ -38,6 +42,7 @@ public class PairMerMapPurger implements Runnable {
                 if (purged > 100000) {
                     gc(5, 500); //force GC 
                 }
+                Reporter.report("[INFO]", "Finished purging map, k=" + map.getK() + ", n=" + NumberFormat.getIntegerInstance().format(map.getPairMersSkipListMap().size()), TOOL_NAME);
             }
             queue.put(new PairMersMap(null)); //inform other threads
         } catch (InterruptedException e) {

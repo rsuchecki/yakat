@@ -137,6 +137,9 @@ public class PairMer {//implements Comparable<PairMer> {
         return null;
     }
 
+    public String getOtherCores(int k) {
+        return null;
+    }
     
     public String getPairMerString(int k) {
         StringBuilder sb = new StringBuilder();

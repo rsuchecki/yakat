@@ -38,14 +38,14 @@ public class PairMerStrings {
             this.kmer2String = sb2.toString();
         }
     }
-
-    public String getKmer1String() {
-        return kmer1String;
-    }
-
-    public String getKmer2String() {
-        return kmer2String;
-    }
+//
+//    public String getKmer1String() {
+//        return kmer1String;
+//    }
+//
+//    public String getKmer2String() {
+//        return kmer2String;
+//    }
 
     public String getOtherCoreOfKmer1() {
         return kmer1String.substring(0, kmer1String.length() - 1);

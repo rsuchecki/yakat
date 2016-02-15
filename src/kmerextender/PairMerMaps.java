@@ -47,37 +47,37 @@ public class PairMerMaps {
         return map;
     }
 
-    /**
-     * Add a new PairMerMap for the given k
-     *
-     * @param k
-     * @return false if map for given k already in
-     */
-    public boolean addK(int k) {
-        if (kSizeToPairMersMap.putIfAbsent(k, new PairMersMap(k)) == null) {
-            kSizes.add(k);
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Add new PairMerMaps for the given k sizes
-     *
-     * @param kSizes
-     * @return false if map for given k already in
-     */
-    public boolean addK(ArrayList<Integer> kSizes) {
-        boolean kAlreadyIn = false;
-        for (Integer k : kSizes) {
-            if (kSizeToPairMersMap.putIfAbsent(k, new PairMersMap(k)) == null) {
-                kSizes.add(k);
-            } else {
-                kAlreadyIn = true;
-            }
-        }
-        return !kAlreadyIn;
-    }
+//    /**
+//     * Add a new PairMerMap for the given k
+//     *
+//     * @param k
+//     * @return false if map for given k already in
+//     */
+//    public boolean addK(int k) {
+//        if (kSizeToPairMersMap.putIfAbsent(k, new PairMersMap(k)) == null) {
+//            kSizes.add(k);
+//            return true;
+//        }
+//        return false;
+//    }
+//
+//    /**
+//     * Add new PairMerMaps for the given k sizes
+//     *
+//     * @param kSizes
+//     * @return false if map for given k already in
+//     */
+//    public boolean addK(ArrayList<Integer> kSizes) {
+//        boolean kAlreadyIn = false;
+//        for (Integer k : kSizes) {
+//            if (kSizeToPairMersMap.putIfAbsent(k, new PairMersMap(k)) == null) {
+//                kSizes.add(k);
+//            } else {
+//                kAlreadyIn = true;
+//            }
+//        }
+//        return !kAlreadyIn;
+//    }
 
     public ArrayList<Integer> getkSizes() {
         return kSizes;

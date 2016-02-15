@@ -29,9 +29,11 @@ public class PairMerToSeedMap {
         pairMerToSeedMap = new ConcurrentSkipListMap<>();
         for (SeedSequence s : seedSequences.getSeedSequences()) {
             if (s.getSequenceString().length() >= k) {
-                addToSeedPairMersMap(s.getSequenceString().substring(0, k), false, k - 1, s);
+                addToSeedPairMersMap(s.getSequenceString(), 0, k-1, false, s);
+//                addToSeedPairMersMap(s.getSequenceString().substring(0, k), false, k - 1, s);
                 int len = s.getSequenceString().length();
-                addToSeedPairMersMap(s.getSequenceString().substring(len - k, len), true, k - 1, s);
+                addToSeedPairMersMap(s.getSequenceString(), len-k, len-1, true, s);
+//                addToSeedPairMersMap(s.getSequenceString().substring(len - k, len), true, k - 1, s);
             }
         }
     }
@@ -40,29 +42,66 @@ public class PairMerToSeedMap {
         return pairMerToSeedMap == null;
     }
 
+    
     /**
-     * r
-     *
-     * @param kmerString
+     * 
+     * @param charSequence
+     * @param kmerFrom
+     * @param kmerTo inclusive
      * @param frontClip
-     * @param overlapLength : normally k-1
-     * @param seedSequence
-     * @param inputKmersUnique : true when a list of unique k-mers given as
-     * input, false if k-mers extracted directly from FASTA/FASTQ
+     * @param seedSequence 
      */
-    public final void addToSeedPairMersMap(String kmerString, boolean frontClip, int overlapLength, SeedSequence seedSequence) {//, boolean inputKmersUnique) {
+    public final void addToSeedPairMersMap(CharSequence charSequence, int kmerFrom, int kmerTo, boolean frontClip, SeedSequence seedSequence) {//, boolean inputKmersUnique) {
 
-        PairMer pairMer = PairMerGenerator.generatePairMer(kmerString, frontClip, overlapLength);
-
+//        System.err.println("Generating: "+charSequence.subSequence(kmerFrom, kmerTo+1)+" from "+seedSequence.getSequenceString()); //.subSequence(kmerFrom, kmerTo));
+//        PairMer pairMer = PairMerGenerator.generatePairMer(kmerString, frontClip, overlapLength);
+        PairMer pairMer = PairMerGenerator.generatePairMer( charSequence, kmerFrom, kmerTo, frontClip);
         //Atomic operation START
         SeedSequence previousStored = pairMerToSeedMap.putIfAbsent(pairMer, seedSequence);
         //Atomic operation END
+        int k = kmerTo-kmerFrom+1;
+//        System.err.println("Generated:  "+pairMer.getPairMerString(k, "_")+" at k="+k);
         if (previousStored != null) {
             //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
 //            previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
             System.err.println("Should not have happened in NIKS pipeline" + getClass().getCanonicalName());
         }
     }
+//    /**
+//     * r
+//     *
+//     * @param kmerString
+//     * @param frontClip
+//     * @param overlapLength : normally k-1
+//     * @param seedSequence
+//     * @param inputKmersUnique : true when a list of unique k-mers given as
+//     * input, false if k-mers extracted directly from FASTA/FASTQ
+//     */
+//    public final void addToSeedPairMersMap(String kmerString, boolean frontClip, int overlapLength, SeedSequence seedSequence) {//, boolean inputKmersUnique) {
+//    
+//    /**
+//     * 
+//     * @param kmerString
+//     * @param kmerFrom
+//     * @param kmerTo inclusive
+//     * @param frontClip
+//     * @param seedSequence 
+//     */
+////    public final void addToSeedPairMersMap(CharSequence kmerString, int kmerFrom, int kmerTo, boolean frontClip, SeedSequence seedSequence) {//, boolean inputKmersUnique) {
+//
+//        System.err.println("Generating: "+kmerString+" from "+seedSequence.getSequenceString()); //.subSequence(kmerFrom, kmerTo));
+//        PairMer pairMer = PairMerGenerator.generatePairMer(kmerString, frontClip, overlapLength);
+//        System.err.println("Generated:  "+pairMer.getPairMerString(kmerString.length(), "_")+" at k="+kmerString.length());
+////        PairMer pairMer = PairMerGenerator.generatePairMer( kmerString, kmerFrom, kmerTo, frontClip);
+//        //Atomic operation START
+//        SeedSequence previousStored = pairMerToSeedMap.putIfAbsent(pairMer, seedSequence);
+//        //Atomic operation END
+//        if (previousStored != null) {
+//            //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
+////            previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
+//            System.err.println("Should not have happened in NIKS pipeline" + getClass().getCanonicalName());
+//        }
+//    }
 
     /**
      * Given a core string, retrieves the matching PairMer
