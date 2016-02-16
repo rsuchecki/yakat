@@ -39,13 +39,10 @@ public class PairMer {//implements Comparable<PairMer> {
     //6,5,4    left clip:  \fi,A,C,G,T or X for extensions conflict
     //3,2,1    right clip: \fi,A,C,G,T or X for extensions conflict
     //0        wasVisited: 0==false, 1==true 
-    
     //could save even more if encoded along core in long, 2*long etc.
     //in such case, use masks for core-comparisons that ignore these encoded fields
-    
     /**
-     * It is assumed that the input PairMer matches this one (another.core ==
-     * this.core)
+     * It is assumed that the input PairMer matches this one (another.core == this.core)
      *
      * @param another : newly generated PairMer holding a single k-mer
      * @param inputKmersUnique : set true if no duplicate k-mers expected
@@ -54,35 +51,37 @@ public class PairMer {//implements Comparable<PairMer> {
         if (isInvalid() || (inputKmersUnique && getStoredCount() > 1) || (!inputKmersUnique && getStoredCount() > 2)) { //if already invalid PairMer  or more than second kmer being added
             setIsInvalid();
         } else //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to ensure that we ignore it            
-        if (!inputKmersUnique) {
-            if ((hasLeftClip() && getClipLeft() == another.getClipLeft()) || (hasRightClip() && getClipRight() == another.getClipRight())) {
-                //fine, new k-mer is identical to a k-mer already stored
+        {
+            if (!inputKmersUnique) {
+                if ((hasLeftClip() && getClipLeft() == another.getClipLeft()) || (hasRightClip() && getClipRight() == another.getClipRight())) {
+                    //fine, new k-mer is identical to a k-mer already stored
 //                    System.err.println("Adding same kmer again");
-            } else { //it is a different k-mer
-                if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                    setIsInvalid(); //has clip at the same end but not identical (as implied by unmet if above )
+                } else { //it is a different k-mer
+                    if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
+                        setIsInvalid(); //has clip at the same end but not identical (as implied by unmet if above )
+                    } else if (!hasLeftClip() && another.hasLeftClip()) {
+                        setClipLeft(another.getClipLeft());
+                    } else if (!hasRightClip() && another.hasRightClip()) {
+                        setClipRight(another.getClipRight());
+                    } else {
+                        Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
+                    }
+                    incrementStoredCount();
+                }
+            } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
+                if (hasBothClips()) {
+                    setIsInvalid(); //because already two different k-mers represented in this PairMer
+                } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
+                    setIsInvalid();
                 } else if (!hasLeftClip() && another.hasLeftClip()) {
                     setClipLeft(another.getClipLeft());
                 } else if (!hasRightClip() && another.hasRightClip()) {
                     setClipRight(another.getClipRight());
                 } else {
-                    Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
+                    Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
                 }
                 incrementStoredCount();
             }
-        } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
-            if (hasBothClips()) { 
-                setIsInvalid(); //because already two different k-mers represented in this PairMer
-            } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                setIsInvalid();
-            } else if (!hasLeftClip() && another.hasLeftClip()) {
-                setClipLeft(another.getClipLeft());
-            } else if (!hasRightClip() && another.hasRightClip()) {
-                setClipRight(another.getClipRight());
-            } else {
-                Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
-            }
-            incrementStoredCount();
         }
     }
 
@@ -100,7 +99,6 @@ public class PairMer {//implements Comparable<PairMer> {
 //            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
 //        }
 //    }
-
     protected boolean hasLeftClip() {
         return clipLeft != '#';
     }
@@ -137,10 +135,7 @@ public class PairMer {//implements Comparable<PairMer> {
         return null;
     }
 
-    public String getOtherCores(int k) {
-        return null;
-    }
-    
+
     public String getPairMerString(int k) {
         StringBuilder sb = new StringBuilder();
         sb.append(getClipLeft());
@@ -150,8 +145,8 @@ public class PairMer {//implements Comparable<PairMer> {
     }
 
     /**
-     * Output PairMer String with delimiter separating {leftClip, rightClip}
-     * from core, if delimiter = "_" then e.g. A_TCCCTTGCT_C
+     * Output PairMer String with delimiter separating {leftClip, rightClip} from core, if delimiter = "_" then e.g.
+     * A_TCCCTTGCT_C
      *
      * @param k
      * @param delimiter
@@ -196,6 +191,14 @@ public class PairMer {//implements Comparable<PairMer> {
     }
 
     public void printPaddedEncoded() {
-        
+
+    }
+
+    public PairMer getOtherPairmerCoreLeft(int k) {
+        return null;
+    }
+
+    public PairMer getOtherPairmerCoreRight(int k) {
+        return null;
     }
 }

@@ -69,6 +69,19 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
     }
 
+    /**
+     * Does not generate a complete PairMer, just the core, for Set/Maps lookups
+     *
+     * @param encodedKmerCoreOnly
+     */
+    public PairMerIntArrEncoded(int[] encodedKmerCoreOnly, int k) {
+    
+        storeCanonical(encodedKmerCoreOnly, recodeInReverseComplement(k, encodedKmerCoreOnly), k);
+//        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
+//        encodeCoreCanonical(kmerCoreOnly, 0, kmerCoreOnly.length() - 1);
+//        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
+    }
+
 //    /**
 //     * Add first kmer (encoded as a SplitMer)
 //     *
@@ -166,7 +179,17 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @param reverseComplement
      * @return true if stored in forward orientation, false if in reverse-complement
      */
-    public boolean storeCanonical(int[] forward, int[] reverseComplement) {
+    public final boolean storeCanonical(int[] forward, int[] reverseComplement, int k) {        
+        String forwardCore = decodeCore(k, forward);
+        String reverseCore = decodeCore(k, reverseComplement);
+        if(forwardCore.equals("TCAGTAAGGGTTGCCAAAGGGATG") || reverseCore.equals("TCAGTAAGGGTTGCCAAAGGGATG")) {
+            System.err.println(forwardCore);
+            System.err.println(reverseCore);
+            System.err.println("<>");
+            printPaddedEncoded(k, forward);
+            printPaddedEncoded(k, reverseComplement);
+            System.err.println("");
+        }
         for (int i = 0; i < forward.length; i++) {
             if (forward[i] < reverseComplement[i]) {
                 break;
@@ -214,6 +237,54 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             }
         }
         return sb.toString();
+    }
+
+    private int[] recodeInReverseComplement(int encodedSequenceLength, int kmerCoreBitsArray[]) {
+        String forwardCore = decodeCore(25, kmerCoreBitsArray);
+//        String reverseCore = decodeCore(k-1, reverseComplement);
+        if(forwardCore.equals("TCAGTAAGGGTTGCCAAAGGGATG")) {
+            System.err.println(forwardCore);
+            System.err.println("~");
+            printPaddedEncoded(25, kmerCoreBitsArray);
+            System.err.println("");
+        }
+        int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
+//        StringBuilder sb = new StringBuilder();
+        int[] rc = new int[kmerCoreBitsArray.length];
+        int lastChunkLength = encodedSequenceLength * 2 % INT_LENGTH;
+        int writeBit = 0;
+        int writeChunk = rc.length - 1;
+        for (int i = 0; i < kmerCoreBitsArray.length; i++) {
+            int startPrintingBitsFrom = INT_LENGTH - 1;
+            if (i == 0 && lastChunkLength != 0) {
+                startPrintingBitsFrom = lastChunkLength - 1;
+            }
+            for (int j = startPrintingBitsFrom; j > -1; j -= 2) {
+                int b = (kmerCoreBitsArray[i] & (1 << j)) >> j;
+                int m = (kmerCoreBitsArray[i] & (1 << j - 1)) >> j - 1;
+                rc[writeChunk] <<= 1;
+                if (b == 0 && m == 0) {
+                    rc[writeChunk]++;
+                    rc[writeChunk] <<= 1;
+                    rc[writeChunk]++;
+                } else if (b == 0 && m == 1) {
+                    rc[writeChunk]++;
+                    rc[writeChunk] <<= 1;
+                } else if (b == 1 && m == 0) {
+                    rc[writeChunk] <<= 1;
+                    rc[writeChunk]++;
+                } else if (b == 1 && m == 1) {
+                    rc[writeChunk] <<= 1;
+                }
+//                System.err.println("Written to "+writeBit+" @ "+writeChunk);
+                if (++writeBit >= INT_LENGTH/2) {
+                    --writeChunk;
+                    writeBit = 0;
+                }
+            }
+        }
+        
+        return rc;
     }
 
 //    public final void encodeCore(String kmerString) {
@@ -353,90 +424,159 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             currentInt++;
             positionInInt = 0;
         }
-        return storeCanonical(kmerCoreBitsArray, kmerCoreBitsArrayRC);
+        return storeCanonical(kmerCoreBitsArray, kmerCoreBitsArrayRC, stringLength);
     }
 
-    /**
-     *
-     * @param k
-     * @return
-     */
     @Override
-    public String getOtherCores(int k) {
+    public PairMer getOtherPairmerCoreLeft(int k) {
         if (!isInvalid() && getStoredCount() == 2) {
 
-            String decodedCore = decodeCore(k - 1);
-
+//            String decodedCore = decodeCore(k - 1);
             //Reconstruct k-mer 1
-            String s = getClipLeft() + decodedCore.substring(0, decodedCore.length() - 1) + " <- other core1+\n";
-
-            printPaddedEncoded(k, kmerCoreBitsArray);
-
+//            String s = getClipLeft() + decodedCore.substring(0, decodedCore.length() - 1) + " <- other core1\n";
+//            printPaddedEncoded(k, kmerCoreBitsArray);
             //SHIFT BITS RIGHT TWICE TO DROP 2 RIGHTMOST BITS
             //SET 2 LEFTMOST BITS TO THE VALUE OF CLIP-LEFT
-            int[] leftClipCore = shiftBitsRightAndAddLeftClip(kmerCoreBitsArray, k-1);
-           
-            
-            
-            System.exit(1);
+            return new PairMerIntArrEncoded(shiftBitsRightAndAddLeftClip(kmerCoreBitsArray, k - 1), k);
+//            int[] leftClipCore = shiftBitsRightAndAddLeftClip(kmerCoreBitsArray, k - 1);
+//            int[] rightClipCore = shiftBitsLeftAndAddRightClip(kmerCoreBitsArray, k - 1);
+//            String[] s = new String []{decodeCore(k-1, leftClipCore),decodeCore(k-1, rightClipCore)};
 
+//            System.err.println("with leftclip:");
+//            printPaddedEncoded(k, leftClipCore);
+//            System.err.println("with rightclip:");
+//            printPaddedEncoded(k, rightClipCore);
+//            System.exit(1);
             //Reconstruct k-mer 2
-            s += decodedCore.substring(1) + getClipRight() + " <- other core2";
-
+//            s += decodedCore.substring(1) + getClipRight() + " <- other core2";
             //SHIFT LEFT TWICE ADDING THE VALUE OF CLIP-RIGH
             //MASK 2 LEFTMOST BITS
 //            int[] rigthClipCore = shiftBitsLeftAndAddRightClip(kmerCoreBitsArray, k-1);
-            return s;
+//            return s;
         }
         return null;
     }
 
+    @Override
+    public PairMer getOtherPairmerCoreRight(int k) {
+        if (!isInvalid() && getStoredCount() == 2) {
+            return new PairMerIntArrEncoded(shiftBitsLeftAndAddRightClip(kmerCoreBitsArray, k - 1), k);
+        }
+        return null;
+    }
+
+    /**
+     * Method intended to extracting "core" which can then be used as a key for finding neighboring pairMer in the
+     * implicit de Brujin graph; For example, given a pairMer A_TTC_G (leftClip_core_rightClip) the method should return
+     * encoded representation of ATTC
+     *
+     * @param kmerCoreBitsArray
+     * @param coreLength
+     * @return
+     */
     private int[] shiftBitsRightAndAddLeftClip(int[] kmerCoreBitsArray, int coreLength) {
         int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
-        int[] shiftedBitsWithLeftClip = new int[kmerCoreBitsArray.length];        
+        int[] shiftedBitsWithLeftClip = new int[kmerCoreBitsArray.length];
         //SHIFT RIGHT ACROSS ARRAY
-        int droppedShift = INT_LENGTH-2; //30bits used in int, -2 bits stored 
-        int mask = 0b11; //interested in last two bits
-        int dropped = 0;
+        int droppedShift = INT_LENGTH - 2; //30bits used in int, -2 bits stored 
+        int mask = 0b11; //interested in last two bits only
+        int dropped = 0; //nothing dropped-off yet
         for (int i = 0; i < kmerCoreBitsArray.length; i++) {
-            shiftedBitsWithLeftClip[i] = kmerCoreBitsArray[i] >> 2;            
+            shiftedBitsWithLeftClip[i] = kmerCoreBitsArray[i] >> 2;
             //adding 2 most significant bits dropped at i-1, //no effect at i==0 
-            dropped <<= droppedShift; 
-            shiftedBitsWithLeftClip[i] |= dropped; 
+            shiftedBitsWithLeftClip[i] |= dropped << droppedShift;
             //storing 2 most significant bits dropped at i (this iteration)
-            dropped = kmerCoreBitsArray[i] & mask;             
-        }            
-        
-        printPaddedEncoded(coreLength, shiftedBitsWithLeftClip);
+            dropped = kmerCoreBitsArray[i] & mask;
+        }
 
+//        printPaddedEncoded(coreLength, shiftedBitsWithLeftClip);
         //SETMOST-SIGNIFICANTBITS TO LEFTCLIP VALUE
-        int leftClipMask = 0b00;
-        switch(getClipLeft()) {
+        int leftClipShift = coreLength * 2 % INT_LENGTH - 2;
+        int leftClipMask = encodeNucleotide(getClipLeft()) << leftClipShift;
+        shiftedBitsWithLeftClip[0] |= leftClipMask;
+
+//        printPaddedEncoded(coreLength + 1, shiftedBitsWithLeftClip);
+        return shiftedBitsWithLeftClip;
+    }
+
+    ///SHIFT LEFT TWICE ADDING THE VALUE OF CLIP-RIGH
+    //MASK 2 LEFTMOST BITS
+    private int[] shiftBitsLeftAndAddRightClip(int[] kmerCoreBitsArray, int coreLength) {
+        int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
+        int[] shiftedBitsWithRightClip = new int[kmerCoreBitsArray.length];
+        //SHIFT LEFT ACROSS ARRAY
+        int clearMask = 0b11000000000000000000000000000000; // dec=-1073741824 //0b11 << INT_LENGTH;
+        int matchMask = 0b00110000000000000000000000000000;
+        int setRightMostTo = encodeNucleotide(getClipRight());
+        for (int i = kmerCoreBitsArray.length - 1; i > -1; --i) {
+            //shift bits left 
+            shiftedBitsWithRightClip[i] = kmerCoreBitsArray[i] << 2;
+//            if (kmerCoreBitsArray[i] == 720978088) {
+//                System.err.println("Original:");
+//                printPaddedEncoded(coreLength + 1, kmerCoreBitsArray);
+//                System.err.println("Shifted:");
+//                printPaddedEncoded(coreLength + 1, shiftedBitsWithRightClip);
+//            }
+            //collect dropped bits 
+            int droppedHere = kmerCoreBitsArray[i] & matchMask;
+            //clear positions 32,31 which must not be used
+            shiftedBitsWithRightClip[i] &= ~clearMask;
+//            if (decodeCore(coreLength).equals("CACACATACTCACTTTCATGCACACCGCCACAAC")) {
+////                System.err.println("Masked with "+mask);
+//                System.err.println("Start here:");
+//                printPaddedEncoded(coreLength + 1, kmerCoreBitsArray);                
+//                printPaddedEncoded(coreLength + 1, shiftedBitsWithRightClip);                
+//                System.err.println("Dropped here "+droppedHere);
+//                System.err.println("Dropped shft "+(droppedHere >> INT_LENGTH-2));
+//                
+//            }
+
+            //set two (empty) least significant bits to the value dropped at previous iteration OR to rightClip at i==0
+            shiftedBitsWithRightClip[i] |= setRightMostTo;
+
+            //shift and store for next iteration
+            setRightMostTo = droppedHere >> INT_LENGTH - 2;
+        }
+//        if (decodeCore(coreLength).equals("CACACATACTCACTTTCATGCACACCGCCACAAC")) {
+//            System.err.println("rightclip=" + getClipRight());
+////            System.err.println(decodeCore(coreLength)+" <===");
+//            printPaddedEncoded(coreLength + 1, shiftedBitsWithRightClip);                
+//        }
+//
+        //CLEAR 2 MOST-SIGNIFICANT BITS 
+        int leftShift = coreLength * 2 % INT_LENGTH - 2;
+        int leftOverflowMask = 0b11 << leftShift + 2;
+        shiftedBitsWithRightClip[0] &= (~leftOverflowMask);
+//        
+//        if (decodeCore(coreLength).equals("CACACATACTCACTTTCATGCACACCGCCACAAC")) {
+//            System.err.println("rightclip=" + getClipRight());
+//            printPaddedEncoded(coreLength + 1, shiftedBitsWithRightClip);                
+//            System.exit(1);
+//        }
+        return shiftedBitsWithRightClip;
+    }
+
+    private int encodeNucleotide(char nucleotide) {
+        switch (nucleotide) {
+            case 'A':
+            case 'a':
+                return 0;
             case 'C':
             case 'c':
                 //if C : 01
-                leftClipMask = 0b01;
-                break;
+                return 0b01;
             case 'G':
             case 'g':
                 //if G : 10
-                leftClipMask = 0b10;
-                break;
+                return 0b10;
             case 'T':
             case 't':
                 //if T : 11
-                leftClipMask = 0b11;
-                break;
+                return 0b11;
         }
-        int leftClipShift = coreLength * 2 % INT_LENGTH-2;
-        leftClipMask <<= leftClipShift;
-        shiftedBitsWithLeftClip[0] |= leftClipMask;
-        
-        printPaddedEncoded(coreLength+1, shiftedBitsWithLeftClip);
-        return shiftedBitsWithLeftClip;
+        return -1;
     }
-    
-    
+
 //    @Override
     public void printPaddedEncoded(int k, int[] kmerCoreBitsArray) {
         int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
@@ -444,7 +584,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         String decodedCore = decodeCore(k - 1, kmerCoreBitsArray);
         StringBuilder sb = new StringBuilder(String.format("%" + (INT_LENGTH - incompleteChunkLen) + "s", " "));
         for (int i = 0; i < decodedCore.length(); i++) {
-            StringBuilder append = sb.append(" " + decodedCore.charAt(i));
+            sb.append(" " + decodedCore.charAt(i));
             if (sb.length() % INT_LENGTH == 0) {
                 sb.append(" ");
                 System.err.print(sb.toString());
@@ -453,11 +593,11 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         }
         System.err.println();
         for (int i = 0; i < kmerCoreBitsArray.length; i++) {
-            System.err.print(leftPad(Integer.toBinaryString(kmerCoreBitsArray[i]), 30, '0') + " ");
+            System.err.print(leftPad(Integer.toBinaryString(kmerCoreBitsArray[i]), INT_LENGTH, '0') + " ");
         }
         System.err.println();
         for (int i = 0; i < kmerCoreBitsArray.length; i++) {
-            System.err.printf("%30s ", kmerCoreBitsArray[i]);
+            System.err.printf("%" + INT_LENGTH + "s ", kmerCoreBitsArray[i]);
         }
         System.err.println();
     }
@@ -469,4 +609,5 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         }
         return s.append(bitString);
     }
+
 }

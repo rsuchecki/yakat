@@ -23,7 +23,7 @@ import java.util.Set;
 
 /**
  * Class for storing a set of connected PairMers with the connections between them
- * 
+ *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class ConnectedPairMers {
@@ -35,11 +35,12 @@ public class ConnectedPairMers {
     private final HashMap<PairMer, PairMerNode> pairMerNodes = new HashMap<>();
 
     /**
-     * Given a PairMer recursively follows the implicit connections to generate a slightly more explicit 
-     * graph structure, which can than be quickly traversed to generate the extended string using toString(int k)
+     * Given a PairMer recursively follows the implicit connections to generate a slightly more explicit graph
+     * structure, which can than be quickly traversed to generate the extended string using toString(int k)
+     *
      * @param pairMer
      * @param k
-     * @param pairMersMap 
+     * @param pairMersMap
      */
     public void connectPairMers(PairMer pairMer, int k, PairMersMap pairMersMap) {
         if (!pairMer.isVisited()) {
@@ -47,26 +48,33 @@ public class ConnectedPairMers {
             PairMerStrings wrapper = new PairMerStrings(pairMer, k);
             //
             String otherCoreOfKmer1 = wrapper.getOtherCoreOfKmer1();
-            PairMer otherPairMer1 =  pairMersMap.get(otherCoreOfKmer1, k);
+            PairMer otherPairMer1 = pairMersMap.get(otherCoreOfKmer1, k);
             String otherCoreOfKmer2 = wrapper.getOtherCoreOfKmer2();
-            PairMer otherPairMer2 =  pairMersMap.get(otherCoreOfKmer2, k);
-            
-                        
-            
-            System.err.println(pairMer.getOtherCores(k));
-            System.err.println(otherCoreOfKmer1);
-            System.err.println(otherCoreOfKmer2);
-            
-            
-            
-            
-            
-            
+            PairMer otherPairMer2 = pairMersMap.get(otherCoreOfKmer2, k);
+
+//            String[] otherCores = pairMer.getOtherCores(k);
+            PairMer tempLeft = pairMer.getOtherPairmerCoreLeft(k);
+            PairMer tempRight = pairMer.getOtherPairmerCoreRight(k);
+
+            if (otherPairMer1 != null && otherPairMer2 != null) {
+                if(!tempLeft.equals(otherPairMer1) || !tempRight.equals(otherPairMer2)) {
+                    System.err.println(otherCoreOfKmer1+" <- otherCore1");
+                    System.err.println(otherPairMer1.decodeCore(k - 1)+" <- via String (1)");                    
+                    System.err.println(tempLeft.decodeCore(k - 1)+" <- encoded");
+                    System.err.println("");
+                    System.err.println(otherCoreOfKmer2+" <- otherCore2");
+                    System.err.println(otherPairMer2.decodeCore(k - 1)+" <- via String (2)");                    
+                    System.err.println(tempRight.decodeCore(k - 1)+" <- encoded");
+                    System.err.println("");
+                    System.err.println("");
+                }
+//            System.err.println(otherCoreOfKmer2);
+            }
+
 //            if(pairMer.getPairMerString(k).equals("TACAAATACATATCCTTAACATACAAGATCAATGATAGAGAACGTG")) {
 //            System.err.println(pairMer.getPairMerString(k) + "\tPairMer");
 //            System.err.println(wrapper.getKmer1String() + "\tk1");
 //            System.err.println(SequenceOps.getReverseComplementString(wrapper.getKmer1String()) + "\tk1 RC");
-
 ////            NavigableSet<PairMer> keySet = pairMersMap.getPairMersSkipListMap().keySet();
 ////            for (PairMer pairMer1 : keySet) {
 ////                System.err.println(pairMer1.getClipLeft()+"_"+pairMer1.getTmpCore()+"_"+pairMer1.getClipRight());
@@ -102,14 +110,14 @@ public class ConnectedPairMers {
 
         }
     }
-    
+
     /**
-     * 
+     *
      * @param pairMer
      * @param previous
      * @param previousRc
      * @param next
-     * @param nextRc 
+     * @param nextRc
      */
     private void add(PairMer pairMer, PairMer previous, boolean previousRc, PairMer next, boolean nextRc) {
         PairMerNode pairMerNode = new PairMerNode(pairMer, previous, previousRc, next, nextRc);
@@ -119,40 +127,41 @@ public class ConnectedPairMers {
                 terminal1 = pairMerNode;
             } else if (terminal2 == null) {
                 terminal2 = pairMerNode;
-            } else {                
-                Reporter.report("[BUG?]", "Third terminal PairMerNode identified  ", getClass().getSimpleName() );
+            } else {
+                Reporter.report("[BUG?]", "Third terminal PairMerNode identified  ", getClass().getSimpleName());
 //                System.err.println(terminal1.getPairMer().getPairMerString(30)+" <- terminal1");
 //                System.err.println(terminal2.getPairMer().getPairMerString(30)+" <- terminal2");
 //                System.err.println(pairMer.getPairMerString(30)+" <- pairMer");
 ////                System.err.println(previous.getPairMerString(30)+" <- previous");
 ////                System.err.println(next.getPairMerString(30)+" <- next");
 //                System.err.println(" -=-=- ");
-                
+
             }
         } else if (previous == null && next == null) {
             if (singletonNode == null) {
                 singletonNode = pairMerNode;
             } else {
-                Reporter.report("[BUG?]", "Another singleton node among supposedly connected PairMers?  ", getClass().getSimpleName() );
+                Reporter.report("[BUG?]", "Another singleton node among supposedly connected PairMers?  ", getClass().getSimpleName());
             }
 
         }
         PairMerNode put = pairMerNodes.put(pairMer, pairMerNode);
         if (put != null) {
-            Reporter.report("[BUG?]", "PairMer/Node being added agian to Map?  ", getClass().getSimpleName() );
+            Reporter.report("[BUG?]", "PairMer/Node being added agian to Map?  ", getClass().getSimpleName());
         }
     }
 
     /**
      * Generates the extended string assuming that connectPairMers was executed earlier
+     *
      * @param k
-     * @return 
+     * @return
      */
     public String toString(int k) {
         if (singletonNode != null) {
             return singletonNode.getPairMer().getPairMerString(k);
-        } else if (!hasTerminalOrSingletonNode()) { 
-            Reporter.report("[WARNING]", "No terminal PairMerNodes ", getClass().getSimpleName() );
+        } else if (!hasTerminalOrSingletonNode()) {
+            Reporter.report("[WARNING]", "No terminal PairMerNodes ", getClass().getSimpleName());
             return null;
         } else if (terminal1 != null) {
             return traverse(terminal1, k, true, null);
@@ -160,23 +169,23 @@ public class ConnectedPairMers {
             return traverse(terminal2, k, true, null);
         } else {
             //not possible            
-            Reporter.report("[BUG?]", "No terminal or sungleton PairMerNodes in ConnectedPairMers? ", getClass().getSimpleName() );
+            Reporter.report("[BUG?]", "No terminal or sungleton PairMerNodes in ConnectedPairMers? ", getClass().getSimpleName());
             return null;
         }
 
     }
-    
+
     /**
-     * If a non-empty set of connected PairMers has no terminal nodes, it 
-     * indicates that it represents a circular molecule. In most contexts 
-     * it would indicate an error caused e.g. by a k-mer's reverse complement 
-     * accidentally matching another k-mer in the set. 
-     * @return true if has at least one terminal node 
+     * If a non-empty set of connected PairMers has no terminal nodes, it indicates that it represents a circular
+     * molecule. In most contexts it would indicate an error caused e.g. by a k-mer's reverse complement accidentally
+     * matching another k-mer in the set.
+     *
+     * @return true if has at least one terminal node
      */
     public boolean hasTerminalOrSingletonNode() {
         return terminal1 != null || terminal2 != null || singletonNode != null;
     }
- 
+
     private String traverse(PairMerNode currentNode, int k, boolean isInitial, PairMerNode alreadyVisited) {
         StringBuilder sb = new StringBuilder();
         String currentString = new String();
@@ -245,21 +254,20 @@ public class ConnectedPairMers {
 //    public PairMer getTerminal2() {
 //        return terminal2.getPairMer();
 //    }
-
     public ArrayList<PairMer> terminalMersOrSingleton() {
         ArrayList<PairMer> list = new ArrayList<>(2);
-        if(terminal1 != null ) {
+        if (terminal1 != null) {
             list.add(terminal1.getPairMer());
         }
-        if(terminal2 != null ) {
+        if (terminal2 != null) {
             list.add(terminal2.getPairMer());
-        }        
-        if(singletonNode != null ) {
+        }
+        if (singletonNode != null) {
             list.add(singletonNode.getPairMer());
         }
         return list;
     }
-    
+
     /**
      * Class facilitates generation of a graph connecting matching PairMers
      */
@@ -317,6 +325,5 @@ public class ConnectedPairMers {
             return previous != null;
         }
 
-        
     }
 }
