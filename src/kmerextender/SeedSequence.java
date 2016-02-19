@@ -28,21 +28,49 @@ public class SeedSequence {
 
     private final String id;
     private final ConcurrentHashMap<Integer, String> kToExtendedSequence;
+    private final ConcurrentHashMap<Integer, SeedExtensionsPair> kToExtensionsPair;
+
 //    private final ConcurrentHashMap<Integer, Integer> kToExtensionCount;
 //    private final int[] extensionCounts = new int[101];
-
 //    private ConcurrentHashMap<Integer, PairMer> kToHeadMer;
 //    private ConcurrentHashMap<Integer, PairMer> kToTailMer;
-
     public SeedSequence(String id, String sequenceString) {
         this.id = id;
         kToExtendedSequence = new ConcurrentHashMap<>();
         kToExtendedSequence.put(0, sequenceString);
+
+        kToExtensionsPair = new ConcurrentHashMap<>();
+        kToExtensionsPair.put(0, new SeedExtensionsPair());
 //        kToHeadMer = new ConcurrentHashMap<>();
 //        kToTailMer = new ConcurrentHashMap<>();
 ////        kToExtensionCount = new ConcurrentHashMap<>();
     }
+    
 
+    public void setLeftExtension(int k, String leftExtension) {
+        SeedExtensionsPair pair = kToExtensionsPair.get(k);
+        if(pair == null) {
+            pair = new SeedExtensionsPair();
+            kToExtensionsPair.put(k, pair);
+        }
+        pair.setExtensionLeft(leftExtension);
+    }
+    
+    public void setRightExtension(int k, String rightExtension) {
+        SeedExtensionsPair pair = kToExtensionsPair.get(k);
+        if(pair == null) {
+            pair = new SeedExtensionsPair();
+            kToExtensionsPair.put(k, pair);
+        }
+        pair.setExtensionRight(rightExtension);
+    }
+    
+//    public void setExtensions(int k, String leftExtension, String rightExtension) {
+//        SeedExtensionsPair pair = kToExtensionsPair.get(k);
+//        pair.setExtensionLeft(leftExtension);
+//        pair.setExtensionRight(rightExtension);
+//    }
+    
     public synchronized void setExtended(int k, String extendedSequenceString) { //, int extensions) {
         if (extendedSequenceString.length() > getSequenceString().length()) {
             String previous = kToExtendedSequence.putIfAbsent(k, extendedSequenceString);
@@ -95,8 +123,7 @@ public class SeedSequence {
 
     /**
      *
-     * @return longest extended String or input if longest not longer than input
-     * original String
+     * @return longest extended String or input if longest not longer than input original String
      */
     public Map.Entry<Integer, String> getLongestExtended() {
         Map.Entry<Integer, String> longest = null;
@@ -122,6 +149,24 @@ public class SeedSequence {
 
     }
 
+    public Map.Entry<Integer, SeedExtensionsPair> getLongestExtensionLeft() {
+        Map.Entry<Integer, SeedExtensionsPair> longest = null;
+        for (Map.Entry<Integer, SeedExtensionsPair> entry : kToExtensionsPair.entrySet()) {
+            String value = entry.getValue().getExtensionLeft();
+            longest = (longest == null || (longest.getValue().getExtensionLeft().length() < value.length())) ? entry : longest;
+        }
+        return longest;
+    }
+ 
+    public Map.Entry<Integer, SeedExtensionsPair> getLongestExtensionRight() {
+        Map.Entry<Integer, SeedExtensionsPair> longest = null;
+        for (Map.Entry<Integer, SeedExtensionsPair> entry : kToExtensionsPair.entrySet()) {
+            String value = entry.getValue().getExtensionRight();
+            longest = (longest == null || (longest.getValue().getExtensionRight().length() < value.length())) ? entry : longest;
+        }
+        return longest;
+    }
+
     public String getId() {
         return id;
     }
@@ -137,4 +182,5 @@ public class SeedSequence {
 //            kToHeadMer.putIfAbsent(k, headMer);
 //            kToTailMer.putIfAbsent(k, tailMer);
 //    }
+   
 }

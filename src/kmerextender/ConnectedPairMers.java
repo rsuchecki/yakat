@@ -52,24 +52,34 @@ public class ConnectedPairMers {
             String otherCoreOfKmer2 = wrapper.getOtherCoreOfKmer2();
             PairMer otherPairMer2 = pairMersMap.get(otherCoreOfKmer2, k);
 
+            
+            
+            //SWITCH TO bit-level RC
+//            PairMer otherPairMer1 = pairMer.getOtherPairmerCoreLeft(k);
+//            PairMer otherPairMer2 = pairMer.getOtherPairmerCoreRight(k);
+//            
+//                otherCoreRight = pairMer.shiftBitsLeftAndAddRightClip(pairMer, k-1);
+                
+            
+            
 //            String[] otherCores = pairMer.getOtherCores(k);
-            PairMer tempLeft = pairMer.getOtherPairmerCoreLeft(k);
-            PairMer tempRight = pairMer.getOtherPairmerCoreRight(k);
+//            PairMer tempLeft = pairMer.getOtherPairmerCoreLeft(k);
+//            PairMer tempRight = pairMer.getOtherPairmerCoreRight(k);
 
-            if (otherPairMer1 != null && otherPairMer2 != null) {
-                if(!tempLeft.equals(otherPairMer1) || !tempRight.equals(otherPairMer2)) {
-                    System.err.println(otherCoreOfKmer1+" <- otherCore1");
-                    System.err.println(otherPairMer1.decodeCore(k - 1)+" <- via String (1)");                    
-                    System.err.println(tempLeft.decodeCore(k - 1)+" <- encoded");
-                    System.err.println("");
-                    System.err.println(otherCoreOfKmer2+" <- otherCore2");
-                    System.err.println(otherPairMer2.decodeCore(k - 1)+" <- via String (2)");                    
-                    System.err.println(tempRight.decodeCore(k - 1)+" <- encoded");
-                    System.err.println("");
-                    System.err.println("");
-                }
-//            System.err.println(otherCoreOfKmer2);
-            }
+//            if (otherPairMer1 != null && otherPairMer2 != null) {
+//                if(!tempLeft.equals(otherPairMer1) || !tempRight.equals(otherPairMer2)) {
+//                    System.err.println(otherCoreOfKmer1+" <- otherCore1");
+//                    System.err.println(otherPairMer1.decodeCore(k - 1)+" <- via String (1)");                    
+//                    System.err.println(tempLeft.decodeCore(k - 1)+" <- encoded");
+//                    System.err.println("");
+//                    System.err.println(otherCoreOfKmer2+" <- otherCore2");
+//                    System.err.println(otherPairMer2.decodeCore(k - 1)+" <- via String (2)");                    
+//                    System.err.println(tempRight.decodeCore(k - 1)+" <- encoded");
+//                    System.err.println("");
+//                    System.err.println("--------------------------------");
+//                }
+////            System.err.println(otherCoreOfKmer2);
+//            }
 
 //            if(pairMer.getPairMerString(k).equals("TACAAATACATATCCTTAACATACAAGATCAATGATAGAGAACGTG")) {
 //            System.err.println(pairMer.getPairMerString(k) + "\tPairMer");
@@ -85,8 +95,10 @@ public class ConnectedPairMers {
 
 //                System.err.println(wrapper.getOtherCoreOfKmer1() + "\tk1otherCore");
 //                System.err.println(SequenceOps.getReverseComplementString(wrapper.getOtherCoreOfKmer1()) + "\tk1otherCoreRC");
+//                if (!otherCoreOfKmer1.equals(otherPairMer1.decodeCore(k - 1))) {
                 if (!otherCoreOfKmer1.equals(otherPairMer1.decodeCore(k - 1))) {
                     otherPairMer1isRC = true;
+//                    System.err.println("blah!!!!");
                 }
                 if (!otherPairMer1.isVisited()) {
                     connectPairMers(otherPairMer1, k, pairMersMap);

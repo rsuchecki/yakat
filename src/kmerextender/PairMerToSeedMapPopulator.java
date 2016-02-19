@@ -49,7 +49,7 @@ public class PairMerToSeedMapPopulator implements Runnable {
 
     @Override
     public void run() {
-        PairMerToSeedMap pairMerToSeedMap = new PairMerToSeedMap(seedSequences, KMER_SIZE);
+        PairMerToSeedMap pairMerToSeedMap = new PairMerToSeedMap(seedSequences, KMER_SIZE, TOOL_NAME);
         PairMerToSeedMap previous = kToSeeds.putIfAbsent(KMER_SIZE, pairMerToSeedMap);
         if (previous != null) {
             Reporter.report("[BUG!]", "Overwritten exisitng value in " + kToSeeds.getClass().getSimpleName(), TOOL_NAME);

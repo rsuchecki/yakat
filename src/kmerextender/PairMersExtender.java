@@ -138,11 +138,7 @@ public class PairMersExtender {
         Reporter.report("[INFO]", totalExtendedMessage, TOOL_NAME);
     }
 
-    public void matchAndExtendSeeds(int k, PairMersMap pairMersMap, boolean outputFasta, String namePrefix,
-        PairMerToSeedMap pairMerToSeedMap) {
-        if (!namePrefix.isEmpty() && !namePrefix.endsWith("_")) {
-            namePrefix += "_";
-        }
+    public void matchAndExtendSeeds(int k, PairMersMap pairMersMap, PairMerToSeedMap pairMerToSeedMap) {
         long clusterNumber = 0; //Connected-component in the de-bruijn graph
 
         //Iterate through PairMers (2 per seed, corresponding to it's ends)
@@ -159,8 +155,13 @@ public class PairMersExtender {
                         SeedSequence seedSequence = pairMerToSeedMap.get(seedMer);
                         if (seedSequence != null) {
                             String connectedMers = connectedPairMers.toString(k);
-                            String extension = extendSeed(connectedMers, extendSeed(SequenceOps.getReverseComplementString(connectedMers), seedSequence.getExtendedOrOriginal(k), k), k);
+                            String connectedMersRC = SequenceOps.getReverseComplementString(connectedMers);
+                            String extension = extendSeed(connectedMers, extendSeed(connectedMersRC, seedSequence.getExtendedOrOriginal(k), k), k);
                             seedSequence.setExtended(k, extension);
+                            
+                            //experimenting with storing left and right extensions separately
+                            extendSeedAndSetExtensions(connectedMers, seedSequence, k);
+                            extendSeedAndSetExtensions(connectedMersRC, seedSequence, k);
                         }
                     } else {
                         String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
@@ -201,6 +202,19 @@ public class PairMersExtender {
             return connectedMers.substring(0, connectedMers.length() - k) + seed;
         }
         return seed;
+    }
+    
+    private void extendSeedAndSetExtensions(String connectedMers, SeedSequence seedSequence, int k) {
+        String seed = seedSequence.getSequenceString();
+        //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
+        String connectedMersHead = connectedMers.substring(0, k);
+        if (seed.endsWith(connectedMersHead)) {
+            seedSequence.setRightExtension(k, connectedMers.substring(k));
+        }
+        String connectedMersTail = connectedMers.substring(connectedMers.length() - k, connectedMers.length());
+        if (seed.startsWith(connectedMersTail)) {
+            seedSequence.setLeftExtension(k, connectedMers.substring(0, connectedMers.length() - k));
+        }
     }
 
 //    private boolean checkIfExtensionPossible(ConnectedPairMers connectedPairMers, String seed, int k) {

@@ -68,7 +68,6 @@ public class KmerExtender {
 //    private Integer HASH_ARRAY_SIZE = Integer.MAX_VALUE - 3;
 //    private Integer MULTIPASS_COMPRESS = null;
 
-    private boolean RUN_SOME_WILD_AND_WONDERFUL_STUFF = false;
     private final String TOOL_NAME;
     private final int HELP_WIDTH = 170;
 
@@ -83,11 +82,11 @@ public class KmerExtender {
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
         readArgValues(optSet);
-        if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
+//        if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
 //            new kmerextender.ideas.Alternative(MAX_THREADS, inputFileNamesList, KMER_LENGTH);
-        } else {
-            runKmerExtender();
-        }
+//        } else {
+        runKmerExtender();
+//        }
     }
 
     private void readArgValues(OptSet optSet) {
@@ -240,15 +239,17 @@ public class KmerExtender {
             kToSeedMers = populateSeedMersMaps(kSizes);
         }
 
-        //EXTEND
+        //EXTEND - CAN BE PARALLELIZED IF NO INTENTION TO GENERATE CROSS-k-EXTENSIONS 
         for (Integer k : kSizes) {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
             PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
             if (seedSequences == null) {
                 pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX);
             } else {
-                pairMersExtender.matchAndExtendSeeds(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, kToSeedMers.get(k));
+                pairMersExtender.matchAndExtendSeeds(k, pairMersMap, kToSeedMers.get(k));
             }
+            Reporter.report("[INFO]", "Finished extending for k=" + k, TOOL_NAME);
+
         }
 
         //SELECT LONGEST EXTENSION
@@ -256,18 +257,43 @@ public class KmerExtender {
             for (SeedSequence seed : seedSequences.getSeedSequences()) {
 //            Reporter.report("[INFO]", "Longest extension of the provided seed is from " + seed.getSequenceString().length() + " to " + longestSeedAfterExtension + " at k = " + kBest, TOOL_NAME);
                 Map.Entry<Integer, String> longest = seed.getLongestExtended();
+                Map.Entry<Integer, SeedExtensionsPair> longestExtensionLeft = seed.getLongestExtensionLeft();
+                Map.Entry<Integer, SeedExtensionsPair> longestExtensionRight = seed.getLongestExtensionRight();
+                StringBuilder output = new StringBuilder();
+                StringBuilder outputLR = new StringBuilder();
+                String extensionLeft = longestExtensionLeft.getValue().getExtensionLeft();
+                String extensionRight = longestExtensionRight.getValue().getExtensionRight();
                 if (OUTPUT_FASTA) {
                     if (!NAME_PREFIX.isEmpty()) {
-                        System.out.println(">" + NAME_PREFIX + " " + longest.getValue().length());
-                    } else if (longest.getKey() == 0) { //NOEXTENSION BEYOND INPUT
-                        System.out.println(">" + seed.getId() + " not_extended=" + longest.getValue().length());
+                        output.append(">").append(NAME_PREFIX).append(" ");
+                        output.append(longest.getValue().length()).append(System.lineSeparator());
+                    } else if (longest.getKey() == 0) { //NOEXTENSION BEYOND INPUT                        
+                        output.append(">").append(seed.getId());
+                        output.append(" not_extended=").append(longest.getValue().length());
+                        output.append(System.lineSeparator());
                     } else {
-                        System.out.println(">" + seed.getId() + " extended from=" + seed.getSequenceString().length()
-                            + " to=" + longest.getValue().length() + " at k=" + longest.getKey());
+                        output.append(">").append(seed.getId());
+                        output.append(" extended from=").append(seed.getSequenceString().length());
+                        output.append(" to=").append(longest.getValue().length()).append(" at k=").append(longest.getKey());
+                        output.append(System.lineSeparator());
                     }
 
+                    if (!NAME_PREFIX.isEmpty()) {
+                        outputLR.append(">").append(NAME_PREFIX);
+                    } else {
+                        outputLR.append(">").append(seed.getId());
+                    }
+                    outputLR.append(" L=").append(extensionLeft.length()).append(" at k=").append(longestExtensionLeft.getKey());
+                    outputLR.append(" R=").append(extensionRight.length()).append(" at k=").append(longestExtensionRight.getKey());
+                    outputLR.append(" extended=").append(extensionLeft.length() + seed.getSequenceString().length() + extensionRight.length());
+                    outputLR.append(System.lineSeparator());
+
                 }
-                System.out.println(longest.getValue());
+                output.append(longest.getValue());
+                System.out.println(output);
+
+                outputLR.append(extensionLeft).append(seed.getSequenceString()).append(extensionRight);
+                System.out.println(outputLR);
 
             }
         }
@@ -275,10 +301,8 @@ public class KmerExtender {
     }
 
     /**
-     * Producer-consumer multi-threading to:
-     * - read the input (k-mers, FASTA, etc) 
-     * - generate PairMer objects 
-     * - populate Map(s)
+     * Producer-consumer multi-threading to: - read the input (k-mers, FASTA, etc) - generate PairMer objects - populate
+     * Map(s)
      */
     private void readKmersAndPopulatePairMersMaps(PairMerMaps pairMerMaps) {
         BlockingQueue inputQueue = new ArrayBlockingQueue(INPUT_QUEUE);
@@ -423,7 +447,7 @@ public class KmerExtender {
         }
 
         for (Integer k : kSizes) {
-            Reporter.report("[INFO]", "Seed-mers map populated, k=" + k+", n="+kToSeeds.size(), TOOL_NAME);
+            Reporter.report("[INFO]", "Seed-mers map populated, k=" + k + ", n=" + kToSeeds.size(), TOOL_NAME);
         }
         return kToSeeds;
     }

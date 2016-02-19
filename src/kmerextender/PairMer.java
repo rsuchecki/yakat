@@ -51,8 +51,7 @@ public class PairMer {//implements Comparable<PairMer> {
         if (isInvalid() || (inputKmersUnique && getStoredCount() > 1) || (!inputKmersUnique && getStoredCount() > 2)) { //if already invalid PairMer  or more than second kmer being added
             setIsInvalid();
         } else //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to ensure that we ignore it            
-        {
-            if (!inputKmersUnique) {
+         if (!inputKmersUnique) {
                 if ((hasLeftClip() && getClipLeft() == another.getClipLeft()) || (hasRightClip() && getClipRight() == another.getClipRight())) {
                     //fine, new k-mer is identical to a k-mer already stored
 //                    System.err.println("Adding same kmer again");
@@ -82,7 +81,6 @@ public class PairMer {//implements Comparable<PairMer> {
                 }
                 incrementStoredCount();
             }
-        }
     }
 
 //    protected final void addFirstKmer(char leftClip, String core, char rightClip) {
@@ -134,7 +132,6 @@ public class PairMer {//implements Comparable<PairMer> {
     public String decodeCore(int coreLength) {
         return null;
     }
-
 
     public String getPairMerString(int k) {
         StringBuilder sb = new StringBuilder();
@@ -201,4 +198,12 @@ public class PairMer {//implements Comparable<PairMer> {
     public PairMer getOtherPairmerCoreRight(int k) {
         return null;
     }
+
+//    public int[] getOtherCoreRight(int coreLength) {
+//        return null;
+//    }
+//
+//    public int[] getOtherCoreRight(int coreLength) {
+//        return null;
+//    }
 }
