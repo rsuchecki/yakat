@@ -27,6 +27,7 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javafx.print.Collation;
 
 /**
  *
@@ -188,6 +190,7 @@ public class KmerExtender {
         optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-step", "", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, foot));
+//        optSet.addOpt(new Opt(null, "k-values", "Explicitly set k values to be explored", 2).setMinValue(1).setDefaultValue(2).addFootnote(footId, foot));
         //RUNTIME
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
         optSet.addOpt(new Opt('t', "threads", "Number threads for populating a set of implicitly connected k-mers",
@@ -219,6 +222,7 @@ public class KmerExtender {
                 kSizes.add(k);
             }
         }
+        Collections.sort(kSizes, Collections.reverseOrder()); 
 
         //READ k-mers AND POPULATE A MAP FOR EACH SIZE OF k
         PairMerMaps pairMerMaps = new PairMerMaps(kSizes);
@@ -240,15 +244,17 @@ public class KmerExtender {
         }
 
         //EXTEND - CAN BE PARALLELIZED IF NO INTENTION TO GENERATE CROSS-k-EXTENSIONS 
-        for (Integer k : kSizes) {
-            PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-            PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
-            if (seedSequences == null) {
+        if (seedSequences == null) {
+            for (Integer k : kSizes) {
+                PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
+                PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
                 pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX);
-            } else {
-                pairMersExtender.matchAndExtendSeeds(k, pairMersMap, kToSeedMers.get(k));
+                Reporter.report("[INFO]", "Finished extending for k=" + k, TOOL_NAME);
+
             }
-            Reporter.report("[INFO]", "Finished extending for k=" + k, TOOL_NAME);
+//            pairMersExtender.matchAndExtendSeeds(k, pairMersMap, kToSeedMers.get(k));
+        } else {
+            extendSeedsParallel(kSizes, pairMerMaps, kToSeedMers);
 
         }
 
@@ -256,27 +262,27 @@ public class KmerExtender {
         if (seedSequences != null) {
             for (SeedSequence seed : seedSequences.getSeedSequences()) {
 //            Reporter.report("[INFO]", "Longest extension of the provided seed is from " + seed.getSequenceString().length() + " to " + longestSeedAfterExtension + " at k = " + kBest, TOOL_NAME);
-                Map.Entry<Integer, String> longest = seed.getLongestExtended();
+//                Map.Entry<Integer, String> longest = seed.getLongestExtended();
                 Map.Entry<Integer, SeedExtensionsPair> longestExtensionLeft = seed.getLongestExtensionLeft();
                 Map.Entry<Integer, SeedExtensionsPair> longestExtensionRight = seed.getLongestExtensionRight();
-                StringBuilder output = new StringBuilder();
+//                StringBuilder output = new StringBuilder();
                 StringBuilder outputLR = new StringBuilder();
                 String extensionLeft = longestExtensionLeft.getValue().getExtensionLeft();
                 String extensionRight = longestExtensionRight.getValue().getExtensionRight();
                 if (OUTPUT_FASTA) {
-                    if (!NAME_PREFIX.isEmpty()) {
-                        output.append(">").append(NAME_PREFIX).append(" ");
-                        output.append(longest.getValue().length()).append(System.lineSeparator());
-                    } else if (longest.getKey() == 0) { //NOEXTENSION BEYOND INPUT                        
-                        output.append(">").append(seed.getId());
-                        output.append(" not_extended=").append(longest.getValue().length());
-                        output.append(System.lineSeparator());
-                    } else {
-                        output.append(">").append(seed.getId());
-                        output.append(" extended from=").append(seed.getSequenceString().length());
-                        output.append(" to=").append(longest.getValue().length()).append(" at k=").append(longest.getKey());
-                        output.append(System.lineSeparator());
-                    }
+//                    if (!NAME_PREFIX.isEmpty()) {
+//                        output.append(">").append(NAME_PREFIX).append(" ");
+//                        output.append(longest.getValue().length()).append(System.lineSeparator());
+//                    } else if (longest.getKey() == 0) { //NOEXTENSION BEYOND INPUT                        
+//                        output.append(">").append(seed.getId());
+//                        output.append(" not_extended=").append(longest.getValue().length());
+//                        output.append(System.lineSeparator());
+//                    } else {
+//                        output.append(">").append(seed.getId());
+//                        output.append(" extended from=").append(seed.getSequenceString().length());
+//                        output.append(" to=").append(longest.getValue().length()).append(" at k=").append(longest.getKey());
+//                        output.append(System.lineSeparator());
+//                    }
 
                     if (!NAME_PREFIX.isEmpty()) {
                         outputLR.append(">").append(NAME_PREFIX);
@@ -285,12 +291,13 @@ public class KmerExtender {
                     }
                     outputLR.append(" L=").append(extensionLeft.length()).append(" at k=").append(longestExtensionLeft.getKey());
                     outputLR.append(" R=").append(extensionRight.length()).append(" at k=").append(longestExtensionRight.getKey());
-                    outputLR.append(" extended=").append(extensionLeft.length() + seed.getSequenceString().length() + extensionRight.length());
+                    outputLR.append(" extended=");
+                    outputLR.append(extensionLeft.length() + seed.getSequenceString().length() + extensionRight.length());
                     outputLR.append(System.lineSeparator());
 
                 }
-                output.append(longest.getValue());
-                System.out.println(output);
+//                output.append(longest.getValue());
+//                System.out.println(output);
 
                 outputLR.append(extensionLeft).append(seed.getSequenceString()).append(extensionRight);
                 System.out.println(outputLR);
@@ -571,6 +578,46 @@ public class KmerExtender {
 //            Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
 //            Reporter.report("[ERROR]", "PairMerSet purger timeout exception!", TOOL_NAME);
 //        }
+    }
+
+    private void extendSeedsParallel(ArrayList<Integer> kSizes, PairMerMaps pairMerMaps, ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers) {
+        //PREPARE EXECUTOR SERVICE        
+        int threads = MAX_THREADS;
+        ArrayList<Future<?>> futures = new ArrayList<>(threads);
+        final ExecutorService seedExtenderExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        BlockingQueue<PairMersMap> queue = new ArrayBlockingQueue<>(kSizes.size() + 1);
+        try {
+            for (int k : kSizes) {
+                queue.put(pairMerMaps.getPairMersMap(k));
+            }
+            queue.put(new PairMersMap(null));
+        } catch (InterruptedException ex) {
+        }
+
+        //INIT THREADS
+        for (int i = 0; i < threads; i++) {
+//            PairMersSeedExtenderConsumer = new PairMersSeedExtenderConsumer
+            PairMersSeedExtenderConsumer extenderConsumer = new PairMersSeedExtenderConsumer(queue, kToSeedMers, DEBUG_FILE, TOOL_NAME);
+            futures.add(seedExtenderExecutorService.submit(extenderConsumer));
+        }
+
+        //WAIT UNTIL DONE
+        seedExtenderExecutorService.shutdown();
+        try {
+            for (Future<?> f : futures) {
+                f.get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            }
+            seedExtenderExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            Reporter.report("[ERROR]", "SeedsExtender interrupted exception!", TOOL_NAME);
+        } catch (ExecutionException ex) {
+            Reporter.report("[ERROR]", "SeedsExtender execution exception!", TOOL_NAME);
+//            ex.printStackTrace();
+        } catch (TimeoutException ex) {
+            Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
+            Reporter.report("[ERROR]", "SeedsExtender timeout exception!", TOOL_NAME);
+        }
+
     }
 
     private int setKmerLength(int k) {

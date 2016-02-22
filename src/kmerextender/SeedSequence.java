@@ -27,7 +27,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public class SeedSequence {
 
     private final String id;
-    private final ConcurrentHashMap<Integer, String> kToExtendedSequence;
+    private final String sequenceString;
+//    private final ConcurrentHashMap<Integer, String> kToExtendedSequence;
     private final ConcurrentHashMap<Integer, SeedExtensionsPair> kToExtensionsPair;
 
 //    private final ConcurrentHashMap<Integer, Integer> kToExtensionCount;
@@ -36,8 +37,9 @@ public class SeedSequence {
 //    private ConcurrentHashMap<Integer, PairMer> kToTailMer;
     public SeedSequence(String id, String sequenceString) {
         this.id = id;
-        kToExtendedSequence = new ConcurrentHashMap<>();
-        kToExtendedSequence.put(0, sequenceString);
+//        kToExtendedSequence = new ConcurrentHashMap<>();
+//        kToExtendedSequence.put(0, sequenceString);
+        this.sequenceString = sequenceString;
 
         kToExtensionsPair = new ConcurrentHashMap<>();
         kToExtensionsPair.put(0, new SeedExtensionsPair());
@@ -45,6 +47,14 @@ public class SeedSequence {
 //        kToTailMer = new ConcurrentHashMap<>();
 ////        kToExtensionCount = new ConcurrentHashMap<>();
     }
+
+    public SeedSequence() {
+        this.id = null;
+        this.sequenceString = null;
+        this.kToExtensionsPair = null;
+    }
+    
+    
     
 
     public void setLeftExtension(int k, String leftExtension) {
@@ -71,89 +81,98 @@ public class SeedSequence {
 //        pair.setExtensionRight(rightExtension);
 //    }
     
-    public synchronized void setExtended(int k, String extendedSequenceString) { //, int extensions) {
-        if (extendedSequenceString.length() > getSequenceString().length()) {
-            String previous = kToExtendedSequence.putIfAbsent(k, extendedSequenceString);
-            if (previous != null) {
-                if (previous.length() < extendedSequenceString.length()) {
-                    kToExtendedSequence.put(k, extendedSequenceString);
-//                    extensionCounts[k]++;
-//                    System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" updated ");
-//                    System.err.println(extendedSequenceString);
-                }
-//            Reporter.report("[ERROR]", "Unexpected value present at k=" + k, this.getClass().getSimpleName());
-//            if (!previous.equals(extendedSequenceString)) {
-//                System.err.println(previous + "<-pre");
-//                System.err.println(extendedSequenceString + "<-new");
+//    public synchronized void setExtended(int k, String extendedSequenceString) { //, int extensions) {
+//        if (extendedSequenceString.length() > getSequenceString().length()) {
+//            String previous = kToExtendedSequence.putIfAbsent(k, extendedSequenceString);
+//            if (previous != null) {
+//                if (previous.length() < extendedSequenceString.length()) {
+//                    kToExtendedSequence.put(k, extendedSequenceString);
+////                    extensionCounts[k]++;
+////                    System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" updated ");
+////                    System.err.println(extendedSequenceString);
+//                }
+////            Reporter.report("[ERROR]", "Unexpected value present at k=" + k, this.getClass().getSimpleName());
+////            if (!previous.equals(extendedSequenceString)) {
+////                System.err.println(previous + "<-pre");
+////                System.err.println(extendedSequenceString + "<-new");
+////            }
+//            } else {
+////                extensionCounts[k]++;
+////                System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" new ");
+////                System.err.println(extendedSequenceString);
 //            }
-            } else {
-//                extensionCounts[k]++;
-//                System.err.println("at k=" + k + " current count = " + extensionCounts[k] +" new ");
-//                System.err.println(extendedSequenceString);
-            }
-//        } else {
-//            System.err.println("trying to store short extension - investigate "+this.getClass().getName());
-//            
-        }
-//        Integer previousCount = kToExtensionCount.putIfAbsent(k, extensions);
-//        if(previousCount != null) {
-//            kToExtensionCount.put(k, previousCount+extensions);
+////        } else {
+////            System.err.println("trying to store short extension - investigate "+this.getClass().getName());
+////            
 //        }
-    }
+////        Integer previousCount = kToExtensionCount.putIfAbsent(k, extensions);
+////        if(previousCount != null) {
+////            kToExtensionCount.put(k, previousCount+extensions);
+////        }
+//    }
 
-    /**
-     * Get extended sequence for a given value of k
-     *
-     * @param k
-     * @return extended sequence or null
-     */
-    public String getExtended(int k) {
-        return kToExtendedSequence.get(k);
-    }
+//    /**
+//     * Get extended sequence for a given value of k
+//     *
+//     * @param k
+//     * @return extended sequence or null
+//     */
+//    public String getExtended(int k) {
+//        return kToExtendedSequence.get(k);
+//    }
 
-    /**
-     * Get extended sequence for a given value of k, or the original sequence
-     *
-     * @param k
-     * @return extended sequence or null
-     */
-    public String getExtendedOrOriginal(int k) {
-        return kToExtendedSequence.containsKey(k) ? kToExtendedSequence.get(k) : kToExtendedSequence.get(0);
-    }
+//    /**
+//     * Get extended sequence for a given value of k, or the original sequence
+//     *
+//     * @param k
+//     * @return extended sequence or null
+//     */
+//    public String getExtendedOrOriginal(int k) {
+//        return kToExtendedSequence.containsKey(k) ? kToExtendedSequence.get(k) : kToExtendedSequence.get(0);
+//    }
 
-    /**
-     *
-     * @return longest extended String or input if longest not longer than input original String
-     */
-    public Map.Entry<Integer, String> getLongestExtended() {
-        Map.Entry<Integer, String> longest = null;
-        Map.Entry<Integer, String> input = null;
-
-//        int[] lens = new int[100];
-        for (Map.Entry<Integer, String> entry : kToExtendedSequence.entrySet()) {
-            if (entry.getKey() == 0) {
-                input = entry;
-            }
-            String value = entry.getValue();
-            longest = (longest == null || (longest.getValue().length() < value.length())) ? entry : longest;
-//            lens[entry.getKey()] = entry.getValue().length();
-        }
-//        System.err.println(id);
-//        for (int i = 0; i < extensionCounts.length; i++) {
-//            if (extensionCounts[i] > 0) {
-//                System.err.println("[" + i + "] = " + extensionCounts[i]);
+//    /**
+//     *
+//     * @return longest extended String or input if longest not longer than input original String
+//     */
+//    public Map.Entry<Integer, String> getLongestExtended() {
+//        Map.Entry<Integer, String> longest = null;
+//        Map.Entry<Integer, String> input = null;
+//
+////        int[] lens = new int[100];
+//        for (Map.Entry<Integer, String> entry : kToExtendedSequence.entrySet()) {
+//            if (entry.getKey() == 0) {
+//                input = entry;
 //            }
+//            String value = entry.getValue();
+//            longest = (longest == null || (longest.getValue().length() < value.length())) ? entry : longest;
+////            lens[entry.getKey()] = entry.getValue().length();
 //        }
+////        System.err.println(id);
+////        for (int i = 0; i < extensionCounts.length; i++) {
+////            if (extensionCounts[i] > 0) {
+////                System.err.println("[" + i + "] = " + extensionCounts[i]);
+////            }
+////        }
+//
+//        return longest.getValue().length() == getSequenceString().length() ? input : longest;
+//
+//    }
 
-        return longest.getValue().length() == getSequenceString().length() ? input : longest;
-
-    }
-
+    /**
+     * Iterate through per-k extensions and output the longest one.
+     * Iteration in no particular order so if multiple values of k point to
+     * an equally long extension, 
+     * @return 
+     */
     public Map.Entry<Integer, SeedExtensionsPair> getLongestExtensionLeft() {
         Map.Entry<Integer, SeedExtensionsPair> longest = null;
         for (Map.Entry<Integer, SeedExtensionsPair> entry : kToExtensionsPair.entrySet()) {
             String value = entry.getValue().getExtensionLeft();
             longest = (longest == null || (longest.getValue().getExtensionLeft().length() < value.length())) ? entry : longest;
+            if(longest.getValue().getExtensionLeft().length() == value.length() && !longest.getValue().getExtensionLeft().equals(value)) {
+                System.err.println(longest.getValue().getExtensionLeft()+" @k= "+longest.getKey()+" != "+value+" @k="+entry.getKey()+" L seed="+getId());
+            }
         }
         return longest;
     }
@@ -163,6 +182,9 @@ public class SeedSequence {
         for (Map.Entry<Integer, SeedExtensionsPair> entry : kToExtensionsPair.entrySet()) {
             String value = entry.getValue().getExtensionRight();
             longest = (longest == null || (longest.getValue().getExtensionRight().length() < value.length())) ? entry : longest;
+            if(longest.getValue().getExtensionRight().length() == value.length() && !longest.getValue().getExtensionRight().equals(value)) {
+                System.err.println(longest.getValue().getExtensionRight()+" @k= "+longest.getKey()+" != "+value+" @k="+entry.getKey()+" R seed="+getId());
+            }
         }
         return longest;
     }
@@ -172,7 +194,8 @@ public class SeedSequence {
     }
 
     public String getSequenceString() {
-        return kToExtendedSequence.get(0);
+        return sequenceString;
+//        return kToExtendedSequence.get(0);
     }
 
 //    public void generateEndPairMers(int k) {

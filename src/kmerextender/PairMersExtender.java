@@ -138,104 +138,104 @@ public class PairMersExtender {
         Reporter.report("[INFO]", totalExtendedMessage, TOOL_NAME);
     }
 
-    public void matchAndExtendSeeds(int k, PairMersMap pairMersMap, PairMerToSeedMap pairMerToSeedMap) {
-        long clusterNumber = 0; //Connected-component in the de-bruijn graph
-
-        //Iterate through PairMers (2 per seed, corresponding to it's ends)
-        Iterator<PairMer> it = pairMerToSeedMap.getPairMersSkipListMap().keySet().iterator();
-        while (it.hasNext()) {
-            PairMer seedMer = it.next();
-            PairMer pairMer = pairMersMap.get(seedMer);
-            if (pairMer != null && !pairMer.isVisited()) {
-                clusterNumber++;
-                ConnectedPairMers connectedPairMers = new ConnectedPairMers();
-                connectedPairMers.connectPairMers(pairMer, k, pairMersMap);
-                try {
-                    if (connectedPairMers.hasTerminalOrSingletonNode()) {
-                        SeedSequence seedSequence = pairMerToSeedMap.get(seedMer);
-                        if (seedSequence != null) {
-                            String connectedMers = connectedPairMers.toString(k);
-                            String connectedMersRC = SequenceOps.getReverseComplementString(connectedMers);
-                            String extension = extendSeed(connectedMers, extendSeed(connectedMersRC, seedSequence.getExtendedOrOriginal(k), k), k);
-                            seedSequence.setExtended(k, extension);
-                            
-                            //experimenting with storing left and right extensions separately
-                            extendSeedAndSetExtensions(connectedMers, seedSequence, k);
-                            extendSeedAndSetExtensions(connectedMersRC, seedSequence, k);
-                        }
-                    } else {
-                        String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
-                        Reporter.report("[WARNING]", message, TOOL_NAME);
-                        if (DEBUG_FILE != null) {
-                            ArrayList<String> toReport = new ArrayList<>();
-                            toReport.add("No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
-                            for (PairMer pm : connectedPairMers.getKeys()) {
-                                toReport.add(pm.getPairMerString(k));
-                            }
-                            Reporter.writeToFile(DEBUG_FILE, toReport, true);
-                        }
-                    }
-                } catch (StackOverflowError error) {
-                    Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
-                    Reporter.report("[ERROR]", "Obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
-                    System.exit(1);
-                }
-            }
-        }
-
-    }
-
-    private String extendSeed(String connectedMers, String seed, int k) {
-        //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
-        String connectedMersHead = connectedMers.substring(0, k);
-        if (seed.endsWith(connectedMersHead)) {
-//            System.err.println(seed);
-//            System.err.println("Extended with ");
-//            System.err.println(connectedMers);
-            return seed + connectedMers.substring(k);
-        }
-        String connectedMersTail = connectedMers.substring(connectedMers.length() - k, connectedMers.length());
-        if (seed.startsWith(connectedMersTail)) {
-//            System.err.println(seed);
-//            System.err.println("Extended with ");
-//            System.err.println(connectedMers);
-            return connectedMers.substring(0, connectedMers.length() - k) + seed;
-        }
-        return seed;
-    }
-    
-    private void extendSeedAndSetExtensions(String connectedMers, SeedSequence seedSequence, int k) {
-        String seed = seedSequence.getSequenceString();
-        //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
-        String connectedMersHead = connectedMers.substring(0, k);
-        if (seed.endsWith(connectedMersHead)) {
-            seedSequence.setRightExtension(k, connectedMers.substring(k));
-        }
-        String connectedMersTail = connectedMers.substring(connectedMers.length() - k, connectedMers.length());
-        if (seed.startsWith(connectedMersTail)) {
-            seedSequence.setLeftExtension(k, connectedMers.substring(0, connectedMers.length() - k));
-        }
-    }
-
-//    private boolean checkIfExtensionPossible(ConnectedPairMers connectedPairMers, String seed, int k) {
-//        //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
-////        PairMer terminal1 = connectedPairMers.getTerminal1();
-////            for (PairMer terminal : new PairMer[]{connectedPairMers.getTerminal1(), connectedPairMers.getTerminal2()}) {
-//        for (PairMer terminal : connectedPairMers.terminalMersOrSingleton()) {
-//            String core = terminal.decodeCore(k - 1);
-//            if (seed.endsWith(core) || seed.startsWith(core)) {
-//                return true;
-//            }
-//            String rcCore = SequenceOps.getReverseComplementString(core);
-//            if (seed.endsWith(rcCore) || seed.startsWith(rcCore)) {
-//                return true;
+//    public void matchAndExtendSeeds(int k, PairMersMap pairMersMap, PairMerToSeedMap pairMerToSeedMap) {
+//        long clusterNumber = 0; //Connected-component in the de-bruijn graph
+//
+//        //Iterate through PairMers (2 per seed, corresponding to it's ends)
+//        Iterator<PairMer> it = pairMerToSeedMap.getPairMersSkipListMap().keySet().iterator();
+//        while (it.hasNext()) {
+//            PairMer seedMer = it.next();
+//            PairMer pairMer = pairMersMap.get(seedMer);
+//            if (pairMer != null && !pairMer.isVisited()) {
+//                clusterNumber++;
+//                ConnectedPairMers connectedPairMers = new ConnectedPairMers();
+//                connectedPairMers.connectPairMers(pairMer, k, pairMersMap);
+//                try {
+//                    if (connectedPairMers.hasTerminalOrSingletonNode()) {
+//                        SeedSequence seedSequence = pairMerToSeedMap.get(seedMer);
+//                        if (seedSequence != null && seedSequence.getSequenceString() != null) {
+//                            String connectedMers = connectedPairMers.toString(k);
+//                            String connectedMersRC = SequenceOps.getReverseComplementString(connectedMers);
+////                            String extension = extendSeed(connectedMers, extendSeed(connectedMersRC, seedSequence.getExtendedOrOriginal(k), k), k);
+////                            seedSequence.setExtended(k, extension);
+//                            
+//                            //experimenting with storing left and right extensions separately
+//                            extendSeedAndSetExtensions(connectedMers, seedSequence, k);
+//                            extendSeedAndSetExtensions(connectedMersRC, seedSequence, k);
+//                        }
+//                    } else {
+//                        String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
+//                        Reporter.report("[WARNING]", message, TOOL_NAME);
+//                        if (DEBUG_FILE != null) {
+//                            ArrayList<String> toReport = new ArrayList<>();
+//                            toReport.add("No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
+//                            for (PairMer pm : connectedPairMers.getKeys()) {
+//                                toReport.add(pm.getPairMerString(k));
+//                            }
+//                            Reporter.writeToFile(DEBUG_FILE, toReport, true);
+//                        }
+//                    }
+//                } catch (StackOverflowError error) {
+//                    Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
+//                    Reporter.report("[ERROR]", "Obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+//                    System.exit(1);
+//                }
 //            }
 //        }
-//        return false;
-////        String connectedMersTail = connectedPairMers.substring(connectedPairMers.length() - k, connectedPairMers.length());
-////        if (seed.startsWith(connectedMersTail)) {
-////            return connectedPairMers.substring(0, connectedPairMers.length() - k) + seed;
-////        }
-////        return seed;
+//
 //    }
+//
+//    private String extendSeed(String connectedMers, String seed, int k) {
+//        //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
+//        String connectedMersHead = connectedMers.substring(0, k);
+//        if (seed.endsWith(connectedMersHead)) {
+////            System.err.println(seed);
+////            System.err.println("Extended with ");
+////            System.err.println(connectedMers);
+//            return seed + connectedMers.substring(k);
+//        }
+//        String connectedMersTail = connectedMers.substring(connectedMers.length() - k, connectedMers.length());
+//        if (seed.startsWith(connectedMersTail)) {
+////            System.err.println(seed);
+////            System.err.println("Extended with ");
+////            System.err.println(connectedMers);
+//            return connectedMers.substring(0, connectedMers.length() - k) + seed;
+//        }
+//        return seed;
+//    }
+//    
+//    private void extendSeedAndSetExtensions(String connectedMers, SeedSequence seedSequence, int k) {
+//        String seed = seedSequence.getSequenceString();
+//        //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
+//        String connectedMersHead = connectedMers.substring(0, k);
+//        if (seed.endsWith(connectedMersHead)) {
+//            seedSequence.setRightExtension(k, connectedMers.substring(k));
+//        }
+//        String connectedMersTail = connectedMers.substring(connectedMers.length() - k, connectedMers.length());
+//        if (seed.startsWith(connectedMersTail)) {
+//            seedSequence.setLeftExtension(k, connectedMers.substring(0, connectedMers.length() - k));
+//        }
+//    }
+//
+////    private boolean checkIfExtensionPossible(ConnectedPairMers connectedPairMers, String seed, int k) {
+////        //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
+//////        PairMer terminal1 = connectedPairMers.getTerminal1();
+//////            for (PairMer terminal : new PairMer[]{connectedPairMers.getTerminal1(), connectedPairMers.getTerminal2()}) {
+////        for (PairMer terminal : connectedPairMers.terminalMersOrSingleton()) {
+////            String core = terminal.decodeCore(k - 1);
+////            if (seed.endsWith(core) || seed.startsWith(core)) {
+////                return true;
+////            }
+////            String rcCore = SequenceOps.getReverseComplementString(core);
+////            if (seed.endsWith(rcCore) || seed.startsWith(rcCore)) {
+////                return true;
+////            }
+////        }
+////        return false;
+//////        String connectedMersTail = connectedPairMers.substring(connectedPairMers.length() - k, connectedPairMers.length());
+//////        if (seed.startsWith(connectedMersTail)) {
+//////            return connectedPairMers.substring(0, connectedPairMers.length() - k) + seed;
+//////        }
+//////        return seed;
+////    }
 }

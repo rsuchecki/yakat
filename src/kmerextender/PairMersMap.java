@@ -19,32 +19,37 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 /**
- * Wrapper around a concurrent collection (ConcurrentSkipListMap, but other
- * options possible) of PairMer objects. After the Map is populated, use
- * .purge()
+ * Wrapper around a concurrent collection (ConcurrentSkipListMap, but other options possible) of PairMer objects. After
+ * the Map is populated, use .purge()
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class PairMersMap extends shared.MerMap {
 
-    private final ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
-    private final Integer k;
+    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
+    private Integer k;
 
 //    private boolean OutOfMemory;
-
     /**
      * Instantiate the Map
+     *
      * @param k
      */
     public PairMersMap(Integer k) {
-        pairMersSkipListMap = new ConcurrentSkipListMap<>();
-        this.k = k;
+        if (k != null) {
+            pairMersSkipListMap = new ConcurrentSkipListMap<>();
+            this.k = k;
+        }
     }
 
-    
     public boolean isEmpty() {
         return pairMersSkipListMap == null || pairMersSkipListMap.isEmpty();
     }
+    
+    public boolean isNull() {
+        return pairMersSkipListMap == null;
+    }
+    
     
 
 //    /**
@@ -68,21 +73,19 @@ public class PairMersMap extends shared.MerMap {
 //            previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
 //        }
 //    }
-    
     /**
-     * First tries to atomically add a k-mer to the Map, if this fails, 
-     * synchronized method is used to update the
+     * First tries to atomically add a k-mer to the Map, if this fails, synchronized method is used to update the
      * previously stored PairMer
      *
      * @param sequence
      * @param from
      * @param to
      * @param frontClip
-     * @param inputKmersUnique 
+     * @param inputKmersUnique
      */
     public void addToPairMersMap(CharSequence sequence, int from, int to, boolean frontClip, boolean inputKmersUnique) {
         PairMer pairMer = PairMerGenerator.generatePairMer(sequence, from, to, frontClip);
-        
+
         //Atomic operation START
         PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
         //Atomic operation END
@@ -102,7 +105,8 @@ public class PairMersMap extends shared.MerMap {
     public PairMer get(String core, int k) {
         return pairMersSkipListMap.get(PairMerGenerator.getPairMer(core, k));
     }
- /**
+
+    /**
      * Retrieve a PairMer with a matching core
      *
      * @param anotherPairMer
@@ -111,6 +115,7 @@ public class PairMersMap extends shared.MerMap {
     public PairMer get(PairMer anotherPairMer) {
         return pairMersSkipListMap.get(anotherPairMer);
     }
+
     /**
      *
      * @return the underlying data structure
@@ -119,18 +124,13 @@ public class PairMersMap extends shared.MerMap {
         return pairMersSkipListMap;
     }
 
-    
-    
-    
     /**
-     * Removes from the Map each PairMer which (i) represents ambiguous
-     * extension (>2 k-mers matching the core) or (ii) has no extensions (only
-     * one k-mer matching the core) or (iii) represents 2 conflicting k-mers
-     * (matching core, but both extending in the same direction) Run only when
-     * the set/map is fully populated.
+     * Removes from the Map each PairMer which (i) represents ambiguous extension (>2 k-mers matching the core) or (ii)
+     * has no extensions (only one k-mer matching the core) or (iii) represents 2 conflicting k-mers (matching core, but
+     * both extending in the same direction) Run only when the set/map is fully populated.
      *
      * Could be parallelized by applying the purge method to subsets see .subSet()
-     * 
+     *
      * @return the number of elements removed
      */
     public long purge() {
@@ -150,8 +150,7 @@ public class PairMersMap extends shared.MerMap {
 //                System.err.println(next.getPairMerString(k)+" <- PURGED");
             }
         }
-        
-        
+
 //        //EXPERIMENTS only
 //        it = pairMersSkipListMap.keySet().iterator();
 //        int buckets = pairMersSkipListMap.size();
@@ -166,8 +165,6 @@ public class PairMersMap extends shared.MerMap {
 //            }
 //            total++;
 //        }
-        
-        
 //        double mean = (double) total / buckets;
 //        double deviation = 0;
 //        int single = 0;
@@ -203,18 +200,12 @@ public class PairMersMap extends shared.MerMap {
 //    public synchronized void setOutOfMemory() {
 //        this.OutOfMemory = true;
 //    }
-    
 //    public int purgeSeedMers(PairMersMap seedMersMap) {
 //        Iterator<PairMer> it = seedMersMap.getPairMersSkipListMap().keySet().iterator();
 //        
 //    }
-
     public Integer getK() {
         return k;
     }
 
-    
-    
-  
-    
 }

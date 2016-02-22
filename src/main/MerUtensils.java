@@ -37,7 +37,6 @@ public class MerUtensils {
     public MerUtensils(String[] args) {
         String name = this.getClass().getSimpleName().toLowerCase();
         if (args.length != 0 && args[0].matches("(k)?extend(er)?")) {
-            args[0] = "";
             new KmerExtender(args, name, "kextend");
         } else if (args.length != 0 && args[0].matches("(k)?match(er)?")) {
             args[0] = "";

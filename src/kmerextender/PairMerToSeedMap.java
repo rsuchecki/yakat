@@ -66,11 +66,16 @@ public class PairMerToSeedMap {
         if (previousStored != null) {
             //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
 //            previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
-            StringBuilder message = new StringBuilder("Non-unique mapping of PairMer to seed at k=");
-            message.append(kmerTo - kmerFrom + 1).append(" '");
-            message.append(previousStored.getId()).append("' already present, not adding '");
+
+            pairMerToSeedMap.put(pairMer, new SeedSequence());
+            StringBuilder message = new StringBuilder("Removing non-unique PairMer2seed at k=");
+            message.append(kmerTo - kmerFrom + 1).append(": ");
+            String previousId;
+            if ((previousId = previousStored.getId()) != null) {
+                message.append(previousId).append(", ");
+            }
             message.append(seedSequence.getId());
-            message.append("' PairMer: ").append(pairMer.getPairMerString(kmerTo - kmerFrom + 1, "_"));
+            message.append(", ").append(pairMer.getPairMerString(kmerTo - kmerFrom + 1, "_"));
             Reporter.report("[WARNING]", message.toString(), TOOL_NAME);
         }
     }
@@ -110,16 +115,16 @@ public class PairMerToSeedMap {
 //        }
 //    }
 
-    /**
-     * Given a core string, retrieves the matching PairMer
-     *
-     * @param core, which will be converted to its canonical form
-     * @param k
-     * @return PairMer if present in Map, null otherwise
-     */
-    public SeedSequence get(String core, int k) {
-        return pairMerToSeedMap.get(PairMerGenerator.getPairMer(core, k));
-    }
+//    /**
+//     * Given a core string, retrieves the matching PairMer
+//     *
+//     * @param core, which will be converted to its canonical form
+//     * @param k
+//     * @return PairMer if present in Map, null otherwise
+//     */
+//    public SeedSequence get(String core, int k) {
+//        return pairMerToSeedMap.get(PairMerGenerator.getPairMer(core, k));
+//    }
 
     /**
      * Retrieve a PairMer with a matching core
