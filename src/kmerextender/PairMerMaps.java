@@ -89,6 +89,18 @@ public class PairMerMaps {
     public int size() {
         if (kSizes.size() != kSizeToPairMersMap.size()) {
             Reporter.report("[BUG]", "Internal structures sizes mismtach", this.getClass().getCanonicalName());
+            System.err.print(kSizes.size()+" kSizes:");
+            for (Integer kSize : kSizes) {
+                System.err.print(" "+kSize);
+            }
+            System.err.println();
+            
+            System.err.print(kSizeToPairMersMap.size()+" k2PairMerMap:");
+            for (Integer kSize : kSizeToPairMersMap.keySet()) {
+                System.err.print(" "+kSize);
+            }
+            System.err.println();
+            
         }
         return kSizes.size();
     }

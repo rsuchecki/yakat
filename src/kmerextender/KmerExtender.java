@@ -184,8 +184,8 @@ public class KmerExtender {
         int footId = 1;
         String foot = "Warning! Exploring a large range of k values for a significant input [k-mers/FAST[A|Q]] "
             + "will make the memory requirements explode, "
-            + "as it is done in parallel to avoid excessive I/O and preserve stdin handling";
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Variable k-mer size for longest extension of a single seed]");
+            + "as it is done in parallel to avoid excessive I/O and to preserve stdin handling";
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Variable k-mer size for longest extension of a seed]");
         optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing \"seeds\" to be extended", 1));
         optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
@@ -233,6 +233,7 @@ public class KmerExtender {
         }
 
         //RELEASE SOME MEMORY
+        Reporter.report("[INFO]", "Now purging to release some memory...", TOOL_NAME);
         purgePopulatedPairMersMaps(pairMerMaps);
 
         ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers = null;
@@ -453,9 +454,9 @@ public class KmerExtender {
             Reporter.report("[ERROR]", "SeedsProcessor timeout exception!", TOOL_NAME);
         }
 
-        for (Integer k : kSizes) {
-            Reporter.report("[INFO]", "Seed-mers map populated, k=" + k + ", n=" + kToSeeds.size(), TOOL_NAME);
-        }
+//        for (Integer k : kSizes) {
+//            Reporter.report("[INFO]", "Seed-mers map populated, k=" + k + ", n=" + seedSequences., TOOL_NAME);
+//        }
         return kToSeeds;
     }
 

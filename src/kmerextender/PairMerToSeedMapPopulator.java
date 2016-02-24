@@ -54,7 +54,7 @@ public class PairMerToSeedMapPopulator implements Runnable {
         if (previous != null) {
             Reporter.report("[BUG!]", "Overwritten exisitng value in " + kToSeeds.getClass().getSimpleName(), TOOL_NAME);
         }
-
+        Reporter.report("[INFO]", "Seed-mers map populated, k=" + KMER_SIZE + ", n=" + pairMerToSeedMap.size(), TOOL_NAME);
     }
 
     private void gc(int iterations, int sleep) {

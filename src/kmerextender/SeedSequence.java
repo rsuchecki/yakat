@@ -18,6 +18,7 @@ package kmerextender;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import shared.Reporter;
 
 /**
  * A sequence with a map kValue -> extension
@@ -171,7 +172,7 @@ public class SeedSequence {
             String value = entry.getValue().getExtensionLeft();
             longest = (longest == null || (longest.getValue().getExtensionLeft().length() < value.length())) ? entry : longest;
             if(longest.getValue().getExtensionLeft().length() == value.length() && !longest.getValue().getExtensionLeft().equals(value)) {
-                System.err.println(longest.getValue().getExtensionLeft()+" @k= "+longest.getKey()+" != "+value+" @k="+entry.getKey()+" L seed="+getId());
+                Reporter.report("[WARNING]", "Same length but different extensions of a seed depending on k, " + longest.getValue().getExtensionLeft()+" @k= "+longest.getKey()+" != "+value+" @k="+entry.getKey()+" L seed="+getId(), this.getClass().getCanonicalName());
             }
         }
         return longest;
@@ -183,7 +184,7 @@ public class SeedSequence {
             String value = entry.getValue().getExtensionRight();
             longest = (longest == null || (longest.getValue().getExtensionRight().length() < value.length())) ? entry : longest;
             if(longest.getValue().getExtensionRight().length() == value.length() && !longest.getValue().getExtensionRight().equals(value)) {
-                System.err.println(longest.getValue().getExtensionRight()+" @k= "+longest.getKey()+" != "+value+" @k="+entry.getKey()+" R seed="+getId());
+                Reporter.report("[WARNING]", "Same length but different extensions of a seed depending on k, " + longest.getValue().getExtensionRight()+" @k= "+longest.getKey()+" != "+value+" @k="+entry.getKey()+" R seed="+getId(), this.getClass().getCanonicalName());
             }
         }
         return longest;

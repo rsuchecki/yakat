@@ -143,4 +143,8 @@ public class PairMerToSeedMap {
     public ConcurrentSkipListMap getPairMersSkipListMap() {
         return pairMerToSeedMap;
     }
-}
+    
+    public int size() {
+        return this.pairMerToSeedMap.size();
+    }
+ }
