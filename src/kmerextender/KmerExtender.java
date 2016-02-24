@@ -319,7 +319,7 @@ public class KmerExtender {
             int threads = MAX_THREADS;
             Reporter.report("[INFO]", "Allocated " + threads + " thread(s) to map populating", TOOL_NAME);
             ArrayList<Future<?>> futures = new ArrayList<>(threads + 1);
-            final ExecutorService readAndPopulateExecutor = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+            final ExecutorService readAndPopulateExecutor = new ThreadPoolExecutor(threads+1, threads+1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
             //SPAWN INPUT READING THREAD
             ArrayList<Integer> kSizes = pairMerMaps.getkSizes();
