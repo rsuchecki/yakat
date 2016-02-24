@@ -494,6 +494,11 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         return storeCanonical(kmerCoreBitsArray, kmerCoreBitsArrayRC, stringLength);
     }
 
+    /**
+     * UNUSED
+     * @param k
+     * @return 
+     */
     @Override
     public PairMer getOtherPairmerCoreLeft(int k) {
         if (!isInvalid() && getStoredCount() == 2) {
@@ -524,6 +529,11 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         return null;
     }
 
+    /**
+     * UNUSED
+     * @param k
+     * @return 
+     */
     @Override
     public PairMer getOtherPairmerCoreRight(int k) {
         if (!isInvalid() && getStoredCount() == 2) {

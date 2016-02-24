@@ -43,6 +43,9 @@ public class PairMerMaps {
         if(map == null) {
             map = new PairMersMap(k);
             kSizeToPairMersMap.put(k, map);
+            if(!kSizes.contains(k)) { //might have been added by input reader, 
+                kSizes.add(k);
+            }
         }
         return map;
     }
