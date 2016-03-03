@@ -54,34 +54,30 @@ public class SeedSequence {
         this.sequenceString = null;
         this.kToExtensionsPair = null;
     }
-    
-    
-    
 
     public void setLeftExtension(int k, String leftExtension) {
         SeedExtensionsPair pair = kToExtensionsPair.get(k);
-        if(pair == null) {
+        if (pair == null) {
             pair = new SeedExtensionsPair();
             kToExtensionsPair.put(k, pair);
         }
         pair.setExtensionLeft(leftExtension);
     }
-    
+
     public void setRightExtension(int k, String rightExtension) {
         SeedExtensionsPair pair = kToExtensionsPair.get(k);
-        if(pair == null) {
+        if (pair == null) {
             pair = new SeedExtensionsPair();
             kToExtensionsPair.put(k, pair);
         }
         pair.setExtensionRight(rightExtension);
     }
-    
+
 //    public void setExtensions(int k, String leftExtension, String rightExtension) {
 //        SeedExtensionsPair pair = kToExtensionsPair.get(k);
 //        pair.setExtensionLeft(leftExtension);
 //        pair.setExtensionRight(rightExtension);
 //    }
-    
 //    public synchronized void setExtended(int k, String extendedSequenceString) { //, int extensions) {
 //        if (extendedSequenceString.length() > getSequenceString().length()) {
 //            String previous = kToExtendedSequence.putIfAbsent(k, extendedSequenceString);
@@ -111,7 +107,6 @@ public class SeedSequence {
 ////            kToExtensionCount.put(k, previousCount+extensions);
 ////        }
 //    }
-
 //    /**
 //     * Get extended sequence for a given value of k
 //     *
@@ -121,9 +116,8 @@ public class SeedSequence {
 //    public String getExtended(int k) {
 //        return kToExtendedSequence.get(k);
 //    }
-
 //    /**
-//     * Get extended sequence for a given value of k, or the original sequence
+//     * Get extended sequence for aSeedSequence given value of k, or the original sequence
 //     *
 //     * @param k
 //     * @return extended sequence or null
@@ -131,7 +125,6 @@ public class SeedSequence {
 //    public String getExtendedOrOriginal(int k) {
 //        return kToExtendedSequence.containsKey(k) ? kToExtendedSequence.get(k) : kToExtendedSequence.get(0);
 //    }
-
 //    /**
 //     *
 //     * @return longest extended String or input if longest not longer than input original String
@@ -159,32 +152,41 @@ public class SeedSequence {
 //        return longest.getValue().length() == getSequenceString().length() ? input : longest;
 //
 //    }
-
     /**
-     * Iterate through per-k extensions and output the longest one.
-     * Iteration in no particular order so if multiple values of k point to
-     * an equally long extension, 
-     * @return 
+     * Iterate through per-k extensions and output the longest one. Iteration in no particular order so if multiple
+     * values of k point to an equally long extension,
+     *
+     * @return
      */
-    public Map.Entry<Integer, SeedExtensionsPair> getLongestExtensionLeft() {
+    public Map.Entry<Integer, SeedExtensionsPair> getLongestExtensionLeft(String TOOL_NAME) {
         Map.Entry<Integer, SeedExtensionsPair> longest = null;
         for (Map.Entry<Integer, SeedExtensionsPair> entry : kToExtensionsPair.entrySet()) {
             String value = entry.getValue().getExtensionLeft();
             longest = (longest == null || (longest.getValue().getExtensionLeft().length() < value.length())) ? entry : longest;
-            if(longest.getValue().getExtensionLeft().length() == value.length() && !longest.getValue().getExtensionLeft().equals(value)) {
-                Reporter.report("[WARNING]", "Same length but different extensions of a seed depending on k, " + longest.getValue().getExtensionLeft()+" @k= "+longest.getKey()+" != "+value+" @k="+entry.getKey()+" L seed="+getId(), this.getClass().getCanonicalName());
+            if (longest.getValue().getExtensionLeft().length() == value.length() && !longest.getValue().getExtensionLeft().equals(value)) {
+                String mesg = "Same length but different seed extensions, "
+                    + longest.getValue().getExtensionLeft()+ "@k=" + longest.getKey() + " " + value + "@k="
+                    + entry.getKey() + ", L, seed=" + getId();
+                longest = longest.getKey() < entry.getKey() ? entry : longest; //store higher k extension
+                mesg += ", storing extension @k=" + longest.getKey();
+                Reporter.report("[WARNING]", mesg, TOOL_NAME);
             }
         }
         return longest;
     }
- 
-    public Map.Entry<Integer, SeedExtensionsPair> getLongestExtensionRight() {
+
+    public Map.Entry<Integer, SeedExtensionsPair> getLongestExtensionRight(String TOOL_NAME) {
         Map.Entry<Integer, SeedExtensionsPair> longest = null;
         for (Map.Entry<Integer, SeedExtensionsPair> entry : kToExtensionsPair.entrySet()) {
             String value = entry.getValue().getExtensionRight();
             longest = (longest == null || (longest.getValue().getExtensionRight().length() < value.length())) ? entry : longest;
-            if(longest.getValue().getExtensionRight().length() == value.length() && !longest.getValue().getExtensionRight().equals(value)) {
-                Reporter.report("[WARNING]", "Same length but different extensions of a seed depending on k, " + longest.getValue().getExtensionRight()+" @k= "+longest.getKey()+" != "+value+" @k="+entry.getKey()+" R seed="+getId(), this.getClass().getCanonicalName());
+            if (longest.getValue().getExtensionRight().length() == value.length() && !longest.getValue().getExtensionRight().equals(value)) {
+                String mesg = "Same length but different seed extensions, "
+                    + longest.getValue().getExtensionRight() + "@k=" + longest.getKey() + " " + value + "@k="
+                    + entry.getKey() + ", R, seed=" + getId();
+                longest = longest.getKey() < entry.getKey() ? entry : longest; //store higher k extension
+                mesg += ", storing extension @k=" + longest.getKey();
+                Reporter.report("[WARNING]", mesg, TOOL_NAME);
             }
         }
         return longest;
@@ -206,5 +208,4 @@ public class SeedSequence {
 //            kToHeadMer.putIfAbsent(k, headMer);
 //            kToTailMer.putIfAbsent(k, tailMer);
 //    }
-   
 }
