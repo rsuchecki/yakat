@@ -82,4 +82,22 @@ public class SequenceOps {
             return sequence;
         }
     }
+    
+    public static CharSequence getReverseComplement(CharSequence sequenceChars) {
+        StringBuilder sb = new StringBuilder(sequenceChars.length());
+        for (int i = sequenceChars.length() - 1; i > -1; --i) {
+            sb.append(complement(sequenceChars.charAt(i)));
+        }
+        return sb;
+    }
+    
+    public static CharSequence getCanonical(CharSequence sequence) {
+        String rc = getReverseComplementString(sequence);
+        if(rc.compareTo(sequence.toString()) < 0) {
+            return rc;
+        } else {
+            return sequence;
+        }
+    }
+    
 }
