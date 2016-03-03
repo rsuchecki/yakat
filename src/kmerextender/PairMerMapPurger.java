@@ -40,7 +40,7 @@ public class PairMerMapPurger implements Runnable {
             while (!(map = queue.take()).isEmpty()) {
                 long purged = map.purge();
                 if (purged > 100000) {
-                    gc(5, 500); //force GC 
+                    gc(3, 500); //force GC 
                 }
                 Reporter.report("[INFO]", "Finished purging map, k=" + map.getK() + ", n=" + NumberFormat.getIntegerInstance().format(map.getPairMersSkipListMap().size()), TOOL_NAME);
             }
