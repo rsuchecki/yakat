@@ -233,7 +233,7 @@ public class KmerExtender {
         }
 
         //RELEASE SOME MEMORY
-        Reporter.report("[INFO]", "Now purging to release some memory...", TOOL_NAME);
+        Reporter.report("[INFO]", "Now purging...", TOOL_NAME);
         purgePopulatedPairMersMaps(pairMerMaps);
 
         ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers = null;
@@ -241,9 +241,11 @@ public class KmerExtender {
             //PURGE NON-TERMINAL SeedPairMers FROM PairMerMaps 
             purgeSeedMersFromPaierMersMaps(kSizes, pairMerMaps);
             //CREATE PairMers REPRESENTING SEED-ENDS 
+            Reporter.report("[INFO]", "Now popolate seedMersMap", TOOL_NAME);
             kToSeedMers = populateSeedMersMaps(kSizes);
         }
-
+        
+        Reporter.report("[INFO]", "Now try extending for each k", TOOL_NAME);
         //EXTEND - CAN BE PARALLELIZED IF NO INTENTION TO GENERATE CROSS-k-EXTENSIONS 
         if (seedSequences == null) {
             for (Integer k : kSizes) {
@@ -264,8 +266,8 @@ public class KmerExtender {
             for (SeedSequence seed : seedSequences.getSeedSequences()) {
 //            Reporter.report("[INFO]", "Longest extension of the provided seed is from " + seed.getSequenceString().length() + " to " + longestSeedAfterExtension + " at k = " + kBest, TOOL_NAME);
 //                Map.Entry<Integer, String> longest = seed.getLongestExtended();
-                Map.Entry<Integer, SeedExtensionsPair> longestExtensionLeft = seed.getLongestExtensionLeft();
-                Map.Entry<Integer, SeedExtensionsPair> longestExtensionRight = seed.getLongestExtensionRight();
+                Map.Entry<Integer, SeedExtensionsPair> longestExtensionLeft = seed.getLongestExtensionLeft(TOOL_NAME);
+                Map.Entry<Integer, SeedExtensionsPair> longestExtensionRight = seed.getLongestExtensionRight(TOOL_NAME);
 //                StringBuilder output = new StringBuilder();
                 StringBuilder outputLR = new StringBuilder();
                 String extensionLeft = longestExtensionLeft.getValue().getExtensionLeft();
@@ -464,7 +466,7 @@ public class KmerExtender {
         //PREPARE EXECUTOR SERVICE        
         int threads = MAX_THREADS;
         ArrayList<Future<?>> futures = new ArrayList<>(threads);
-        final ExecutorService seedMerPopulatorExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        final ExecutorService seedMerPopulatorExecutorService = new ThreadPoolExecutor(threads+1, threads+1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         //INIT EMPTY SEED-PAIRMER-MAPS AND WRAP INPUT IN QUEUE
         PairMerMaps trimmedSeedPairMerMaps = new PairMerMaps(kSizes);
@@ -472,13 +474,15 @@ public class KmerExtender {
         ArrayList<String> seedSequenceStrings = seedSequences.getSeedSequenceStrings();
 
         int size = seedSequenceStrings.size();
-        int chunk = Math.max(1, size / threads);
+        int chunk = Math.max(1, (int)Math.ceil((double)size / threads));
+//        System.err.println("Chunk="+chunk);
         try {
             for (int i = 0; i < size - chunk + 1; i += chunk) {
                 seedsDummyQueue.put(seedSequenceStrings.subList(i, i + chunk));
 //                System.err.println("ADDING elems "+i+" -> "+(i+chunk)+" of "+size);
             }
             seedsDummyQueue.put(new ArrayList<String>());
+//            System.err.println("Finished adding elems ");
         } catch (InterruptedException ex) {
         }
 
