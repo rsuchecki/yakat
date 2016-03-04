@@ -225,7 +225,7 @@ public class KmerExtender {
         Collections.sort(kSizes, Collections.reverseOrder()); 
 
         //READ k-mers AND POPULATE A MAP FOR EACH SIZE OF k
-        PairMerMaps pairMerMaps = new PairMerMaps(kSizes);
+        PairMerMaps pairMerMaps = new PairMerMaps(kSizes, TOOL_NAME);
         readKmersAndPopulatePairMersMaps(pairMerMaps);
         for (Integer k : kSizes) {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
@@ -469,7 +469,7 @@ public class KmerExtender {
         final ExecutorService seedMerPopulatorExecutorService = new ThreadPoolExecutor(threads+1, threads+1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         //INIT EMPTY SEED-PAIRMER-MAPS AND WRAP INPUT IN QUEUE
-        PairMerMaps trimmedSeedPairMerMaps = new PairMerMaps(kSizes);
+        PairMerMaps trimmedSeedPairMerMaps = new PairMerMaps(kSizes, TOOL_NAME);
         BlockingQueue<List<String>> seedsDummyQueue = new ArrayBlockingQueue<>(threads + 1);
         ArrayList<String> seedSequenceStrings = seedSequences.getSeedSequenceStrings();
 

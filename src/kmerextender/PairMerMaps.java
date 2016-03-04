@@ -27,8 +27,10 @@ public class PairMerMaps {
 
     private final ConcurrentHashMap<Integer, PairMersMap> kSizeToPairMersMap;
     private final ArrayList<Integer> kSizes;
+    private final String TOOL_NAME;
 
-    public PairMerMaps(ArrayList<Integer> kSizes) {
+    public PairMerMaps(ArrayList<Integer> kSizes, String TOOL_NAME) {
+        this.TOOL_NAME = TOOL_NAME;
         this.kSizes = kSizes;
         kSizeToPairMersMap = new ConcurrentHashMap<>(kSizes.size());
         for (Integer k : kSizes) {
@@ -40,14 +42,26 @@ public class PairMerMaps {
 
     public PairMersMap getPairMersMap(int k) {
         PairMersMap map = kSizeToPairMersMap.get(k);
-        if(map == null) {
+        if (map == null) {
             map = new PairMersMap(k);
-            kSizeToPairMersMap.put(k, map);
-            if(!kSizes.contains(k)) { //might have been added by input reader, 
-                kSizes.add(k);
+            PairMersMap previous = kSizeToPairMersMap.putIfAbsent(k, map);
+            if (previous == null) { 
+                addKValue(k);
             }
         }
         return map;
+    }
+
+    private synchronized void addKValue(int k) {
+        if (!kSizes.contains(k)) { //might have been added by input reader, 
+            System.err.print("\n" + kSizes.size() + " kSizes:");
+            for (Integer kSize : kSizes) {
+                System.err.print(" " + kSize);
+            }
+            System.err.println();
+            Reporter.report("[INFO]", "Adding map for previously unseen k=" + k, TOOL_NAME);
+            kSizes.add(k);
+        }
     }
 
 //    /**
@@ -81,26 +95,25 @@ public class PairMerMaps {
 //        }
 //        return !kAlreadyIn;
 //    }
-
     public ArrayList<Integer> getkSizes() {
         return kSizes;
     }
 
     public int size() {
         if (kSizes.size() != kSizeToPairMersMap.size()) {
-            Reporter.report("[BUG]", "Internal structures sizes mismtach", this.getClass().getCanonicalName());
-            System.err.print(kSizes.size()+" kSizes:");
+            Reporter.report("[BUG]", "Internal structures sizes mismtach", TOOL_NAME);
+            System.err.print(kSizes.size() + " kSizes:");
             for (Integer kSize : kSizes) {
-                System.err.print(" "+kSize);
+                System.err.print(" " + kSize);
             }
             System.err.println();
-            
-            System.err.print(kSizeToPairMersMap.size()+" k2PairMerMap:");
+
+            System.err.print(kSizeToPairMersMap.size() + " k2PairMerMap:");
             for (Integer kSize : kSizeToPairMersMap.keySet()) {
-                System.err.print(" "+kSize);
+                System.err.print(" " + kSize);
             }
             System.err.println();
-            
+
         }
         return kSizes.size();
     }
