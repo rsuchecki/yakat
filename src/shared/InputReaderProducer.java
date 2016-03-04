@@ -95,7 +95,7 @@ public class InputReaderProducer implements Runnable {
     public InputReaderProducer(BlockingQueue queue, ArrayList<Integer> kSizes,
         ArrayList<String> inputFiles, int RECORD_BUFFER_SIZE, String toolName) {
 //        if (kSizeToQueue.size() == 1) {
-            this.queue = queue; // kSizeToQueue.values().iterator().next();
+        this.queue = queue; // kSizeToQueue.values().iterator().next();
 //            this.KMER_LENGTH = kSizeToQueue.keySet().iterator().next();
 //        } else {
 //            this.kSizeToQueue = kSizeToQueue;
@@ -208,7 +208,7 @@ public class InputReaderProducer implements Runnable {
         }
     }
 
-    private void readKmers(BufferedReader content, ArrayList<String> testLines) 
+    private void readKmers(BufferedReader content, ArrayList<String> testLines)
         throws InterruptedException, IOException {
         ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
         bufferList.addAll(testLines);
@@ -240,7 +240,7 @@ public class InputReaderProducer implements Runnable {
         putOnQueue(bufferList);
     }
 
-    private void readFastq(BufferedReader content, ArrayList<String> testLines) 
+    private void readFastq(BufferedReader content, ArrayList<String> testLines)
         throws InterruptedException, IOException {
         long fastqCount = 0L;
         long reportThreshold = (long) FASTQ_BUFFER_SIZE;
@@ -357,13 +357,20 @@ public class InputReaderProducer implements Runnable {
 //    private void setKmerLength(int k) {
 //        this.KMER_LENGTH = k;
 //    }
-    
     private synchronized void addKmerLength(int k) {
         //if list contains just a dummy entrance (0) - replace it
-        if(kLengths.size() == 1 && kLengths.get(0) == 0) {
+        if (kLengths.size() == 1 && kLengths.get(0) == 0) {
             kLengths.remove(0);
         }
-        kLengths.add(k);
+//        System.err.print("\n"+kLengths.size() + " kSizes:");
+//            for (Integer kSize : kLengths) {
+//                System.err.print(" " + kSize);
+//            }
+        if (!kLengths.contains(k)) {
+            kLengths.add(k);
+            Reporter.report("[INFO]", "Adding k=" + k, TOOL_NAME + " inread");
+        }
+
     }
 
     public ArrayList<Integer> getKmerLengths() {
@@ -380,7 +387,7 @@ public class InputReaderProducer implements Runnable {
 
     private void putOnQueue(ArrayList<String> list) throws InterruptedException {
 //        if (queue != null) {
-            queue.put(list);
+        queue.put(list);
 //        } else {
 //            for (Integer k : kLengths) {
 //                kSizeToQueue.get(k).put(list);
