@@ -47,6 +47,8 @@ public class OptSet {
     HashMap<Integer, ArrayList<Integer>> mutuallyExclusiveGroups;
     ArrayList<Integer> requiredGroups;
     
+    String summary;
+    
 
 //    ArrayList<OptGroup> optGroups; //taking care of mutual exlusion of groups of opts
     
@@ -71,6 +73,18 @@ public class OptSet {
         positionalOptsMap = new HashMap<>();
         positionalOptsList = new ArrayList<>();
         requiredGroups = new ArrayList<>();
+//        optGroups = new ArrayList<>();
+    }
+    
+    public OptSet(String summary) {
+        shortToOptMap = new HashMap<>();
+        longToOptMap = new HashMap<>();
+        optsList = new ArrayList<>();
+        groupToOptsMap = new HashMap<>();
+        positionalOptsMap = new HashMap<>();
+        positionalOptsList = new ArrayList<>();
+        requiredGroups = new ArrayList<>();
+        this.summary = summary;
 //        optGroups = new ArrayList<>();
     }
 
@@ -221,6 +235,9 @@ public class OptSet {
 
         //Generate usage string
         StringBuilder usage = new StringBuilder();
+        if(summary != null) {
+            usage.append(Reporter.wrapString(summary, printWidth)+System.lineSeparator());
+        }
         usage.append("java -jar ").append(mainClassName).append(".jar ").append(moduleName);
 
         //Generate help page
@@ -365,6 +382,7 @@ public class OptSet {
         }
         String usageString = usage.toString();
         String helpString = help.toString().replaceAll("\\. *,", ",").replaceAll(" *,", ",").replaceAll(" *;", ";");
+        
         UsageAndHelp usageAndHelp = new UsageAndHelp(usageString, helpString);
         return usageAndHelp;
         //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "

@@ -102,7 +102,7 @@ public class SplitGBS {
         optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
             + "passed to in-queue", 1024, 128, 8092));
-        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
+        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",
             2, 1, 256));
         //TRIMMING AND LENGTH
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Trimming and length settings]");
