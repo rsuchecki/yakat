@@ -54,11 +54,11 @@ public class PairMerMaps {
 
     private synchronized void addKValue(int k) {
         if (!kSizes.contains(k)) { //might have been added by input reader, 
-            System.err.print("\n" + kSizes.size() + " kSizes:");
-            for (Integer kSize : kSizes) {
-                System.err.print(" " + kSize);
-            }
-            System.err.println();
+////            System.err.print("\n" + kSizes.size() + " kSizes:");
+//            for (Integer kSize : kSizes) {
+//                System.err.print(" " + kSize);
+//            }
+//            System.err.println();
             Reporter.report("[INFO]", "Adding map for previously unseen k=" + k, TOOL_NAME);
             kSizes.add(k);
         }

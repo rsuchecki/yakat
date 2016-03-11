@@ -118,7 +118,7 @@ public class ConnectedPairMers {
                     connectPairMers(otherPairMer2, k, pairMersMap);
                 }
             }
-            add(pairMer, otherPairMer1, otherPairMer1isRC, otherPairMer2, otherPairMer2isRC);
+            add(pairMer, otherPairMer1, otherPairMer1isRC, otherPairMer2, otherPairMer2isRC, k);
 
         }
     }
@@ -131,7 +131,7 @@ public class ConnectedPairMers {
      * @param next
      * @param nextRc
      */
-    private void add(PairMer pairMer, PairMer previous, boolean previousRc, PairMer next, boolean nextRc) {
+    private void add(PairMer pairMer, PairMer previous, boolean previousRc, PairMer next, boolean nextRc, int k) {
         PairMerNode pairMerNode = new PairMerNode(pairMer, previous, previousRc, next, nextRc);
 //        connectedPairMers.add(pairMerNode);
         if (previous == null ^ next == null) {
@@ -140,13 +140,15 @@ public class ConnectedPairMers {
             } else if (terminal2 == null) {
                 terminal2 = pairMerNode;
             } else {
-                Reporter.report("[BUG?]", "Third terminal PairMerNode identified  ", getClass().getSimpleName());
-//                System.err.println(terminal1.getPairMer().getPairMerString(30)+" <- terminal1");
-//                System.err.println(terminal2.getPairMer().getPairMerString(30)+" <- terminal2");
-//                System.err.println(pairMer.getPairMerString(30)+" <- pairMer");
-////                System.err.println(previous.getPairMerString(30)+" <- previous");
-////                System.err.println(next.getPairMerString(30)+" <- next");
-//                System.err.println(" -=-=- ");
+                Reporter.report("[BUG?]", "Third terminal PairMerNode identified? Trying to store a terminal node again?", getClass().getSimpleName());
+                System.err.println(terminal1.getPairMer().getPairMerString(k)+" <- terminal1");
+                System.err.println(terminal2.getPairMer().getPairMerString(k)+" <- terminal2");
+                System.err.println(pairMer.getPairMerString(k)+" <- pairMer");
+                if(previous != null)
+                    System.err.println(previous.getPairMerString(k)+" <- previous");
+                if(next != null)
+                    System.err.println(next.getPairMerString(k)+" <- next");
+                System.err.println(" -=-=- ");
 
             }
         } else if (previous == null && next == null) {
