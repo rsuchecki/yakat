@@ -55,7 +55,23 @@ public class InputReaderProducer implements Runnable {
 //    private String RECORD_NAME = "kmers";
 
     public enum GuessedInputFormat {
-        KMERS, FASTA_SE_ONE_LINE, FASTA_PE_ONE_LINE, FASTQ_SE_ONE_LINE, FASTQ_PE_ONE_LINE, FASTA, FASTQ, UNSUPPORTED_OR_UNRECOGNIZED;
+        KMERS, FASTA_SE_ONE_LINE, FASTA_PE_ONE_LINE, FASTQ_SE_ONE_LINE, FASTQ_PE_ONE_LINE, FASTA, FASTQ,
+        MPILEUP, UNSUPPORTED_OR_UNRECOGNIZED;
+    }
+
+    public InputReaderProducer(BlockingQueue queue, String inputFile, Integer k, String toolName, int RECORD_BUFFER_SIZE) {
+        this.queue = queue;
+        if (inputFile != null) {
+            this.inputFiles = new ArrayList<>(1);
+            inputFiles.add(inputFile);
+        }
+//        KMER_LENGTH = k;
+        kLengths = new ArrayList<>(1);
+        kLengths.add(k);
+        TOOL_NAME = toolName;
+        KMER_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+        FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+//        this.RECORD_NAME = RECORD_NAME;
     }
 
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, String toolName, String RECORD_NAME, int RECORD_BUFFER_SIZE) {
@@ -152,9 +168,12 @@ public class InputReaderProducer implements Runnable {
                 }
 
                 String line;
-                if (guessedInputFormat == GuessedInputFormat.KMERS || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && !kMerIsSet()) || (guessedInputFormat == GuessedInputFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())) {
-                    //READ KMERS
-                    readKmers(content, testLines);
+                if (guessedInputFormat == GuessedInputFormat.KMERS
+                    || (guessedInputFormat == GuessedInputFormat.FASTQ_PE_ONE_LINE && !kMerIsSet())
+                    || (guessedInputFormat == GuessedInputFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())
+                    || (guessedInputFormat == GuessedInputFormat.MPILEUP)) {
+                    //READ KMERS (or any other input that can simply be processed line by line)
+                    readLines(content, testLines);
                 } else if (!kMerIsSet()) {
                     Reporter.report("[ERROR]", "Fatal error, k-mer lenght must be specified for input other than a list of k-mers, terminating!", TOOL_NAME);
                     putOnQueue(new ArrayList<String>(0)); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
@@ -208,7 +227,7 @@ public class InputReaderProducer implements Runnable {
         }
     }
 
-    private void readKmers(BufferedReader content, ArrayList<String> testLines)
+    private void readLines(BufferedReader content, ArrayList<String> testLines)
         throws InterruptedException, IOException {
         ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
         bufferList.addAll(testLines);
@@ -315,8 +334,8 @@ public class InputReaderProducer implements Runnable {
 //                setKmerLength(split0[0].trim().length());
                 addKmerLength(split0[0].trim().length());
                 return GuessedInputFormat.KMERS;
-            } else {
-                return GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED;
+//            } else {
+//                return GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED;
             }
         }
 
@@ -347,6 +366,26 @@ public class InputReaderProducer implements Runnable {
             }
         }
 
+        //MPILEUP ref refPos refBase then 3 cols per sample
+        if (split.length > 5 && ((split.length - 3) % 3 == 0) && split[2].length() == 1) {
+            try {
+                Integer.parseInt(split[1]);
+                boolean mpileup = true;
+                //looks like mpileup so far
+                for (int i = 3; i < split.length; i += 3) {
+                    try {
+                        Integer.parseInt(split[i]);
+                    } catch (NumberFormatException e) {
+                        mpileup = false;
+                    }
+                }
+                if (mpileup) {
+                    return GuessedInputFormat.MPILEUP;
+                }
+            } catch (NumberFormatException e) {
+            }
+        }
+
         return GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED;
     }
 
@@ -368,7 +407,7 @@ public class InputReaderProducer implements Runnable {
 //            }
         if (!kLengths.contains(k)) {
             kLengths.add(k);
-            Reporter.report("[INFO]", "Adding k=" + k, TOOL_NAME + " inread");
+            Reporter.report("[INFO]", "Inreader adding k=" + k, TOOL_NAME);
         }
 
     }
@@ -382,7 +421,7 @@ public class InputReaderProducer implements Runnable {
 
     private boolean kMerIsSet() {
 //        return (KMER_LENGTH != null && KMER_LENGTH > 0) || (kValues != null && !kValues.isEmpty());
-        return kLengths != null && !kLengths.isEmpty() && kLengths.get(0) != 0;
+        return kLengths != null && !kLengths.isEmpty() && kLengths.get(0) > 0;
     }
 
     private void putOnQueue(ArrayList<String> list) throws InterruptedException {
