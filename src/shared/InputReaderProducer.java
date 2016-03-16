@@ -327,7 +327,7 @@ public class InputReaderProducer implements Runnable {
         if (testLines.isEmpty()) {
             return GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED;
         }
-        if (!testLines.get(0).startsWith("@") && !testLines.get(0).startsWith(">")) {
+        if (!testLines.get(0).startsWith("@") && !testLines.get(0).startsWith(">") & testLines.size()>1) {
             String[] split0 = testLines.get(0).split("\t| ");
             String[] split1 = testLines.get(1).split("\t| ");
             if (split0[0].matches("^[A|T|C|G]+$") && split1[0].matches("^[A|T|C|G]+$") && split0[0].length() == split1[0].length()) {
