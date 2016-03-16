@@ -15,20 +15,8 @@
  */
 package processpileup;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
 import shared.Reporter;
 
 /**
@@ -45,7 +33,7 @@ public class MpileupConsumer implements Runnable {
     private final String TOOL_NAME;
 
     public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, int minCoverageThreshold,
-        int maxCoverageThreshold, int minSamples, int maxPercAlternative, String TOOL_NAME) {
+            int maxCoverageThreshold, int minSamples, int maxPercAlternative, String TOOL_NAME) {
         this.inputQueue = inputQueue;
         this.minCoverageThreshold = minCoverageThreshold;
         this.maxCoverageThreshold = maxCoverageThreshold;
@@ -87,9 +75,9 @@ public class MpileupConsumer implements Runnable {
 
                             char calledBase = getIUPAC(bases, coverage, maxPercAlternative, minCoverageThreshold);
 //                            if (calledBase.matches("A|T|C|G")) {
-                            if (calledBase != '?') {
+                            if (calledBase != '?' && calledBase != ' ') {
 //                                if (!calledBase.equals(lastCalledBase) && lastCalledBase.matches("A|T|C|G")) {
-                                if (calledBase != lastCalledBase && lastCalledBase != '?') {
+                                if (calledBase != lastCalledBase && lastCalledBase != '?' && lastCalledBase != ' ') {
                                     calledDifferentBases = true;
                                 }
                                 lastCalledBase = calledBase;
@@ -166,22 +154,41 @@ public class MpileupConsumer implements Runnable {
     }
 
     /**
-     * |------------------------+----------------------| | UPAC nucleotide code | Base |
-     * |------------------------+----------------------| | A | Adenine | | C | Cytosine | | G | Guanine | | T (or U) |
-     * Thymine (or Uracil) | | R | A or G | | Y | C or T | | S | G or C | | W | A or T | | K | G or T | | M | A or C | |
-     * B | C or G or T | | D | A or G or T | | H | A or C or T | | V | A or C or G | | N | any base | | . or - | gap |
-     * i.e. insertion in the reference? |------------------------+----------------------|
+     * Given an array of numbers representing observed base counts  [?,#A,#C,#G,#T] (index zero ignored for now) 
+     * call IUPAC representation of the observed bases. Bases are not considered for IUPAC reporting if there are less 
+     * than minCoverageThreshold or 
+     * @param encoded [?,#A,#C,#G,#T] (index zero ignored for now)
+     * @param totalDepth 
+     * @param maxErrorPercent % of totalDepth threshold above which a base 
+     * (or resulting IUPAC) is reported rather than being ignored as erroneous
+     * @param minCoverageThreshold int min depth for a base to be considered
+     * 
+     * TODO EXTEND TO ACCOMMODATE IDELS
+     * 
+     * @return 
      */
     private char getIUPAC(int[] encoded, int totalDepth, int maxErrorPercent, int minCoverageThreshold) {
-        boolean tt[] = new boolean[5];
-        int minCoverage = Math.max((int) Math.ceil(totalDepth * (float) maxErrorPercent / 100), minCoverageThreshold);
-        for (int i = 0; i < encoded.length; i++) {
-            if (encoded[i] >= minCoverage) {
-                tt[i] = true;
+        boolean tt[] = new boolean[5]; //truth table i=1,2,3,4 values A,C,G,T...
+        //Convert max perc error into max int coverage
+        int maxErrInt = (int) Math.floor(totalDepth * (float) maxErrorPercent / 100);        
+        //Max of maxErr min coverage threshold 
+//        int minCoverage = Math.max((int) Math.ceil(totalDepth * (float) maxErrorPercent / 100), minCoverageThreshold);
+        int totalOther = 0;
+        for (int i = 1; i < encoded.length; i++) {
+            if (encoded[i] >= minCoverageThreshold && encoded[i] > maxErrInt) {
+                tt[i] = true;                
+            } else {
+                totalOther += encoded[i];
             }
         }
-        if (!tt[1] && !tt[2] && !tt[3] && !tt[4]) {
+        if (totalOther > maxErrInt) {
             return '?';
+        }
+        if (!tt[1] && !tt[2] && !tt[3] && !tt[4]) {            
+            if(totalOther == 0)
+                return ' ';
+            else 
+                return  '?';
         } else if (tt[1] && !tt[2] && !tt[3] && !tt[4]) { //A
             return 'A';
         } else if (!tt[1] && tt[2] && !tt[3] && !tt[4]) { //C
@@ -218,7 +225,7 @@ public class MpileupConsumer implements Runnable {
 
     private int[] getBaseCounts(String s, char refBase) {
 //        s = s.replaceAll("\\.|,", String.valueOf(refBase)).replaceAll("\\*", "I").replaceAll("\\^.|\\$", "");
-        int[] bases = new int[7]; // ?,A,C,G,T,insRef,delRef 
+        int[] bases = new int[5]; // ?,A,C,G,T,insRef,delRef 
         StringBuilder lenInsRef = null;
         StringBuilder lenDelRef = null;
 

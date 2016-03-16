@@ -47,6 +47,7 @@ import java.util.logging.Logger;
 import java.util.zip.GZIPInputStream;
 import kmerextender.KmerExtender;
 import kmerextender.PairMerMapPopulatorConsumer;
+import shared.Info;
 import shared.InputReaderProducer;
 import shared.Reporter;
 
@@ -77,11 +78,11 @@ public class MpileupCounts {
             + "base counts printed to stdout prefixed by ^COUNTS\\t");
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
-        optSet.addOpt(new Opt('n', "sample-names", "space separated sample names, order must correspond to mpileup input content").setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
-        optSet.addOpt(new Opt('c', "min-coverage-per-sample", "Minimum coverage required for a sample to be processed/considered", 1).setMinValue(1).setDefaultValue(2));
-        optSet.addOpt(new Opt('C', "max-coverage-per-sample", "Maximum coverage allowed for a sample to be processed/considered", 1).setMinValue(1).setDefaultValue(1000));
+        optSet.addOpt(new Opt('n', "sample-names", "space separated sample names, order must correspond to mpileup input").setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE));
+        optSet.addOpt(new Opt('c', "min-coverage-per-base", "Minimum coverage required for a base@sample to be processed/considered", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt('C', "max-coverage-per-base", "Maximum coverage allowed for a base@sample to be processed/considered", 1).setMinValue(1).setDefaultValue(1000));
+        optSet.addOpt(new Opt('M', "percent-error-threshold", "Percentage of coverage up to which a base is regarded to be an error", 1).setMinValue(1).setDefaultValue(5));
         optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(1).setDefaultValue(2));
-        optSet.addOpt(new Opt('M', "max-percent-alternative-alleles", "Maximum percentage of alternative alleles for a base to be called ", 1).setMinValue(1).setDefaultValue(5));
         optSet.addOpt(new Opt('p', "pileup-file", "Input (m)pileup file, alternatively use stdin", 1));
         optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 8192));
@@ -89,7 +90,7 @@ public class MpileupCounts {
             64, 1, 256));
 //        String headerNote = "Can be useful for external parallization (print header once)";
 //        optSet.addOpt(new Opt('H', "header-only", "Print header and exit").addFootnote(1, TOOL_NAME));
-//        optSet.addOpt(new Opt('N', "no-header", "Do not print the header"));
+        optSet.addOpt(new Opt('I', "iupac-codes-table", "Print the table of IUPAC nucleotide codes and exit"));
 
         return optSet;
     }
@@ -109,7 +110,10 @@ public class MpileupCounts {
     }
 
     private void parallelMpileupProcessing(OptSet optSet) {
-
+        if(optSet.getOpt("I").isUsed()) {
+            System.out.println(Info.getIupacCodesTable());
+            System.exit(0);
+        }
         ArrayList<String> SAMPLE_NAMES = (ArrayList<String>) optSet.getOpt("n").getValues();
         int minCoverageThreshold = (int) optSet.getOpt("c").getValueOrDefault();
         int maxCoverageThreshold = (int) optSet.getOpt("C").getValueOrDefault();
