@@ -17,20 +17,16 @@ package kmermatch.TODO;
 
 import argparser.ArgParser;
 import argparser.Opt;
-import argparser.OptGroup;
 import argparser.OptSet;
 import argparser.PositionalOpt;
 import shared.Reporter;
 import shared.InputReaderProducer;
-import kmerextender.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -42,6 +38,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import kmerextender.SeedSequences;
 
 /**
  *
@@ -49,16 +46,16 @@ import java.util.logging.Logger;
  */
 public class KmerMatch {
 
+    private Integer INPUT_BUFFER_SIZE;
+    private Integer INPUT_QUEUE;
+    private int MAX_THREADS; 
+    
+    
     private KmerMap kmersMap = new KmerMap();
     private final ArrayList<String> inputFileNamesList = new ArrayList<>();
     private Integer KMER_LENGTH;
     private Integer MIN_KMER_FREQUENCY;
 
-    private int MAX_THREADS = Runtime.getRuntime().availableProcessors();
-    private String DEBUG_FILE;
-    private String STATS_FILE;
-    private boolean OUTPUT_FASTA = false;
-    private String NAME_PREFIX = "";
     private String OUT_REDIRECT;
     private String ERR_REDIRECT;
     private final String TOOL_NAME;
@@ -75,50 +72,17 @@ public class KmerMatch {
 
     public KmerMatch(String[] args, String callerName, String toolName) {
         TOOL_NAME = callerName + " " + toolName;
-        
-        
-        
-        
+
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
+        readArgValues(optSet);
         
         System.exit(0);
-        
-//        processArgs(args);
-        
-        
-        
-        
-        if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
 
-        } else {
-            if (OUT_REDIRECT != null) {
-                try {
-                    File file = new File(OUT_REDIRECT);
-                    PrintStream printStream;
-                    printStream = new PrintStream(new FileOutputStream(file));
-                    System.setOut(printStream);
-                } catch (FileNotFoundException ex) {
-                    Reporter.report("[ERROR]", "Failed redirecting stdout to " + OUT_REDIRECT, getClass().getSimpleName());
-                }
-            }
-            if (ERR_REDIRECT != null) {
-                try {
-                    File file = new File(ERR_REDIRECT);
-                    PrintStream printStream;
-                    printStream = new PrintStream(new FileOutputStream(file));
-                    System.setErr(printStream);
-                } catch (FileNotFoundException ex) {
-                    Reporter.report("[ERROR]", "Failed redirecting stderr to " + ERR_REDIRECT, getClass().getSimpleName());
-                }
-            }
-            runKmerMatcher();
-        }
+        runKmerMatcher();
     }
-    
-    
-    
+
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet();
         //INPUT
@@ -126,17 +90,17 @@ public class KmerMatch {
         optSet.addOpt(new Opt('I', "in-single", "Target SE FASTA/FASTQ file(s)", 1).setMaxValueArgs(Short.MAX_VALUE));
         optSet.addOpt(new Opt('1', "in-paired-r1", "Target R1 FASTA/FASTQ file(s), use in conjunction with -2 <args>", 1).setMaxValueArgs(Short.MAX_VALUE));
         optSet.addOpt(new Opt('2', "in-paired-r2", "Target R2 FASTA/FASTQ file(s), use in conjunction with -1 <args>", 1).setMaxValueArgs(Short.MAX_VALUE));
-        
+
         //REFERENCE INPUT TYPE 1 
         int refGroupI = optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel(refGroupI, "[Reference input - option I]");
         optSet.addOpt(new Opt('K', "k-mers-set", "A file contining a pre-computed set of reference k-mers, one k-mer per line", 1).setMaxValueArgs(Short.MAX_VALUE));
-        
+
         //REFERENCE INPUT TYPE 2
         int refGroupII = optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel(refGroupII, "[Reference input - option II]");
         optSet.addOpt(new Opt('f', "fast-to-k-mers", "Input FASTA/FASTQ file(s) to be chopped-up into reference set of k-mers", 1).setMaxValueArgs(Short.MAX_VALUE));
-        optSet.addOpt(new Opt('k', "k-mer-size", "Specify the size of k if you don't input a set of k-mers",1).setMinValue(4).setMaxValue(1024));
+        optSet.addOpt(new Opt('k', "k-mer-size", "Specify the size of k if you do not input a set of k-mers", 1).setMinValue(4).setMaxValue(1024));
         optSet.setMutuallyExclusiveGroups(refGroupI, refGroupII);
         optSet.setGroupRequired(refGroupI);
         optSet.setGroupRequired(refGroupII);
@@ -144,10 +108,9 @@ public class KmerMatch {
 //        optGroup.addOpt(optFast2kmers);
 //        optGroup.addOpt(optKmerSize);
 //        optSet.addOptGroup(optGroup);
-        
+
 //        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAA"));
 //        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
-        
         //
 //        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[?????      settings]");
 //        optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
@@ -155,10 +118,10 @@ public class KmerMatch {
 //        optSet.addOpt(new Opt('p', "keep-non-PstI-starting", "Keep reads (or pairs) which do not start with 'barcodeTGCAG'"));
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Matching settings]");
         optSet.addOpt(new Opt('S', "stranded-matching", "Do not reverse-complement k-mers (by default canonical representation of a k-mer is stored and matched)"));
-        optSet.addOpt(new Opt('M', "min-matches", "Set minimum number of reference k-mers matching each targeted sequence",1,1,Integer.MAX_VALUE));
+        optSet.addOpt(new Opt('M', "min-matches", "Set minimum number of reference k-mers matching each targeted sequence", 1, 1, Integer.MAX_VALUE));
         optSet.addOpt(new Opt('V', "invert-matching", "Invert matching: output targets that contain fewer than [-M] k-mers matching the reference set"));
-        optSet.addOpt(new Opt('B', "match-both-mates", "Relevant for PE input only. Demand each mate to have [-M] matching kmers with the reference set, by default, both mates are caught if at least one has [-M] kmer(s) matching the reference"));
-        optSet.addOpt(new Opt('A', "report-all", "Report all input sequences, with the number of matching baiting k-mers appended to the identifier, other matchin settings will be ignored"));
+        optSet.addOpt(new Opt('B', "match-both-mates", "Relevant for PE input only. Demand each mate to have [-M] k-mers matching the reference set, by default, both mates are caught if at least one has [-M] kmer(s) matching the reference"));
+        optSet.addOpt(new Opt('A', "report-all", "Report all input sequences, with the number of matching k-mers appended to the identifier, other matchin settings will be ignored"));
 
 //        int footId = 1;
 //        String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
@@ -171,14 +134,15 @@ public class KmerMatch {
             + "passed to in-queue", 1024, 128, 8092));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
             2, 1, 256));
+        int procs = Runtime.getRuntime().availableProcessors();
         optSet.addOpt(new Opt('T', "querying-threads", "Number of threads to query the generated reference set. No point setting too high for small reference sets, "
-            + "i/o is the likely bottleneck.", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+            + "i/o is the likely bottleneck", 1).setDefaultValue(Math.min(4,procs)).setMaxValue(procs));
 
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
-        optSet.addOpt(new Opt('d', "out-dir", "Output directory", 1).setDefaultValue("matched"));
+//        optSet.addOpt(new Opt('d', "out-dir", "Output directory", 1).setDefaultValue("matched"));
         optSet.addOpt(new Opt('u', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
         optSet.addOpt(new Opt('x', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
         optSet.addOpt(new Opt('s', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
@@ -193,24 +157,100 @@ public class KmerMatch {
 //        optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
         return optSet;
     }
-    
-    
-    
-    
 
+     private void readArgValues(OptSet optSet) {
+        
+         
+        
+        //[Runtime settings]
+        INPUT_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
+        INPUT_QUEUE = (int) optSet.getOpt("Q").getValueOrDefault();
+        MAX_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
+//
+//        if (optSet.getOpt("k").isUsed()) {
+//            setKmerLength((int) optSet.getOpt("k").getValueOrDefault());
+//        } else {
+//            if (optSet.getOpt("k-mer-min").isUsed()) {
+//                KMER_LENGTH_MIN = (int) optSet.getOpt("k-mer-min").getValueOrDefault();
+//            }
+//            if (optSet.getOpt("k-mer-max").isUsed()) {
+//                KMER_LENGTH_MAX = (int) optSet.getOpt("k-mer-max").getValueOrDefault();
+//            }
+//            KMER_LENGTH_STEP = (int) optSet.getOpt("k-mer-step").getValueOrDefault();
+//            if (KMER_LENGTH_MIN != null & KMER_LENGTH_MAX != null) {
+//                if (KMER_LENGTH_MAX < KMER_LENGTH_MIN) {
+//                    Reporter.report("[ERROR]", "The k-mer-min value (" + KMER_LENGTH_MIN + ") set higher than k-mer-max value (" + KMER_LENGTH_MAX + "), adjusting to " + KMER_LENGTH_MAX + ",", TOOL_NAME);
+//                    KMER_LENGTH_MAX = KMER_LENGTH_MIN;
+//                }
+//            } else if (KMER_LENGTH_MIN == null) {
+//                KMER_LENGTH_MIN = KMER_LENGTH_MAX;
+//            } else if (KMER_LENGTH_MAX == null) {
+//                KMER_LENGTH_MAX = KMER_LENGTH_MIN;
+//            }
+//        }
+//
+//        if (optSet.getOpt("seed-file").isUsed()) {
+//            seedSequences = new SeedSequences((String) optSet.getOpt("seed-file").getValueOrDefault());
+//            if (seedSequences.getSeedSequences().isEmpty()) {
+//                Reporter.report("[ERROR]", "No seeds found in " + (String) optSet.getOpt("seed-file").getValueOrDefault() + ", proceeding without...", TOOL_NAME);
+//                if (KMER_LENGTH_MIN != KMER_LENGTH_MAX) {
+//                    Reporter.report("[FATAL]", "Varied k implemented  (for now) for seed extension only - no seed(s) found", TOOL_NAME);
+//                    System.exit(1);
+//                }
+//            }
+//        }
+//
+////        MIN_KMER_FREQUENCY = (int) optSet.getOpt("k").getValueOrDefault();
+//
+//        if (optSet.getOpt("f").isUsed()) {
+//            OUTPUT_FASTA = true;
+//        }
+//        if (optSet.getOpt("p").getValueOrDefault() != null) {
+//            NAME_PREFIX = (String) optSet.getOpt("p").getValueOrDefault();
+//        }
+//        String outRedirect;
+//        String errRedirect;
+//        if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
+//            try {
+//                File file = new File(outRedirect);
+//                PrintStream printStream;
+//                printStream = new PrintStream(new FileOutputStream(file));
+//                System.setOut(printStream);
+//            } catch (FileNotFoundException ex) {
+//                Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, TOOL_NAME);
+//            }
+//        }
+//        if ((errRedirect = (String) optSet.getOpt("e").getValueOrDefault()) != null) {
+//            try {
+//                File file = new File(errRedirect);
+//                PrintStream printStream;
+//                printStream = new PrintStream(new FileOutputStream(file));
+//                System.setErr(printStream);
+//            } catch (FileNotFoundException ex) {
+//                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, TOOL_NAME);
+//            }
+//        }
+//
+////        for(Opt o: optSet.getOptsList()) {
+////            Reporter.report("[INFO]", o.getOptLabelString()+" "+o.getValueOrDefault(), toolName);
+////        }
+//        ArrayList<PositionalOpt> positionalOptsList = optSet.getPositionalOptsList();
+//        for (PositionalOpt po : positionalOptsList) {
+//            if (po.getValues() != null) {
+//                inputFileNamesList.addAll(po.getValues());
+//            }
+//        }
+    }
+     
     private void runKmerMatcher() {
         Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", getClass().getSimpleName());
         readKmersAndPopulateKmersMap();
 
-        Reporter.report("[INFO]", "Finished populating map, k=" + KMER_LENGTH + ", n=" + NumberFormat.getIntegerInstance().format(kmersMap.getPairMersSkipListMap().size()), getClass().getSimpleName());
-//        PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE);
-//        pairMersExtender.matchAndExtendKmers(KMER_LENGTH, kmersMap, OUTPUT_FASTA, NAME_PREFIX, MAX_THREADS);
-//        Reporter.report("[INFO]", "Finished extending k-mers");
+        Reporter.report("[INFO]", "Finished populating map, k=" + KMER_LENGTH + ", n=" + NumberFormat.getIntegerInstance().format(kmersMap.getPairMersSkipListMap().size()), TOOL_NAME);
     }
 
     /**
-     * Producer-consumer multi-threading to read input (k-mers, FASTA, etc)
-     * generate Kmer objects and populate a Map
+     * Producer-consumer multi-threading to read input (k-mers, FASTA, etc) generate Kmer objects and populate a Map
      */
     private void readKmersAndPopulateKmersMap() {
         try {
@@ -252,7 +292,7 @@ public class KmerMatch {
 
             //SPAWN THREADS TO POPULATE CLIPMERS MAP
             for (int i = 0; i < threads; i++) {
-                KmerMapPopulatorConsumer consumer = new KmerMapPopulatorConsumer(inputQueue, kmersMap, splitInputSequenceIntoKmers, KMER_LENGTH, MIN_KMER_FREQUENCY);
+                KmerMapPopulatorConsumer consumer = new KmerMapPopulatorConsumer(inputQueue, kmersMap, splitInputSequenceIntoKmers, null, TOOL_NAME, KMER_LENGTH);
                 futures.add(readAndPopulateDbExecutor.submit(consumer));
             }
             readAndPopulateDbExecutor.shutdown();
@@ -285,186 +325,184 @@ public class KmerMatch {
 
     }
 
-
-    /**
-     * Supposedly POSIX-compliant CLI args processor
-     *
-     * @param args
-     */
-    private void processArgs(String[] args) {
-        ArrayList<String> allArgs = new ArrayList<>();
-        //SPLIT-UP POSIX STYLE (-abcd) IF ANY
-        for (String arg : args) {
-            if (arg.startsWith("--")) {
-                allArgs.add(arg);
-            } else if (arg.startsWith("-")) {
-                if (arg.length() > 2) {
-                    char[] chars = arg.toCharArray();
-                    StringBuilder sb = new StringBuilder();
-                    for (int i = 1; i < chars.length; i++) {
-                        char c = chars[i];
-//                        System.out.println(c + " ASCII value " + (int) c);
-                        if ((int) c >= 48 && (int) c <= 57) {
-                            sb.append(c);
-                        } else {
-                            allArgs.add("-" + c);
-                        }
-                    }
-                    String toString = sb.toString();
-                    if (!toString.isEmpty()) {
-                        allArgs.add(toString);
-                    }
-
-                } else {
-                    allArgs.add(arg);
-                }
-            } else {
-                allArgs.add(arg);
-            }
-        }
-        //Now process args
-        Iterator<String> it = allArgs.iterator();
-
-        while (it.hasNext()) {
-            String a = it.next();
-            //
-            if (a.equals("-h") || a.equals("--help")) {
-                printHelp();
-                System.exit(0);
-            } else if (a.equals("-k") || a.equalsIgnoreCase("--kmer-length")) {
-                if (it.hasNext()) {
-                    String optionValue = it.next();
-                    try {
-                        KMER_LENGTH = Integer.parseInt(optionValue);
-                        if (KMER_LENGTH < 4) {
-                            System.err.println("Fatal error! \"k\" must be set to at least 4, currently set to: " + KMER_LENGTH);
-                            System.exit(1);
-                        }
-                    } catch (NumberFormatException e) {
-                        System.err.println("Fatal error! The k-mer lenght must be given as an integer, offending argument: \"" + optionValue + "\"");
-                    }
-                }
-            } else if (a.equals("-t") || a.equalsIgnoreCase("--threads")) {
-                if (it.hasNext()) {
-                    String optionValue = it.next();
-                    try {
-                        MAX_THREADS = Integer.parseInt(optionValue);
-                        if (MAX_THREADS < 1) {
-                            System.err.println("Fatal error! \"threads\" must be set to a positive integer, currently set to: " + MAX_THREADS);
-                            System.exit(1);
-                        } else if (MAX_THREADS > Runtime.getRuntime().availableProcessors()) {
-                            MAX_THREADS = Runtime.getRuntime().availableProcessors();
-                            System.err.println("Warning, number of threads reset to the maximum available (" + MAX_THREADS + ") CPU cores, offending argument: \"" + optionValue + "\"");
-                        }
-                    } catch (NumberFormatException e) {
-                        System.err.println("Fatal error! Number of threads must be given as an integer, offending argument: \"" + optionValue + "\"");
-                    }
-                }
-            } else if (a.equals("-D") || a.equalsIgnoreCase("--debug-file")) {
-                if (it.hasNext()) {
-                    DEBUG_FILE = it.next();
-                    Reporter.writeToFile(DEBUG_FILE, Reporter.formatReport("[DEBUG]", "Debugging trace", getClass().getSimpleName()), false);
-                }
-            } else if (a.equals("-S") || a.equalsIgnoreCase("--stats-file")) {
-                if (it.hasNext()) {
-                    STATS_FILE = it.next();
-                }
-            } else if (a.equals("-N") || a.equalsIgnoreCase("--name-prefix")) {
-                if (it.hasNext()) {
-                    NAME_PREFIX = it.next();
-                }
-            } else if (a.equals("-F") || a.equalsIgnoreCase("--fasta-out")) {
-                OUTPUT_FASTA = true;
-            } else if (a.equals("-O") || a.equalsIgnoreCase("--out-redirect")) {
-                if (it.hasNext()) {
-                    OUT_REDIRECT = it.next();
-                }
-            } else if (a.equals("-E") || a.equalsIgnoreCase("--err-redirect")) {
-                if (it.hasNext()) {
-                    ERR_REDIRECT = it.next();
-                }
-            } else if (a.equalsIgnoreCase("--ideas")) {
-                RUN_SOME_WILD_AND_WONDERFUL_STUFF = true;
-//            } else if (a.equals("-M") || a.equalsIgnoreCase("--multipass-compress")) {
-//                if (it.hasNext()) {
-//                    String optionValue = it.next();
-//                    try {
-//                        MULTIPASS_COMPRESS = Integer.parseInt(optionValue);
-//                    } catch (NumberFormatException e) {
-//                        System.err.println("Fatal error! The number iterations set with -m, --multipass-compress must be given as an integer, offending argument: \"" + optionValue + "\"");
+//    /**
+//     * Supposedly POSIX-compliant CLI args processor
+//     *
+//     * @param args
+//     */
+//    private void processArgs(String[] args) {
+//        ArrayList<String> allArgs = new ArrayList<>();
+//        //SPLIT-UP POSIX STYLE (-abcd) IF ANY
+//        for (String arg : args) {
+//            if (arg.startsWith("--")) {
+//                allArgs.add(arg);
+//            } else if (arg.startsWith("-")) {
+//                if (arg.length() > 2) {
+//                    char[] chars = arg.toCharArray();
+//                    StringBuilder sb = new StringBuilder();
+//                    for (int i = 1; i < chars.length; i++) {
+//                        char c = chars[i];
+////                        System.out.println(c + " ASCII value " + (int) c);
+//                        if ((int) c >= 48 && (int) c <= 57) {
+//                            sb.append(c);
+//                        } else {
+//                            allArgs.add("-" + c);
+//                        }
 //                    }
+//                    String toString = sb.toString();
+//                    if (!toString.isEmpty()) {
+//                        allArgs.add(toString);
+//                    }
+//
+//                } else {
+//                    allArgs.add(arg);
 //                }
-//            } else if (a.equals("-H") || a.equalsIgnoreCase("--hash-array-size")) {
+//            } else {
+//                allArgs.add(arg);
+//            }
+//        }
+//        //Now process args
+//        Iterator<String> it = allArgs.iterator();
+//
+//        while (it.hasNext()) {
+//            String a = it.next();
+//            //
+//            if (a.equals("-h") || a.equals("--help")) {
+//                printHelp();
+//                System.exit(0);
+//            } else if (a.equals("-k") || a.equalsIgnoreCase("--kmer-length")) {
 //                if (it.hasNext()) {
 //                    String optionValue = it.next();
 //                    try {
-//                        HASH_ARRAY_SIZE = Integer.parseInt(optionValue.replaceAll(",", ""));
-//                        if (HASH_ARRAY_SIZE > 4) {
-//                            System.err.println("Fatal error! The -H, --hash-array-size must be equal or less than " + (Integer.MAX_VALUE - 3));
+//                        KMER_LENGTH = Integer.parseInt(optionValue);
+//                        if (KMER_LENGTH < 4) {
+//                            System.err.println("Fatal error! \"k\" must be set to at least 4, currently set to: " + KMER_LENGTH);
 //                            System.exit(1);
 //                        }
 //                    } catch (NumberFormatException e) {
-//                        System.err.println("Fatal error! The -H, --hash-array-size must  be given as an integer, offending argument: \"" + optionValue + "\"");
+//                        System.err.println("Fatal error! The k-mer lenght must be given as an integer, offending argument: \"" + optionValue + "\"");
 //                    }
 //                }
-            } else if (a.equals("-f") || a.equalsIgnoreCase("--min-kmer-frequency")) {
-                if (it.hasNext()) {
-                    String optionValue = it.next();
-                    try {
-                        MIN_KMER_FREQUENCY = Integer.parseInt(optionValue.replaceAll(",", ""));
-                        if (MIN_KMER_FREQUENCY < 1) {
-                            System.err.println("Fatal error! The -f, --min-kmer-frequency must be equal or less than 1");
-                            System.exit(1);
-                        }
-                    } catch (NumberFormatException e) {
-                        System.err.println("Fatal error! The -f, --min-kmer-frequency must  be given as an integer, offending argument: \"" + optionValue + "\"");
-                    }
-                }
-            } else if (a.startsWith("-")) {
-                System.out.println("Unrecognized argument " + a + ", try -h or --help. Terminating...");
-                System.exit(1);
-            } else {
-                inputFileNamesList.add(a);
-            }
-        }
-//        if (inputFileNamesList.isEmpty() && MULTIPASS_COMPRESS != null) {
-//            System.out.println("Use of -M, --multi-pass-compress requires that an input file is specified, it will not work correctly with stdin");
-//            System.exit(1);
+//            } else if (a.equals("-t") || a.equalsIgnoreCase("--threads")) {
+//                if (it.hasNext()) {
+//                    String optionValue = it.next();
+//                    try {
+//                        MAX_THREADS = Integer.parseInt(optionValue);
+//                        if (MAX_THREADS < 1) {
+//                            System.err.println("Fatal error! \"threads\" must be set to a positive integer, currently set to: " + MAX_THREADS);
+//                            System.exit(1);
+//                        } else if (MAX_THREADS > Runtime.getRuntime().availableProcessors()) {
+//                            MAX_THREADS = Runtime.getRuntime().availableProcessors();
+//                            System.err.println("Warning, number of threads reset to the maximum available (" + MAX_THREADS + ") CPU cores, offending argument: \"" + optionValue + "\"");
+//                        }
+//                    } catch (NumberFormatException e) {
+//                        System.err.println("Fatal error! Number of threads must be given as an integer, offending argument: \"" + optionValue + "\"");
+//                    }
+//                }
+//            } else if (a.equals("-D") || a.equalsIgnoreCase("--debug-file")) {
+//                if (it.hasNext()) {
+//                    DEBUG_FILE = it.next();
+//                    Reporter.writeToFile(DEBUG_FILE, Reporter.formatReport("[DEBUG]", "Debugging trace", getClass().getSimpleName()), false);
+//                }
+//            } else if (a.equals("-S") || a.equalsIgnoreCase("--stats-file")) {
+//                if (it.hasNext()) {
+//                    STATS_FILE = it.next();
+//                }
+//            } else if (a.equals("-N") || a.equalsIgnoreCase("--name-prefix")) {
+//                if (it.hasNext()) {
+//                    NAME_PREFIX = it.next();
+//                }
+//            } else if (a.equals("-F") || a.equalsIgnoreCase("--fasta-out")) {
+//                OUTPUT_FASTA = true;
+//            } else if (a.equals("-O") || a.equalsIgnoreCase("--out-redirect")) {
+//                if (it.hasNext()) {
+//                    OUT_REDIRECT = it.next();
+//                }
+//            } else if (a.equals("-E") || a.equalsIgnoreCase("--err-redirect")) {
+//                if (it.hasNext()) {
+//                    ERR_REDIRECT = it.next();
+//                }
+//            } else if (a.equalsIgnoreCase("--ideas")) {
+//                RUN_SOME_WILD_AND_WONDERFUL_STUFF = true;
+////            } else if (a.equals("-M") || a.equalsIgnoreCase("--multipass-compress")) {
+////                if (it.hasNext()) {
+////                    String optionValue = it.next();
+////                    try {
+////                        MULTIPASS_COMPRESS = Integer.parseInt(optionValue);
+////                    } catch (NumberFormatException e) {
+////                        System.err.println("Fatal error! The number iterations set with -m, --multipass-compress must be given as an integer, offending argument: \"" + optionValue + "\"");
+////                    }
+////                }
+////            } else if (a.equals("-H") || a.equalsIgnoreCase("--hash-array-size")) {
+////                if (it.hasNext()) {
+////                    String optionValue = it.next();
+////                    try {
+////                        HASH_ARRAY_SIZE = Integer.parseInt(optionValue.replaceAll(",", ""));
+////                        if (HASH_ARRAY_SIZE > 4) {
+////                            System.err.println("Fatal error! The -H, --hash-array-size must be equal or less than " + (Integer.MAX_VALUE - 3));
+////                            System.exit(1);
+////                        }
+////                    } catch (NumberFormatException e) {
+////                        System.err.println("Fatal error! The -H, --hash-array-size must  be given as an integer, offending argument: \"" + optionValue + "\"");
+////                    }
+////                }
+//            } else if (a.equals("-f") || a.equalsIgnoreCase("--min-kmer-frequency")) {
+//                if (it.hasNext()) {
+//                    String optionValue = it.next();
+//                    try {
+//                        MIN_KMER_FREQUENCY = Integer.parseInt(optionValue.replaceAll(",", ""));
+//                        if (MIN_KMER_FREQUENCY < 1) {
+//                            System.err.println("Fatal error! The -f, --min-kmer-frequency must be equal or less than 1");
+//                            System.exit(1);
+//                        }
+//                    } catch (NumberFormatException e) {
+//                        System.err.println("Fatal error! The -f, --min-kmer-frequency must  be given as an integer, offending argument: \"" + optionValue + "\"");
+//                    }
+//                }
+//            } else if (a.startsWith("-")) {
+//                System.out.println("Unrecognized argument " + a + ", try -h or --help. Terminating...");
+//                System.exit(1);
+//            } else {
+//                inputFileNamesList.add(a);
+//            }
 //        }
-    }
-
-    private void printHelp() {
-
-        System.out.println();
-        System.out.println("Given a set of k-mers, performs their unmabiguous extension.");
-        System.out.println("Input may be passed through stdin. Output is printed to stdout. ");
-        System.out.println("Progress information, warnings errors etc. are printed to stderr, usage:");
-        System.out.println("java -jar " + this.getClass().getSimpleName() + ".jar [options] [INPUT_FILENAME(s)] ");
-        System.out.println(" -h, --help                     : Print this help screen and exit");
-        System.out.println(" -k, --kmer-length <int>        : Required only if input other than a list of k-mers");
-        System.out.println(" -t, --threads <int>            : Number of threads, defaults to " + MAX_THREADS);
-        System.out.println("                                : ");
-        System.out.println(" -F, --fasta-out                : Output each k-mer as a separate FASTA record instead of just listing extended nucleotide sequences");
-        System.out.println(" -N, --name-prefix <string>     : If outputing FASTA, prefix each record identifier with this <string>");
-        System.out.println("                                : ");
-        System.out.println(" -O, --out-redirect <string>    : Redirect stdout to this file");
-        System.out.println(" -E, --err-redirect <string>    : Redirect stderr to this file");
-        System.out.println(" -S, --stats-file <string>      : Write extension stats to this file");
-        System.out.println(" -D, --debug-file <string>      : Write unkosher extensions details to this file");
-        System.out.println("                                : ");
-//        System.out.println(" Multi-pass hashing options, incompatible with stdin:");
-//        System.out.println(" -M, --multipass-compress <int> : Reduce memory requirements with <int> hashing iterations");
-//        System.out.println(" -H, --hash-array-size    <int> : At each iteration, array of <int> size will be added, defualts to " + NumberFormat.getNumberInstance().format(HASH_ARRAY_SIZE) + "*");
-//        System.out.println("                                : ");
+////        if (inputFileNamesList.isEmpty() && MULTIPASS_COMPRESS != null) {
+////            System.out.println("Use of -M, --multi-pass-compress requires that an input file is specified, it will not work correctly with stdin");
+////            System.exit(1);
+////        }
+//    }
 //
-//        String s = "* - Note that each hash array will consume 4 Bytes per element, so the largest possible (on most VMs) "
-//                + "2,147,483,644 element array will consume over 8GB of the allocated memory. ";
+//    private void printHelp() {
+//
+//        System.out.println();
+//        System.out.println("Given a set of k-mers, performs their unmabiguous extension.");
+//        System.out.println("Input may be passed through stdin. Output is printed to stdout. ");
+//        System.out.println("Progress information, warnings errors etc. are printed to stderr, usage:");
+//        System.out.println("java -jar " + this.getClass().getSimpleName() + ".jar [options] [INPUT_FILENAME(s)] ");
+//        System.out.println(" -h, --help                     : Print this help screen and exit");
+//        System.out.println(" -k, --kmer-length <int>        : Required only if input other than a list of k-mers");
+//        System.out.println(" -t, --threads <int>            : Number of threads, defaults to " + MAX_THREADS);
+//        System.out.println("                                : ");
+//        System.out.println(" -F, --fasta-out                : Output each k-mer as a separate FASTA record instead of just listing extended nucleotide sequences");
+//        System.out.println(" -N, --name-prefix <string>     : If outputing FASTA, prefix each record identifier with this <string>");
+//        System.out.println("                                : ");
+//        System.out.println(" -O, --out-redirect <string>    : Redirect stdout to this file");
+//        System.out.println(" -E, --err-redirect <string>    : Redirect stderr to this file");
+//        System.out.println(" -S, --stats-file <string>      : Write extension stats to this file");
+//        System.out.println(" -D, --debug-file <string>      : Write unkosher extensions details to this file");
+//        System.out.println("                                : ");
+////        System.out.println(" Multi-pass hashing options, incompatible with stdin:");
+////        System.out.println(" -M, --multipass-compress <int> : Reduce memory requirements with <int> hashing iterations");
+////        System.out.println(" -H, --hash-array-size    <int> : At each iteration, array of <int> size will be added, defualts to " + NumberFormat.getNumberInstance().format(HASH_ARRAY_SIZE) + "*");
+////        System.out.println("                                : ");
+////
+////        String s = "* - Note that each hash array will consume 4 Bytes per element, so the largest possible (on most VMs) "
+////                + "2,147,483,644 element array will consume over 8GB of the allocated memory. ";
+////        System.out.println(Reporter.wrapString(s, 145));
+//        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
+//                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "
+//                + "the list of k-mers to KmerExtender. For smaller jobs FASTA or FASTQ input may suffice.";
 //        System.out.println(Reporter.wrapString(s, 145));
-        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
-                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "
-                + "the list of k-mers to KmerExtender. For smaller jobs FASTA or FASTQ input may suffice.";
-        System.out.println(Reporter.wrapString(s, 145));
-        System.out.println();
-    }
-
+//        System.out.println();
+//    }
 }

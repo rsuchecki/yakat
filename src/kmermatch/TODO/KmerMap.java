@@ -15,14 +15,15 @@
  */
 package kmermatch.TODO;
 
+import com.sun.webkit.SharedBuffer;
 import kmerextender.*;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListMap;
+import shared.SequenceOps;
 
 /**
- * Wrapper around a concurrent collection (ConcurrentSkipListMap, but other
- * options possible) of PairMer objects. After the Map is populated, use
- * .purge()
+ * Wrapper around a concurrent collection (ConcurrentSkipListMap, but other options possible) of PairMer objects. After
+ * the Map is populated, use .purge()
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
@@ -36,7 +37,6 @@ public class KmerMap extends shared.MerMap {
     private final int MAX_4LONG_ENCODE = 128;
     private final int MAX_5LONG_ENCODE = 160;
 
-
     /**
      * Instantiate the Map
      */
@@ -44,14 +44,7 @@ public class KmerMap extends shared.MerMap {
         kmersSkipListMap = new ConcurrentSkipListMap<>();
     }
 
-    /**
-     * First tries to atomically add a k-mer to the Map, if this fails,
-     * synchronized method is used to update the previously stored k-mer's count
-     *
-     * @param kmerString
-     * @param count
-     */
-    public void addToKmersMap(String kmerString, int count) {
+    public void addToKmersMap(CharSequence sequence, int from, int to, boolean cannonical) {
         Kmer kmer;
 //        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
 //            kmer = new PairMer1LongEncoded(splitMer);
@@ -64,26 +57,19 @@ public class KmerMap extends shared.MerMap {
 //        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
 //            kmer = new PairMer5LongEncoded(splitMer);
 //        } else {
-            kmer = new KmerIntArrIntCounter(kmerString, count);
+//            kmer = new KmerIntArrIntCounter(kmerString, count);
 //        }
+        kmer = new KmerSeqRef(sequence, from, to, cannonical);
 
         //Atomic operation START
         Kmer previousStoredKmer = kmersSkipListMap.putIfAbsent(kmer, kmer);
         //Atomic operation END
         if (previousStoredKmer != null) {
-            //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
-            previousStoredKmer.incrementStoredCount(count);
+//            previousStoredKmer.incrementStoredCount(count);
         }
     }
 
-    /**
-     * Given a core string, retrieves the matching PairMer
-     *
-     * @param core, which will be converted to its canonical form
-     * @param k
-     * @return PairMer if present in Map, null otherwise
-     */
-    public Kmer get(String core, int k) {
+    public Kmer get(CharSequence kmerSequence, int from, int to, boolean canonical) {
 
 //        if (k - 1 <= MAX_1LONG_ENCODE) {
 //            return kmersSkipListMap.get(new PairMer1LongEncoded(core));
@@ -96,8 +82,9 @@ public class KmerMap extends shared.MerMap {
 //        } else if (k - 1 <= MAX_5LONG_ENCODE) {
 //            return kmersSkipListMap.get(new PairMer5LongEncoded(core));
 //        } else {
-            return kmersSkipListMap.get(new KmerIntArrIntCounter(core));
+//            return kmersSkipListMap.get(new KmerIntArrIntCounter(core));
 //        }
+        return kmersSkipListMap.get(new KmerSeqRef(kmerSequence, from, to, canonical));
     }
 
     /**
@@ -107,7 +94,5 @@ public class KmerMap extends shared.MerMap {
     public ConcurrentSkipListMap getPairMersSkipListMap() {
         return kmersSkipListMap;
     }
-
-
 
 }

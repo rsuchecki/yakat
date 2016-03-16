@@ -23,30 +23,42 @@ import java.util.Arrays;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public final class KmerIntArrIntCounter extends Kmer implements Comparable<KmerIntArrIntCounter> {
+public final class KmerIntArrIntCounter extends KmerIntArr implements Kmer, Comparable<KmerIntArr> {
 
     //Object overhead 8 B
-    private int[] kmerBitsArray;  //12B + len*4 Bytes 
     private int storedCount;  //4B //TODO 
 //    private byte storedCount;  //1B
     //then round to multi of 8
 
-    /**
-     * Proper constructor
-     *
-     * @param kmerString
-     * @param count
-     */
-    public KmerIntArrIntCounter(String kmerString, int count) {
-        encodeKmer(SequenceOps.getCanonical(kmerString));
-        incrementStoredCount(count);
-//        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
+//    public KmerIntArrIntCounter(CharSequence sequence, int from, int to) {
+//    }
+//
+    public KmerIntArrIntCounter(CharSequence sequence, int from, int to, int count) {
+        super(sequence, from, to);
+        storedCount = count;
     }
 
-    public KmerIntArrIntCounter(String kmerString) {        
-        encodeKmer(SequenceOps.getCanonical(kmerString));
-        incrementStoredCount(1);
-    }
+//    public KmerIntArrIntCounter(CharSequence sequence, int from, int to) {
+//    }
+
+    
+    
+//    /**
+//     * Proper constructor
+//     *
+//     * @param kmerString
+//     * @param count
+//     */
+//    public KmerIntArrIntCounter(String kmerString, int count) {
+//        encodeKmer(SequenceOps.getCanonical(kmerString));
+//        incrementStoredCount(count);
+////        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
+//    }
+//
+//    public KmerIntArrIntCounter(String kmerString) {        
+//        encodeKmer(SequenceOps.getCanonical(kmerString));
+//        incrementStoredCount(1);
+//    }
      
     @Override
     public boolean equals(Object anotherKmer) {
@@ -56,18 +68,18 @@ public final class KmerIntArrIntCounter extends Kmer implements Comparable<KmerI
     @Override
     public int hashCode() {
         int hash = 3;
-        hash = 79 * hash + Arrays.hashCode(this.kmerBitsArray);
+        hash = 79 * hash + Arrays.hashCode(getKmerBitsArray());
         return hash;
     }
 
     @Override
-    public int compareTo(KmerIntArrIntCounter anotherKmer) {
+    public int compareTo(KmerIntArr anotherKmer) {
         int[] bitArrayAnother = anotherKmer.getKmerBitsArray();
-        for (int i = 0; i < kmerBitsArray.length; i++) {
+        for (int i = 0; i < getKmerBitsArray().length; i++) {
             try {
-                if (kmerBitsArray[i] < bitArrayAnother[i]) {
+                if (getKmerBitsArray()[i] < bitArrayAnother[i]) {
                     return -1;
-                } else if (kmerBitsArray[i] > bitArrayAnother[i]) {
+                } else if (getKmerBitsArray()[i] > bitArrayAnother[i]) {
                     return 1;
                 }
             } catch (IndexOutOfBoundsException e) {
@@ -83,13 +95,10 @@ public final class KmerIntArrIntCounter extends Kmer implements Comparable<KmerI
         return 0;
     }
 
-    public int[] getKmerBitsArray() {
-        return kmerBitsArray;
-    }
 
-    @Override
+
     public String decodeKmer(int coreLength) {
-        return decodeKmer(coreLength, kmerBitsArray);
+        return decodeKmer(coreLength, getKmerBitsArray());
     }
 
     private String decodeKmer(int encodedSequenceLength, int kmerCoreBitsArray[]) {
@@ -120,51 +129,51 @@ public final class KmerIntArrIntCounter extends Kmer implements Comparable<KmerI
         return sb.toString();
     }
 
-    public final void encodeKmer(String kmerString) {
-//        System.err.println("Encoding seq len=" + kmerString.length());
-
-        int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
-        int stringLength = kmerString.length();
-        int intsNeeded = (int) Math.ceil((double) stringLength * 2 / INT_LENGTH); //number of ints needed to store this String 
-//        System.out.println("Need "+intsNeeded+" "+ INT_LENGTH +" bit word(s) to encode "+kmerString.length()+ " nucl sequence");
-        int currentInt = 0;
-        int position = 0;
-        int positionInInt = intsNeeded * INT_LENGTH - stringLength * 2;
-        kmerBitsArray = new int[intsNeeded];
-        char[] kmerCharArray = kmerString.toCharArray();
-        while (position < stringLength) {
-            while ((positionInInt < INT_LENGTH) && (position < stringLength)) {
-                kmerBitsArray[currentInt] <<= 1;
-                if (kmerCharArray[position] == 'A' || kmerCharArray[position] == 'a') {
-                    //if A : 00
-                    kmerBitsArray[currentInt] <<= 1;
-                } else if (kmerCharArray[position] == 'C' || kmerCharArray[position] == 'c') {
-                    //if C : 01 
-                    kmerBitsArray[currentInt] <<= 1;
-                    kmerBitsArray[currentInt]++;
-                } else if (kmerCharArray[position] == 'G' || kmerCharArray[position] == 'g') {
-                    //if G : 10
-                    kmerBitsArray[currentInt]++;
-                    kmerBitsArray[currentInt] <<= 1;
-                } else if (kmerCharArray[position] == 'T' || kmerCharArray[position] == 't') {
-                    //if T : 11
-                    kmerBitsArray[currentInt]++;
-                    kmerBitsArray[currentInt] <<= 1;
-                    kmerBitsArray[currentInt]++;
-                } else {
-                    System.err.println("Failed ecoding kmerstring to int array....");
-                    System.err.println("Offending char: " + kmerCharArray[position]);
-                    System.err.println("in " + kmerString);
-                    System.err.println("....exiting");
-                    System.exit(1);
-                }
-                positionInInt += 2;
-                position++;
-            }
-            currentInt++;
-            positionInInt = 0;
-        }
-    }
+//    public final void encodeKmer(String kmerString) {
+////        System.err.println("Encoding seq len=" + kmerString.length());
+//
+//        int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
+//        int stringLength = kmerString.length();
+//        int intsNeeded = (int) Math.ceil((double) stringLength * 2 / INT_LENGTH); //number of ints needed to store this String 
+////        System.out.println("Need "+intsNeeded+" "+ INT_LENGTH +" bit word(s) to encode "+kmerString.length()+ " nucl sequence");
+//        int currentInt = 0;
+//        int position = 0;
+//        int positionInInt = intsNeeded * INT_LENGTH - stringLength * 2;
+//        kmerBitsArray = new int[intsNeeded];
+//        char[] kmerCharArray = kmerString.toCharArray();
+//        while (position < stringLength) {
+//            while ((positionInInt < INT_LENGTH) && (position < stringLength)) {
+//                kmerBitsArray[currentInt] <<= 1;
+//                if (kmerCharArray[position] == 'A' || kmerCharArray[position] == 'a') {
+//                    //if A : 00
+//                    kmerBitsArray[currentInt] <<= 1;
+//                } else if (kmerCharArray[position] == 'C' || kmerCharArray[position] == 'c') {
+//                    //if C : 01 
+//                    kmerBitsArray[currentInt] <<= 1;
+//                    kmerBitsArray[currentInt]++;
+//                } else if (kmerCharArray[position] == 'G' || kmerCharArray[position] == 'g') {
+//                    //if G : 10
+//                    kmerBitsArray[currentInt]++;
+//                    kmerBitsArray[currentInt] <<= 1;
+//                } else if (kmerCharArray[position] == 'T' || kmerCharArray[position] == 't') {
+//                    //if T : 11
+//                    kmerBitsArray[currentInt]++;
+//                    kmerBitsArray[currentInt] <<= 1;
+//                    kmerBitsArray[currentInt]++;
+//                } else {
+//                    System.err.println("Failed ecoding kmerstring to int array....");
+//                    System.err.println("Offending char: " + kmerCharArray[position]);
+//                    System.err.println("in " + kmerString);
+//                    System.err.println("....exiting");
+//                    System.exit(1);
+//                }
+//                positionInInt += 2;
+//                position++;
+//            }
+//            currentInt++;
+//            positionInInt = 0;
+//        }
+//    }
 
      protected synchronized void incrementStoredCount(int count) {
         if (storedCount+count < Integer.MAX_VALUE) {
@@ -194,4 +203,9 @@ public final class KmerIntArrIntCounter extends Kmer implements Comparable<KmerI
 //        }
 //        return 0;
 //    }
+
+    @Override
+    public String getKmerString() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }
