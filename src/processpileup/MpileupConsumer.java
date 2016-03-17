@@ -29,11 +29,11 @@ public class MpileupConsumer implements Runnable {
     private final int minCoverageThreshold;
     private final int maxCoverageThreshold;
     private final int minSamples;
-    private final int maxPercAlternative;
+    private final double maxPercAlternative;
     private final String TOOL_NAME;
 
     public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, int minCoverageThreshold,
-            int maxCoverageThreshold, int minSamples, int maxPercAlternative, String TOOL_NAME) {
+        int maxCoverageThreshold, int minSamples, double maxPercAlternative, String TOOL_NAME) {
         this.inputQueue = inputQueue;
         this.minCoverageThreshold = minCoverageThreshold;
         this.maxCoverageThreshold = maxCoverageThreshold;
@@ -76,13 +76,17 @@ public class MpileupConsumer implements Runnable {
                             char calledBase = getIUPAC(bases, coverage, maxPercAlternative, minCoverageThreshold);
 //                            if (calledBase.matches("A|T|C|G")) {
                             if (calledBase != '?' && calledBase != ' ') {
-//                                if (!calledBase.equals(lastCalledBase) && lastCalledBase.matches("A|T|C|G")) {
-                                if (calledBase != lastCalledBase && lastCalledBase != '?' && lastCalledBase != ' ') {
+//                                if (!calledBase.equals(lastCalledBase) && lastCalledBase.matches("A|T|C|G")) {                                
+                                
+                                if (Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase) && lastCalledBase != '?' && lastCalledBase != ' ') {
                                     calledDifferentBases = true;
                                 }
                                 lastCalledBase = calledBase;
                             }
-                            callsSB.append("\t").append(calledBase);
+                            callsSB.append("\t");
+                            callsSB.append(calledBase);
+//                            if (calledBase != ' ') { //' ' != ""   which may have an impact on downstream analysis
+//                            }
                             for (int j = 1; j < bases.length; j++) {
                                 coveragesSB.append(bases[j]);
                                 if (j < bases.length - 1) {
@@ -91,6 +95,8 @@ public class MpileupConsumer implements Runnable {
                             }
                         } catch (ArrayIndexOutOfBoundsException e) {
                             Reporter.report("[FATAL]", "Array index out of bounds - likely cause: mismatch between samples given and pileup file content", TOOL_NAME);
+                            System.err.println(line);
+                            
                             System.exit(1);
                         }
                     }
@@ -154,78 +160,100 @@ public class MpileupConsumer implements Runnable {
     }
 
     /**
-     * Given an array of numbers representing observed base counts  [?,#A,#C,#G,#T] (index zero ignored for now) 
-     * call IUPAC representation of the observed bases. Bases are not considered for IUPAC reporting if there are less 
-     * than minCoverageThreshold or 
+     * Given an array of numbers representing observed base counts [?,#A,#C,#G,#T] (index zero ignored for now) call
+     * IUPAC representation of the observed bases. Bases are not considered for IUPAC reporting if there are less than
+     * minCoverageThreshold or
+     *
      * @param encoded [?,#A,#C,#G,#T] (index zero ignored for now)
-     * @param totalDepth 
-     * @param maxErrorPercent % of totalDepth threshold above which a base 
-     * (or resulting IUPAC) is reported rather than being ignored as erroneous
+     * @param totalDepth
+     * @param maxErrorPercent % of totalDepth threshold above which a base (or resulting IUPAC) is reported rather than
+     * being ignored as erroneous
      * @param minCoverageThreshold int min depth for a base to be considered
-     * 
+     *
      * TODO EXTEND TO ACCOMMODATE IDELS
-     * 
-     * @return 
+     *
+     * @return
      */
-    private char getIUPAC(int[] encoded, int totalDepth, int maxErrorPercent, int minCoverageThreshold) {
-        boolean tt[] = new boolean[5]; //truth table i=1,2,3,4 values A,C,G,T...
+    private char getIUPAC(int[] encoded, int totalDepth, double maxErrorPercent, int minCoverageThreshold) {
+        boolean tt[] = new boolean[7]; //truth table i=1,2,3,4 values A,C,G,T...
         //Convert max perc error into max int coverage
-        int maxErrInt = (int) Math.floor(totalDepth * (float) maxErrorPercent / 100);        
+        int maxErrInt = (int) Math.floor(totalDepth * maxErrorPercent / 100);
+//        System.err.println("MaxErrInt="+maxErrInt);
         //Max of maxErr min coverage threshold 
 //        int minCoverage = Math.max((int) Math.ceil(totalDepth * (float) maxErrorPercent / 100), minCoverageThreshold);
         int totalOther = 0;
         for (int i = 1; i < encoded.length; i++) {
-            if (encoded[i] >= minCoverageThreshold && encoded[i] > maxErrInt) {
-                tt[i] = true;                
+//            if (encoded[i] > 0) {
+//                tt[i] = true;
+//            }
+//            if (encoded[i] < minCoverageThreshold || encoded[i] <= maxErrInt) {
+//                totalOther += encoded[i];                
+//            }
+            
+            
+            if (encoded[i] >= minCoverageThreshold && encoded[i] > maxErrInt) {                
+                tt[i] = true;
             } else {
                 totalOther += encoded[i];
             }
         }
+        char base ='?';
         if (totalOther > maxErrInt) {
             return '?';
-        }
-        if (!tt[1] && !tt[2] && !tt[3] && !tt[4]) {            
-            if(totalOther == 0)
-                return ' ';
-            else 
-                return  '?';
+        }        
+        if (!tt[1] && !tt[2] && !tt[3] && !tt[4]) {
+            if(tt[5] && !tt[6]) { //insertion in reference
+                base = 'd';
+            } else if(!tt[5] && tt[6]) { //deletion in reference
+                base = 'i';                
+            } else if (totalOther == 0) {
+                base = ' ';
+            } else {
+                base = '?';
+            }
         } else if (tt[1] && !tt[2] && !tt[3] && !tt[4]) { //A
-            return 'A';
+            base = 'A';
         } else if (!tt[1] && tt[2] && !tt[3] && !tt[4]) { //C
-            return 'C';
+            base = 'C';
         } else if (!tt[1] && !tt[2] && tt[3] && !tt[4]) { //G
-            return 'G';
+            base = 'G';
         } else if (!tt[1] && !tt[2] && !tt[3] && tt[4]) { //T
-            return 'T';
+            base = 'T';
         } else if (tt[1] && !tt[2] && tt[3] && !tt[4]) { //A or G 
-            return 'R';
+            base = 'R';
         } else if (!tt[1] && tt[2] && !tt[3] && tt[4]) { //C or T 
-            return 'Y';
+            base = 'Y';
         } else if (!tt[1] && tt[2] && tt[3] && !tt[4]) { //G or C 
-            return 'S';
+            base = 'S';
         } else if (tt[1] && !tt[2] && !tt[3] && tt[4]) { //A or T 
-            return 'W';
+            base = 'W';
         } else if (!tt[1] && !tt[2] && tt[3] && tt[4]) { //G or T 
-            return 'K';
+            base = 'K';
         } else if (tt[1] && tt[2] && !tt[3] && !tt[4]) { //A or C 
-            return 'M';
+            base = 'M';
         } else if (!tt[1] && tt[2] && tt[3] && tt[4]) { //C or G or T
-            return 'B';
+            base = 'B';
         } else if (tt[1] && !tt[2] && tt[3] && tt[4]) { //A or G or T
-            return 'D';
+            base = 'D';
         } else if (tt[1] && tt[2] && !tt[3] && tt[4]) { //A or C or T
-            return 'H';
+            base = 'H';
         } else if (tt[1] && tt[2] && tt[3] && !tt[4]) { //A or C or G
-            return 'V';
+            base = 'V';
         } else if (tt[1] && tt[2] && tt[3] && tt[4]) {   //any base
-            return 'N';
+            base = 'N';
         }
-        return '#'; //should never happen
+
+//        if (totalOther > maxErrInt) {
+//            return Character.toLowerCase(base);
+//        } else {
+            return base;
+//        }
+//        return '#'; //should never happen
     }
 
     private int[] getBaseCounts(String s, char refBase) {
 //        s = s.replaceAll("\\.|,", String.valueOf(refBase)).replaceAll("\\*", "I").replaceAll("\\^.|\\$", "");
-        int[] bases = new int[5]; // ?,A,C,G,T,insRef,delRef 
+        int[] bases = new int[7]; // ?,A,C,G,T,insRef,delRef 
         StringBuilder lenInsRef = null;
         StringBuilder lenDelRef = null;
 

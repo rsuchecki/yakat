@@ -81,7 +81,8 @@ public class MpileupCounts {
         optSet.addOpt(new Opt('n', "sample-names", "space separated sample names, order must correspond to mpileup input").setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE));
         optSet.addOpt(new Opt('c', "min-coverage-per-base", "Minimum coverage required for a base@sample to be processed/considered", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt('C', "max-coverage-per-base", "Maximum coverage allowed for a base@sample to be processed/considered", 1).setMinValue(1).setDefaultValue(1000));
-        optSet.addOpt(new Opt('M', "percent-error-threshold", "Percentage of coverage up to which a base is regarded to be an error", 1).setMinValue(1).setDefaultValue(5));
+        optSet.addOpt(new Opt('A', "percent-error-allele", "Percentage of coverage up to which a base is regarded to be an error", 1).setMinValue(0.0).setDefaultValue(1.0));
+        optSet.addOpt(new Opt('L', "percent-error-locus", "Percentage coverage up to which ", 1).setMinValue(0.0).setDefaultValue(1.0));
         optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt('p', "pileup-file", "Input (m)pileup file, alternatively use stdin", 1));
         optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()));
@@ -110,7 +111,7 @@ public class MpileupCounts {
     }
 
     private void parallelMpileupProcessing(OptSet optSet) {
-        if(optSet.getOpt("I").isUsed()) {
+        if (optSet.getOpt("I").isUsed()) {
             System.out.println(Info.getIupacCodesTable());
             System.exit(0);
         }
@@ -118,14 +119,11 @@ public class MpileupCounts {
         int minCoverageThreshold = (int) optSet.getOpt("c").getValueOrDefault();
         int maxCoverageThreshold = (int) optSet.getOpt("C").getValueOrDefault();
         int minSamples = (int) optSet.getOpt("s").getValueOrDefault();
-        int maxPercAlternative = (int) optSet.getOpt("M").getValueOrDefault();
+        double maxPercAlternative = (double) optSet.getOpt("M").getValueOrDefault();
         String inputFile = (String) optSet.getOpt("p").getValueOrDefault();
         int READER_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
         int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
         int MAX_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
-
-        System.out.println("COUNTS\t"+getHeader(SAMPLE_NAMES));
-        System.out.println("CALLS\t"+getHeader(SAMPLE_NAMES));
 
 //        mpileupCounts(PILEUP_FILE, minCoverageThreshold, maxCoverageThreshold, minSamples, maxPercAlternative);
         try {
@@ -142,7 +140,6 @@ public class MpileupCounts {
 
             Future<?> future = readAndPopulateExecutor.submit(inputReaderProducer);
             futures.add(future);
-            
 
             //ENSURING WE KNOW THE INPUT FORMAT BEFORE CONSUMER THREADS ARE SPAWNED
             long timeStart = System.currentTimeMillis();
@@ -157,6 +154,9 @@ public class MpileupCounts {
                 } catch (InterruptedException ex) {
                 }
             }
+
+            System.out.println("COUNTS\t" + getHeader(SAMPLE_NAMES));
+            System.out.println("CALLS\t" + getHeader(SAMPLE_NAMES));
 
             //SPAWN CONSUMER THREADS 
             for (int i = 0; i < threads; i++) {
