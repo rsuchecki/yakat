@@ -15,6 +15,7 @@
  */
 package processpileup;
 
+import argparser.OptSet;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import shared.Reporter;
@@ -26,22 +27,44 @@ import shared.Reporter;
 public class MpileupConsumer implements Runnable {
 
     private final BlockingQueue<ArrayList<String>> inputQueue;
-    private final int minCoverageThreshold;
-    private final int maxCoverageThreshold;
+    private final int minCoveragePerLocus;
+    private final int maxCoveragePerLocus;
     private final int minSamples;
-    private final double maxPercAlternative;
+    private final int minCoveragePerAllele;
+    private final double maxPercErrAllele;
+    private final double maxPercErrLocus;
     private final String TOOL_NAME;
 
-    public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, int minCoverageThreshold,
-        int maxCoverageThreshold, int minSamples, double maxPercAlternative, String TOOL_NAME) {
+    public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, OptSet optSet, String TOOL_NAME) {
+        minCoveragePerLocus = (int) optSet.getOpt("c").getValueOrDefault();
+        maxCoveragePerLocus = (int) optSet.getOpt("C").getValueOrDefault();
+        minSamples = (int) optSet.getOpt("s").getValueOrDefault();
+        minCoveragePerAllele = (int) optSet.getOpt("a").getValueOrDefault();
+        maxPercErrAllele = (double) optSet.getOpt("A").getValueOrDefault();
+        maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
         this.inputQueue = inputQueue;
-        this.minCoverageThreshold = minCoverageThreshold;
-        this.maxCoverageThreshold = maxCoverageThreshold;
-        this.minSamples = minSamples;
-        this.maxPercAlternative = maxPercAlternative;
         this.TOOL_NAME = TOOL_NAME;
     }
 
+//    public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, int minCoveragePerLocus,
+//        int maxCoverageThreshold, int minSamples, double maxPercAlternative, String TOOL_NAME) {
+//        this.inputQueue = inputQueue;
+//        
+////                int minCoveragePerLocus = (int) optSet.getOpt("c").getValueOrDefault();
+////        int maxCoveragePerLocus = (int) optSet.getOpt("C").getValueOrDefault();
+////        int minSamples = (int) optSet.getOpt("s").getValueOrDefault();
+////        int minCoveragePerAllele = (int) optSet.getOpt("a").getValueOrDefault();
+////        
+////        double maxPercErrAllele = (double) optSet.getOpt("A").getValueOrDefault();
+////        double maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
+//        
+//        
+//        this.minCoverageThreshold = minCoverageThreshold;
+//        this.maxCoverageThreshold = maxCoverageThreshold;
+//        this.minSamples = minSamples;
+//        this.maxPercAlternative = maxPercAlternative;
+//        this.TOOL_NAME = TOOL_NAME;
+//    }
     @Override
     public void run() {
         try {
@@ -66,18 +89,18 @@ public class MpileupConsumer implements Runnable {
                     for (int i = 3; i < toks.length; i += 3) {
                         try {
                             int coverage = Integer.parseInt(toks[i]);
-                            if (coverage >= minCoverageThreshold && coverage <= maxCoverageThreshold) {
+                            if (coverage >= minCoveragePerLocus && coverage <= maxCoveragePerLocus) {
                                 samplesWithinCoverage++;
                             }
                             int[] bases = getBaseCounts(toks[i + 1], refBase);
                             coveragesSB.append("\t");
 //                            String calledBase = callBase(bases, maxPercAlternative, minCoverageThreshold);
 
-                            char calledBase = getIUPAC(bases, coverage, maxPercAlternative, minCoverageThreshold);
+                            char calledBase = getIUPAC(bases, coverage);
 //                            if (calledBase.matches("A|T|C|G")) {
                             if (calledBase != '?' && calledBase != ' ') {
 //                                if (!calledBase.equals(lastCalledBase) && lastCalledBase.matches("A|T|C|G")) {                                
-                                
+
                                 if (Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase) && lastCalledBase != '?' && lastCalledBase != ' ') {
                                     calledDifferentBases = true;
                                 }
@@ -96,7 +119,7 @@ public class MpileupConsumer implements Runnable {
                         } catch (ArrayIndexOutOfBoundsException e) {
                             Reporter.report("[FATAL]", "Array index out of bounds - likely cause: mismatch between samples given and pileup file content", TOOL_NAME);
                             System.err.println(line);
-                            
+
                             System.exit(1);
                         }
                     }
@@ -168,16 +191,16 @@ public class MpileupConsumer implements Runnable {
      * @param totalDepth
      * @param maxErrorPercent % of totalDepth threshold above which a base (or resulting IUPAC) is reported rather than
      * being ignored as erroneous
-     * @param minCoverageThreshold int min depth for a base to be considered
+     * @paramminCoveragePerAlleleminCoverageThreshold int min depth for a base to be considered
      *
      * TODO EXTEND TO ACCOMMODATE IDELS
      *
      * @return
      */
-    private char getIUPAC(int[] encoded, int totalDepth, double maxErrorPercent, int minCoverageThreshold) {
+    private char getIUPAC(int[] encoded, int totalDepth) {
         boolean tt[] = new boolean[7]; //truth table i=1,2,3,4 values A,C,G,T...
         //Convert max perc error into max int coverage
-        int maxErrInt = (int) Math.floor(totalDepth * maxErrorPercent / 100);
+        int maxErrAlleleInt = (int) Math.floor(totalDepth * maxPercErrAllele / 100);
 //        System.err.println("MaxErrInt="+maxErrInt);
         //Max of maxErr min coverage threshold 
 //        int minCoverage = Math.max((int) Math.ceil(totalDepth * (float) maxErrorPercent / 100), minCoverageThreshold);
@@ -189,28 +212,31 @@ public class MpileupConsumer implements Runnable {
 //            if (encoded[i] < minCoverageThreshold || encoded[i] <= maxErrInt) {
 //                totalOther += encoded[i];                
 //            }
-            
-            
-            if (encoded[i] >= minCoverageThreshold && encoded[i] > maxErrInt) {                
+
+            if (encoded[i] >= minCoveragePerAllele && encoded[i] > maxErrAlleleInt) {
                 tt[i] = true;
             } else {
                 totalOther += encoded[i];
             }
         }
-        char base ='?';
-        if (totalOther > maxErrInt) {
+        char base = '?';
+        if (totalOther > maxErrAlleleInt) {
             return '?';
-        }        
+        }
         if (!tt[1] && !tt[2] && !tt[3] && !tt[4]) {
-            if(tt[5] && !tt[6]) { //insertion in reference
+            if (tt[5] && !tt[6]) { //insertion in reference
                 base = 'd';
-            } else if(!tt[5] && tt[6]) { //deletion in reference
-                base = 'i';                
+            } else if (!tt[5] && tt[6]) { //deletion in reference
+                base = 'i';
+            } else if (tt[5] && tt[6]) { //deletion and insertion??
+                base = '?';
             } else if (totalOther == 0) {
                 base = ' ';
             } else {
                 base = '?';
             }
+        } else if ((tt[1] || tt[2] || tt[3] || tt[4]) && (tt[5] || tt[6])) { //base and an indel???
+            base = '?';
         } else if (tt[1] && !tt[2] && !tt[3] && !tt[4]) { //A
             base = 'A';
         } else if (!tt[1] && tt[2] && !tt[3] && !tt[4]) { //C
@@ -243,11 +269,12 @@ public class MpileupConsumer implements Runnable {
             base = 'N';
         }
 
-//        if (totalOther > maxErrInt) {
-//            return Character.toLowerCase(base);
-//        } else {
+        int maxErrLocusInt = (int) Math.floor(totalDepth * maxPercErrLocus / 100);
+        if (totalOther > maxErrLocusInt) {
+            return Character.toLowerCase(base);
+        } else {
             return base;
-//        }
+        }
 //        return '#'; //should never happen
     }
 

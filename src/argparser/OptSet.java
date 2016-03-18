@@ -236,9 +236,9 @@ public class OptSet {
         //Generate usage string
         StringBuilder usage = new StringBuilder();
         if(summary != null) {
-            usage.append(Reporter.wrapString(summary, printWidth)+System.lineSeparator());
+            usage.append(Reporter.wrapString(summary, printWidth)).append(System.lineSeparator());
         }
-        usage.append("java -jar ").append(mainClassName).append(".jar ").append(moduleName);
+        usage.append(System.lineSeparator()).append("java -jar ").append(mainClassName).append(".jar ").append(moduleName);
 
         //Generate help page
         StringBuilder help = new StringBuilder();

@@ -74,24 +74,32 @@ public class MpileupCounts {
     }
 
     private OptSet populateOptSet() {
-        OptSet optSet = new OptSet("Process multi-sample mpileup input. Base calls printed to stdout prefixed with ^CALLS\\t, "
-            + "base counts printed to stdout prefixed by ^COUNTS\\t");
+        OptSet optSet = new OptSet("Process multi-sample mpileup input. Base call lines printed to stdout prefixed with ^CALLS\\t, "
+            + "base count lines printed to stdout prefixed by ^COUNTS\\t");
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
         optSet.addOpt(new Opt('n', "sample-names", "space separated sample names, order must correspond to mpileup input").setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE));
-        optSet.addOpt(new Opt('c', "min-coverage-per-base", "Minimum coverage required for a base@sample to be processed/considered", 1).setMinValue(1).setDefaultValue(2));
-        optSet.addOpt(new Opt('C', "max-coverage-per-base", "Maximum coverage allowed for a base@sample to be processed/considered", 1).setMinValue(1).setDefaultValue(1000));
-        optSet.addOpt(new Opt('A', "percent-error-allele", "Percentage of coverage up to which a base is regarded to be an error", 1).setMinValue(0.0).setDefaultValue(1.0));
-        optSet.addOpt(new Opt('L', "percent-error-locus", "Percentage coverage up to which ", 1).setMinValue(0.0).setDefaultValue(1.0));
-        optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt('p', "pileup-file", "Input (m)pileup file, alternatively use stdin", 1));
+        optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel("[Base calling settings]");
+        optSet.addOpt(new Opt('a', "min-coverage-per-allele", "Minimum coverage required for an allele to be considered", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt('c', "min-coverage-per-locus", "Minimum coverage required for a locus to be considered", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt('C', "max-coverage-per-locus", "Maximum coverage allowed for a locus to be considered", 1).setMinValue(1).setDefaultValue(1000));
+        optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt('A', "max-percent-error-allele", "Percentage of coverage up to which an allele is regarded to be an error", 1).setMinValue(0.0).setDefaultValue(1.0));
+        optSet.addOpt(new Opt('L', "max-percent-error-locus", "Percentage coverage of alternative alleles up to which a locus is reported", 1).setMinValue(0.0).setDefaultValue(1.0));
+        optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel("[Runtime settings]");
         optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 8192));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",
             64, 1, 256));
 //        String headerNote = "Can be useful for external parallization (print header once)";
 //        optSet.addOpt(new Opt('H', "header-only", "Print header and exit").addFootnote(1, TOOL_NAME));
+        optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel("[A little bit of help]");
         optSet.addOpt(new Opt('I', "iupac-codes-table", "Print the table of IUPAC nucleotide codes and exit"));
+        optSet.addOpt(new Opt('D', "additional-codes-table", "Print the table of additional codes/symbols used by this program"));
 
         return optSet;
     }
@@ -111,15 +119,26 @@ public class MpileupCounts {
     }
 
     private void parallelMpileupProcessing(OptSet optSet) {
+        boolean exit = false;
         if (optSet.getOpt("I").isUsed()) {
             System.out.println(Info.getIupacCodesTable());
+            exit = true;
+        }
+        if (optSet.getOpt("D").isUsed()) {
+            System.out.println(getOutputCodes());
+            exit = true;
+        }
+        if (exit) {
             System.exit(0);
         }
         ArrayList<String> SAMPLE_NAMES = (ArrayList<String>) optSet.getOpt("n").getValues();
-        int minCoverageThreshold = (int) optSet.getOpt("c").getValueOrDefault();
-        int maxCoverageThreshold = (int) optSet.getOpt("C").getValueOrDefault();
-        int minSamples = (int) optSet.getOpt("s").getValueOrDefault();
-        double maxPercAlternative = (double) optSet.getOpt("M").getValueOrDefault();
+//        int minCoveragePerLocus = (int) optSet.getOpt("c").getValueOrDefault();
+//        int maxCoveragePerLocus = (int) optSet.getOpt("C").getValueOrDefault();
+//        int minSamples = (int) optSet.getOpt("s").getValueOrDefault();
+//        int minCoveragePerAllele = (int) optSet.getOpt("a").getValueOrDefault();
+//        
+//        double maxPercErrAllele = (double) optSet.getOpt("A").getValueOrDefault();
+//        double maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
         String inputFile = (String) optSet.getOpt("p").getValueOrDefault();
         int READER_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
         int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
@@ -160,7 +179,8 @@ public class MpileupCounts {
 
             //SPAWN CONSUMER THREADS 
             for (int i = 0; i < threads; i++) {
-                MpileupConsumer consumer = new MpileupConsumer(inputQueue, minCoverageThreshold, maxCoverageThreshold, minSamples, maxPercAlternative, TOOL_NAME);
+//                MpileupConsumer consumer = new MpileupConsumer(inputQueue, minCoveragePerLocus, maxCoveragePerLocus, minSamples, maxPercErrAllele, TOOL_NAME);
+                MpileupConsumer consumer = new MpileupConsumer(inputQueue, optSet, TOOL_NAME);
                 futures.add(readAndPopulateExecutor.submit(consumer));
             }
             readAndPopulateExecutor.shutdown();
@@ -187,141 +207,24 @@ public class MpileupCounts {
         Reporter.report("[INFO]", "Done!", TOOL_NAME);
     }
 
-//    private void mpileupCounts(String inputFile, int minCoverageThreshold, int maxCoverageThreshold, 
-//        int minSamples, int maxPercAlternative) {        
-//        BufferedReader content = null;
-//        try {
-//            if (inputFile == null || inputFile.equals("-")) { //READSTDIN
-//                content = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
-//            } else if (inputFile.endsWith(".gz")) {
-//                InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputFile));
-//                content = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
-//            } else {
-//                content = new BufferedReader(new FileReader(new File(inputFile)), READER_BUFFER_SIZE);
-//            }
-//            String line;
-//            while ((line = content.readLine()) != null && !line.isEmpty()) {
-//                String[] toks = line.split("\t");
-//                int r = 0;
-//                //tos 0,1,2 are ref, position, refbase                                
-//                char refBase = toks[2].charAt(0);
-//                StringBuilder coveragesSB = new StringBuilder();
-//                StringBuilder callsSB = new StringBuilder();
-//                StringBuilder common = new StringBuilder();
-//                common.append(toks[0]).append("\t").append(toks[1]).append("\t").append(toks[2]);
-//                callsSB.append(common);
-//                coveragesSB.append(common);
-//                boolean calledDifferentBases = false;
-//                char lastCalledBase = 'N';
-//                int samplesWithinCoverage = 0;
-//                for (int i = 3; i < toks.length; i += 3) {
-//                    try {
-//                        int coverage = Integer.parseInt(toks[i]);
-//                        if(coverage >= minCoverageThreshold && coverage <= maxCoverageThreshold) {
-//                            samplesWithinCoverage++;
-//                        }
-//                        int[] bases = getBaseCounts(toks[i + 1], refBase);
-//                        coveragesSB.append("\t");
-//                        char calledBase = callBase(bases, maxPercAlternative, minCoverageThreshold);
-//                        if(calledBase != 'N') { 
-//                            if(calledBase != lastCalledBase && lastCalledBase != 'N') {
-//                                calledDifferentBases = true;
-//                            }
-//                            lastCalledBase = calledBase;
-//                        } 
-//                        callsSB.append("\t").append(calledBase);
-//                        for (int j = 1; j < bases.length; j++) {
-//                            coveragesSB.append(bases[j]);
-//                            if (j < bases.length - 1) {
-//                                coveragesSB.append(",");                                
-//                            }
-//                        }
-//                    } catch (ArrayIndexOutOfBoundsException e) {
-//                        Reporter.report("[FATAL]", "Array index out of bounds - likely cause: mismatch between samples given and pileup file content", TOOL_NAME);
-//                        System.exit(1);
-//                    }
-//                }
-//                if (samplesWithinCoverage >= minSamples && calledDifferentBases) {
-//                    System.err.println(coveragesSB);
-//                    System.out.println(callsSB);
-//                }
-//            }
-//
-//        } catch (FileNotFoundException ex) {
-//            Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
-//            System.exit(1);
-//        } catch (IOException ex) {
-//            System.err.println(ex.getMessage());
-//        } finally {
-//            try {
-//                if (content != null) {
-//                    content.close();
-//                }
-//            } catch (IOException ex) {
-//                System.err.println(ex.getMessage());
-//            }
-//        }
-//    }
-//
-//    private char callBase(int[] bases, int maxPercAlternative, int minCoverageThreshold) {
-//        int maxCov=0;
-//        int maxPos=0;      
-//        int totalDepth=0;
-//        for (int i = 1; i < bases.length; i++) {
-//            if(bases[i]>maxCov) {
-//                maxCov=bases[i];
-//                maxPos=i;
-//            }          
-//            totalDepth+=bases[i];
-//        }
-//              
-//        double percOfOtherBases = 1 - ((double) maxCov / totalDepth);
-//        if (maxCov >= minCoverageThreshold && percOfOtherBases > maxPercAlternative / 100) {
-//            return 'N';
-//        }
-//        switch (maxPos) {
-//            case 1: return 'A';
-//            case 2: return 'C';
-//            case 3: return 'G';
-//            case 4: return 'T';
-//            default: return 'N';
-//        }
-//        
-//    }
-//    
-//    private int[] getBaseCounts(CharSequence s, char refBase) {
-//        int[] bases = new int[5];
-//        for (int i = 0; i < s.length(); i++) {
-//            char c = s.charAt(i);
-//            switch (c) {
-//                case '.':
-//                case ',':
-//                    c = refBase;
-//                    break;
-//            }
-//
-//            switch (c) {
-//                case 'A':
-//                case 'a':
-//                    bases[1]++;
-//                    break;
-//                case 'C':
-//                case 'c':
-//                    bases[2]++;
-//                    break;
-//                case 'G':
-//                case 'g':
-//                    bases[3]++;
-//                    break;
-//                case 'T':
-//                case 't':
-//                    bases[4]++;
-//                    break;
-//                default:
-////                    bases[0]++;
-//            }
-//
-//        }
-//        return bases;
-//    }
+    private CharSequence getOutputCodes() {
+        StringBuilder codes = new StringBuilder();
+        codes.append("|---------+--------------------------------------------------|\n");
+        codes.append("|  Symbol | Description                                      |\n");
+        codes.append("|---------+--------------------------------------------------|\n");
+        codes.append("|    ?    + insufficient or conflicting information to call  |\n");
+        codes.append("|    d    + deletion in read / insertion in reference        |\n");
+        codes.append("|    i    + insertion in read / deletion in the reference    |\n");
+        codes.append("|         + whitespace indicates no aligned bases            |\n");
+        codes.append("|---------+--------------------------------------------------|\n\n");
+
+        codes.append("|------------------------------------------------------------|\n");
+        codes.append("|  COUNTS array represents numbers of identified bases       |\n");
+        codes.append("|  [0] ignored and not printed (for now)                     |\n");
+        codes.append("|------------------------------------------------------------|\n");
+        codes.append("|  [A,C,T,G,d,i]                                             |\n");
+        codes.append("|------------------------------------------------------------|\n\n");
+
+        return codes;
+    }
 }

@@ -43,6 +43,6 @@ public class Info {
 "|  V      | not T (V comes after T and U) | A | C | G |    |\n" +
 "|  N or - | any Nucleotide (not a gap)    | A | C | G | T  |\n" +
 "|---------+-------------------------------+---+---+---+----|\n" +
-"Source: https://en.wikipedia.org/wiki/Nucleic_acid_notation";
+"Source: https://en.wikipedia.org/wiki/Nucleic_acid_notation\n";
         }
 }
