@@ -24,10 +24,12 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,6 +72,7 @@ public class MpileupCounts {
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
+        stdRedirect(optSet);
         parallelMpileupProcessing(optSet);
     }
 
@@ -91,16 +94,19 @@ public class MpileupCounts {
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Runtime settings]");
         optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()));
-        optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 8192));
-        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",
-            64, 1, 256));
+        optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 32768));
+        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",64, 1, 256));
+//        optSet.addOpt(new Opt('u', "out-buffer-size", "Size of buffers put on out-queue ", 1024, 128, 32768));
+//        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writing-out",64, 1, 256));
+        optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
+        optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
 //        String headerNote = "Can be useful for external parallization (print header once)";
 //        optSet.addOpt(new Opt('H', "header-only", "Print header and exit").addFootnote(1, TOOL_NAME));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[A little bit of help]");
+        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings and continue executing"));
         optSet.addOpt(new Opt('I', "iupac-codes-table", "Print the table of IUPAC nucleotide codes and exit"));
         optSet.addOpt(new Opt('D', "additional-codes-table", "Print the table of additional codes/symbols used by this program"));
-
         return optSet;
     }
 
@@ -118,7 +124,33 @@ public class MpileupCounts {
         return header;
     }
 
+    private void stdRedirect(OptSet optSet) {
+        String outRedirect;
+        String errRedirect;
+        if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
+            try {
+                File file = new File(outRedirect);
+                PrintStream printStream;
+                printStream = new PrintStream(new FileOutputStream(file));
+                System.setOut(printStream);
+            } catch (FileNotFoundException ex) {
+                Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, TOOL_NAME);
+            }
+        }
+        if ((errRedirect = (String) optSet.getOpt("e").getValueOrDefault()) != null) {
+            try {
+                File file = new File(errRedirect);
+                PrintStream printStream;
+                printStream = new PrintStream(new FileOutputStream(file));
+                System.setErr(printStream);
+            } catch (FileNotFoundException ex) {
+                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, TOOL_NAME);
+            }
+        }
+    }
+
     private void parallelMpileupProcessing(OptSet optSet) {
+
         boolean exit = false;
         if (optSet.getOpt("I").isUsed()) {
             System.out.println(Info.getIupacCodesTable());
@@ -131,6 +163,10 @@ public class MpileupCounts {
         if (exit) {
             System.exit(0);
         }
+        if (optSet.getOpt("P").isUsed()) {
+            optSet.printUserSettings(TOOL_NAME);
+        }
+
         ArrayList<String> SAMPLE_NAMES = (ArrayList<String>) optSet.getOpt("n").getValues();
 //        int minCoveragePerLocus = (int) optSet.getOpt("c").getValueOrDefault();
 //        int maxCoveragePerLocus = (int) optSet.getOpt("C").getValueOrDefault();
@@ -141,7 +177,9 @@ public class MpileupCounts {
 //        double maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
         String inputFile = (String) optSet.getOpt("p").getValueOrDefault();
         int READER_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
+        
         int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
+//        int OUT_Q_CAPACITY = (int) optSet.getOpt("q").getValueOrDefault();
         int MAX_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
 
 //        mpileupCounts(PILEUP_FILE, minCoverageThreshold, maxCoverageThreshold, minSamples, maxPercAlternative);
@@ -153,6 +191,7 @@ public class MpileupCounts {
             final ExecutorService readAndPopulateExecutor = new ThreadPoolExecutor(threads + 1, threads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
             BlockingQueue inputQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
+//            BlockingQueue outputQueue = new ArrayBlockingQueue(OUT_Q_CAPACITY);
 
             //SPAWN INPUT READING THREAD            
             InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFile, null, TOOL_NAME, READER_BUFFER_SIZE);

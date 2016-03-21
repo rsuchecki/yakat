@@ -16,6 +16,7 @@
 package processpileup;
 
 import argparser.OptSet;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
 import shared.Reporter;
@@ -27,6 +28,8 @@ import shared.Reporter;
 public class MpileupConsumer implements Runnable {
 
     private final BlockingQueue<ArrayList<String>> inputQueue;
+//    private final BlockingQueue<ArrayList<String>> outputQueue;
+//    private final int OUT_BUFFER_SIZE;
     private final int minCoveragePerLocus;
     private final int maxCoveragePerLocus;
     private final int minSamples;
@@ -42,7 +45,9 @@ public class MpileupConsumer implements Runnable {
         minCoveragePerAllele = (int) optSet.getOpt("a").getValueOrDefault();
         maxPercErrAllele = (double) optSet.getOpt("A").getValueOrDefault();
         maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
+//        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
         this.inputQueue = inputQueue;
+//        this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
     }
 
@@ -68,7 +73,9 @@ public class MpileupConsumer implements Runnable {
     @Override
     public void run() {
         try {
+//            ArrayList<String> bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
             ArrayList<String> list;
+            PrintStream bufferedOut = new PrintStream(new java.io.BufferedOutputStream(System.out, 8192));
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     String[] toks = line.split("\t");
@@ -116,6 +123,8 @@ public class MpileupConsumer implements Runnable {
                                     coveragesSB.append(",");
                                 }
                             }
+                            coveragesSB.append(System.lineSeparator());
+                            callsSB.append(System.lineSeparator());
                         } catch (ArrayIndexOutOfBoundsException e) {
                             Reporter.report("[FATAL]", "Array index out of bounds - likely cause: mismatch between samples given and pileup file content", TOOL_NAME);
                             System.err.println(line);
@@ -124,17 +133,28 @@ public class MpileupConsumer implements Runnable {
                         }
                     }
                     if (samplesWithinCoverage >= minSamples && calledDifferentBases) {
-                        System.out.println(coveragesSB);
-                        System.out.println(callsSB);
+                        bufferedOut.println(coveragesSB);
+                        bufferedOut.println(callsSB);
+//                        System.out.println(coveragesSB);
+//                        System.out.println(callsSB);
+//                        bufferList.add(coveragesSB.toString());
+//                        bufferList.add(callsSB.toString());
+//                        if (bufferList.size() == OUT_BUFFER_SIZE) {
+//                            outputQueue.put(bufferList);
+//                            bufferList = new ArrayList<>();
+//                        }
                     }
                 }
+                bufferedOut.flush();
             }
+//            outputQueue.put(bufferList);
+//            outputQueue.put(new ArrayList<String>()); //inform other threads
             inputQueue.put(new ArrayList<String>()); //inform other threads
         } catch (InterruptedException ex) {
             ex.printStackTrace();
         }
-
     }
+    
 
     private char callBase(int[] bases, int maxPercAlternativeAllowed, int minCoverageThreshold) {
         int maxCov = 0;
