@@ -43,16 +43,13 @@ public class OptSet {
     Integer currentListingGroup = 0;
     Integer currentListingGroupPosition = 0;
 
-    HashMap<Integer, String> listingGroupLabels;     
+    HashMap<Integer, String> listingGroupLabels;
     HashMap<Integer, ArrayList<Integer>> mutuallyExclusiveGroups;
     ArrayList<Integer> requiredGroups;
-    
+
     String summary;
-    
 
 //    ArrayList<OptGroup> optGroups; //taking care of mutual exlusion of groups of opts
-    
-    
 //    /**
 //     * Add an "flag" opt
 //     * @param shortKey
@@ -75,7 +72,7 @@ public class OptSet {
         requiredGroups = new ArrayList<>();
 //        optGroups = new ArrayList<>();
     }
-    
+
     public OptSet(String summary) {
         shortToOptMap = new HashMap<>();
         longToOptMap = new HashMap<>();
@@ -118,7 +115,6 @@ public class OptSet {
 //            addOpt(opt);
 //        }
 //    }
-    
     public void addOpt(Opt opt) {
         addOpt(opt, currentListingGroup, currentListingGroupPosition++);
     }
@@ -235,7 +231,7 @@ public class OptSet {
 
         //Generate usage string
         StringBuilder usage = new StringBuilder();
-        if(summary != null) {
+        if (summary != null) {
             usage.append(Reporter.wrapString(summary, printWidth)).append(System.lineSeparator());
         }
         usage.append(System.lineSeparator()).append("java -jar ").append(mainClassName).append(".jar ").append(moduleName);
@@ -263,9 +259,9 @@ public class OptSet {
                     if (!wrappedLine) {
                         help.append(System.lineSeparator());
                     }
-                    help.append(groupLabel); 
+                    help.append(groupLabel);
                     ArrayList<Integer> mutuallyExclusive = getMutuallyExclusive(currentListingGroup);
-                    if(isGroupRequired(currentListingGroup)) {
+                    if (isGroupRequired(currentListingGroup)) {
                         help.append("[**] ");
                     }
 //                    if(mutuallyExclusive !=null && !mutuallyExclusive.isEmpty()) {
@@ -299,7 +295,7 @@ public class OptSet {
                 help.append("       ");
             }
             if (!opt.hasLongKey()) {
-                help.append("    ");                
+                help.append("    ");
             }
 
             String gap = String.format("%" + (maxLongArgLength - opt.getLongKeyLength()) + "s", " ");
@@ -382,7 +378,7 @@ public class OptSet {
         }
         String usageString = usage.toString();
         String helpString = help.toString().replaceAll("\\. *,", ",").replaceAll(" *,", ",").replaceAll(" *;", ";");
-        
+
         UsageAndHelp usageAndHelp = new UsageAndHelp(usageString, helpString);
         return usageAndHelp;
         //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
@@ -422,38 +418,61 @@ public class OptSet {
         }
         return "";
     }
-    
-    
+
     public void setGroupRequired(int group) {
         requiredGroups.add(group);
     }
-    
+
     public boolean isGroupRequired(int group) {
         return requiredGroups.contains(group);
     }
-    
+
     public void setMutuallyExclusiveGroups(int group1, int group2) {
-        if(mutuallyExclusiveGroups == null) {
-            mutuallyExclusiveGroups = new HashMap<>();                        
-        }        
+        if (mutuallyExclusiveGroups == null) {
+            mutuallyExclusiveGroups = new HashMap<>();
+        }
         setMustuallyExclusive(group1, group2);
         setMustuallyExclusive(group2, group1);
     }
-    
+
     private void setMustuallyExclusive(int group1, int group2) {
         ArrayList<Integer> incompatibleWithGroup1 = mutuallyExclusiveGroups.get(group1);
-        if(incompatibleWithGroup1 == null) {
+        if (incompatibleWithGroup1 == null) {
             incompatibleWithGroup1 = new ArrayList<>();
         }
         incompatibleWithGroup1.add(group2);
         mutuallyExclusiveGroups.put(group1, incompatibleWithGroup1);
     }
-    
-    private  ArrayList<Integer> getMutuallyExclusive(int group) {
-        if(mutuallyExclusiveGroups == null) {
+
+    private ArrayList<Integer> getMutuallyExclusive(int group) {
+        if (mutuallyExclusiveGroups == null) {
             return null;
         }
         return mutuallyExclusiveGroups.get(group);
     }
 
+    public void printUserSettings(String TOOL_NAME) {
+        for (Opt o : getOptsList()) {
+            StringBuilder sb = new StringBuilder();
+            if (o.getMaxValueArgs() > 0) {
+                sb.append("-").append(o.getShortKey()).append(", --").append(o.getLongKey()).append(" ");
+                if (o.getValues().size() > 1) {
+                    ArrayList values = o.getValues();
+                    for (Object ob : values) {
+                        sb.append(" ").append(ob.toString());
+                    }
+                } else {
+                    sb.append(o.getValueOrDefault());
+                }
+            } else if (o.isUsed()) {
+                sb.append("-").append(o.getShortKey()).append(", --").append(o.getLongKey());
+            }
+            if (o.isUsed()) {
+                sb.append(" [USER-SET]");
+            }
+            if (sb.length() > 0) {
+                Reporter.reportNoMem("[OPTS]", sb.toString(), TOOL_NAME);
+            }
+        }
+    }
 }
