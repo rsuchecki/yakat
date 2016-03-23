@@ -36,6 +36,7 @@ public class MpileupConsumer implements Runnable {
     private final int minCoveragePerAllele;
     private final double maxPercErrAllele;
     private final double maxPercErrLocus;
+    private final boolean allWithinThresholds;
     private final String TOOL_NAME;
 
     public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, OptSet optSet, String TOOL_NAME) {
@@ -46,6 +47,7 @@ public class MpileupConsumer implements Runnable {
         maxPercErrAllele = (double) optSet.getOpt("A").getValueOrDefault();
         maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
 //        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
+        allWithinThresholds = optSet.getOptS('W').isUsed();
         this.inputQueue = inputQueue;
 //        this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
@@ -75,7 +77,7 @@ public class MpileupConsumer implements Runnable {
         try {
 //            ArrayList<String> bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
             ArrayList<String> list;
-            PrintStream bufferedOut = new PrintStream(new java.io.BufferedOutputStream(System.out, 8192));
+            PrintStream bufferedOut = new PrintStream(new java.io.BufferedOutputStream(System.out, 65535));
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     String[] toks = line.split("\t");
@@ -92,23 +94,29 @@ public class MpileupConsumer implements Runnable {
 //                    String lastCalledBase = "N";
                     char lastCalledBase = '?';
 
+                    int[] basesAllSamples = new int[7];
+                    int coverageAllSamples = 0;
                     int samplesWithinCoverage = 0;
                     for (int i = 3; i < toks.length; i += 3) {
                         try {
                             int coverage = Integer.parseInt(toks[i]);
+                            coverageAllSamples+=coverage;
                             if (coverage >= minCoveragePerLocus && coverage <= maxCoveragePerLocus) {
                                 samplesWithinCoverage++;
                             }
                             int[] bases = getBaseCounts(toks[i + 1], refBase);
+                            for (int j = 0; j < bases.length; j++) {
+                                basesAllSamples[j] += bases[j];
+                            }
                             coveragesSB.append("\t");
 //                            String calledBase = callBase(bases, maxPercAlternative, minCoverageThreshold);
 
                             char calledBase = getIUPAC(bases, coverage);
 //                            if (calledBase.matches("A|T|C|G")) {
-                            if (calledBase != '?' && calledBase != ' ') {
+                            if (calledBase != '?' && calledBase != '.') {
 //                                if (!calledBase.equals(lastCalledBase) && lastCalledBase.matches("A|T|C|G")) {                                
 
-                                if (Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase) && lastCalledBase != '?' && lastCalledBase != ' ') {
+                                if (Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase) && lastCalledBase != '?' && lastCalledBase != '.') {
                                     calledDifferentBases = true;
                                 }
                                 lastCalledBase = calledBase;
@@ -123,8 +131,8 @@ public class MpileupConsumer implements Runnable {
                                     coveragesSB.append(",");
                                 }
                             }
-                            coveragesSB.append(System.lineSeparator());
-                            callsSB.append(System.lineSeparator());
+//                            coveragesSB.append(System.lineSeparator());
+//                            callsSB.append(System.lineSeparator());
                         } catch (ArrayIndexOutOfBoundsException e) {
                             Reporter.report("[FATAL]", "Array index out of bounds - likely cause: mismatch between samples given and pileup file content", TOOL_NAME);
                             System.err.println(line);
@@ -132,7 +140,17 @@ public class MpileupConsumer implements Runnable {
                             System.exit(1);
                         }
                     }
-                    if (samplesWithinCoverage >= minSamples && calledDifferentBases) {
+                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || allWithinThresholds)) {
+
+                        coveragesSB.append("\t");
+                        for (int j = 1; j < basesAllSamples.length; j++) {
+                            coveragesSB.append(basesAllSamples[j]);
+                            if (j < basesAllSamples.length - 1) {
+                                coveragesSB.append(",");
+                            }
+                        }
+                        callsSB.append("\t").append(getIUPAC(basesAllSamples, coverageAllSamples));
+
                         bufferedOut.println(coveragesSB);
                         bufferedOut.println(callsSB);
 //                        System.out.println(coveragesSB);
@@ -154,7 +172,6 @@ public class MpileupConsumer implements Runnable {
             ex.printStackTrace();
         }
     }
-    
 
     private char callBase(int[] bases, int maxPercAlternativeAllowed, int minCoverageThreshold) {
         int maxCov = 0;
@@ -245,13 +262,13 @@ public class MpileupConsumer implements Runnable {
         }
         if (!tt[1] && !tt[2] && !tt[3] && !tt[4]) {
             if (tt[5] && !tt[6]) { //insertion in reference
-                base = 'd';
+                base = 'E';
             } else if (!tt[5] && tt[6]) { //deletion in reference
-                base = 'i';
+                base = 'I';
             } else if (tt[5] && tt[6]) { //deletion and insertion??
                 base = '?';
             } else if (totalOther == 0) {
-                base = ' ';
+                base = '.';
             } else {
                 base = '?';
             }
@@ -352,6 +369,7 @@ public class MpileupConsumer implements Runnable {
                         lenInsRef = null;
                         i += indelLen - 1;
                         bases[5]++;
+//                        System.out.println("Ins in ref "+s);
                     }
                 }
                 if (lenDelRef != null) {
@@ -362,6 +380,7 @@ public class MpileupConsumer implements Runnable {
                         lenDelRef = null;
                         i += indelLen - 1;
                         bases[6]++;
+//                        System.out.println("del in ref"+s);
                     }
                 }
             }

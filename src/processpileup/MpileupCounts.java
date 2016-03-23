@@ -91,6 +91,7 @@ public class MpileupCounts {
         optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt('A', "max-percent-error-allele", "Percentage of coverage up to which an allele is regarded to be an error", 1).setMinValue(0.0).setDefaultValue(1.0));
         optSet.addOpt(new Opt('L', "max-percent-error-locus", "Percentage coverage of alternative alleles up to which a locus is reported", 1).setMinValue(0.0).setDefaultValue(1.0));
+        optSet.addOpt(new Opt('W', "all-within-threshold", "Print all loci within given thresholds even if no alternative alleles called"));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Runtime settings]");
         optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()));
@@ -252,8 +253,8 @@ public class MpileupCounts {
         codes.append("|  Symbol | Description                                      |\n");
         codes.append("|---------+--------------------------------------------------|\n");
         codes.append("|    ?    + insufficient or conflicting information to call  |\n");
-        codes.append("|    d    + deletion in read / insertion in reference        |\n");
-        codes.append("|    i    + insertion in read / deletion in the reference    |\n");
+        codes.append("|    E    + deletion in read / insertion in reference        |\n");
+        codes.append("|    I    + insertion in read / deletion in the reference    |\n");
         codes.append("|         + whitespace indicates no aligned bases            |\n");
         codes.append("|---------+--------------------------------------------------|\n\n");
 
@@ -261,7 +262,7 @@ public class MpileupCounts {
         codes.append("|  COUNTS array represents numbers of identified bases       |\n");
         codes.append("|  [0] ignored and not printed (for now)                     |\n");
         codes.append("|------------------------------------------------------------|\n");
-        codes.append("|  [A,C,T,G,d,i]                                             |\n");
+        codes.append("|  [A,C,T,G,E,I]                                             |\n");
         codes.append("|------------------------------------------------------------|\n\n");
 
         return codes;
