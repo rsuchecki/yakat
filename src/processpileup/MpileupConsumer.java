@@ -38,8 +38,9 @@ public class MpileupConsumer implements Runnable {
     private final double maxPercErrLocus;
     private final boolean allWithinThresholds;
     private final String TOOL_NAME;
+    private final PrintStream bufferedOut;
 
-    public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, OptSet optSet, String TOOL_NAME) {
+    public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, OptSet optSet, String TOOL_NAME, PrintStream bufferedOut) {
         minCoveragePerLocus = (int) optSet.getOpt("c").getValueOrDefault();
         maxCoveragePerLocus = (int) optSet.getOpt("C").getValueOrDefault();
         minSamples = (int) optSet.getOpt("s").getValueOrDefault();
@@ -51,8 +52,10 @@ public class MpileupConsumer implements Runnable {
         this.inputQueue = inputQueue;
 //        this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
+        this.bufferedOut = bufferedOut;
     }
 
+    
 //    public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, int minCoveragePerLocus,
 //        int maxCoverageThreshold, int minSamples, double maxPercAlternative, String TOOL_NAME) {
 //        this.inputQueue = inputQueue;
@@ -77,7 +80,6 @@ public class MpileupConsumer implements Runnable {
         try {
 //            ArrayList<String> bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
             ArrayList<String> list;
-            PrintStream bufferedOut = new PrintStream(new java.io.BufferedOutputStream(System.out, 65535));
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     String[] toks = line.split("\t");
@@ -92,15 +94,18 @@ public class MpileupConsumer implements Runnable {
                     coveragesSB.append(common);
                     boolean calledDifferentBases = false;
 //                    String lastCalledBase = "N";
-                    char lastCalledBase = '?';
-
+                    char lastCalledBase = '#';
+                    int basesCalled = 0;
                     int[] basesAllSamples = new int[7];
+
                     int coverageAllSamples = 0;
                     int samplesWithinCoverage = 0;
+                    int unknown = 0;
+                    int uncovered = 0;
                     for (int i = 3; i < toks.length; i += 3) {
                         try {
                             int coverage = Integer.parseInt(toks[i]);
-                            coverageAllSamples+=coverage;
+                            coverageAllSamples += coverage;
                             if (coverage >= minCoveragePerLocus && coverage <= maxCoveragePerLocus) {
                                 samplesWithinCoverage++;
                             }
@@ -113,13 +118,16 @@ public class MpileupConsumer implements Runnable {
 
                             char calledBase = getIUPAC(bases, coverage);
 //                            if (calledBase.matches("A|T|C|G")) {
-                            if (calledBase != '?' && calledBase != '.') {
-//                                if (!calledBase.equals(lastCalledBase) && lastCalledBase.matches("A|T|C|G")) {                                
-
-                                if (Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase) && lastCalledBase != '?' && lastCalledBase != '.') {
+                            if(calledBase == '?') {
+                                unknown++;
+                            } else if (calledBase == '.') {
+                                uncovered++;
+                            } else {
+                                if (Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase) && lastCalledBase != '#') {
                                     calledDifferentBases = true;
                                 }
                                 lastCalledBase = calledBase;
+                                basesCalled++;
                             }
                             callsSB.append("\t");
                             callsSB.append(calledBase);
@@ -140,7 +148,8 @@ public class MpileupConsumer implements Runnable {
                             System.exit(1);
                         }
                     }
-                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || allWithinThresholds)) {
+                    //TODO uncovered should be set to > 0, > 1 is specific to having a very poor sample here
+                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
 
                         coveragesSB.append("\t");
                         for (int j = 1; j < basesAllSamples.length; j++) {

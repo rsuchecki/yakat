@@ -94,7 +94,8 @@ public class MpileupCounts {
         optSet.addOpt(new Opt('W', "all-within-threshold", "Print all loci within given thresholds even if no alternative alleles called"));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Runtime settings]");
-        optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()));
+        String threadsOrderNote = "Note that in multi-threaded mode the order output lines need not reflect the input order";
+        optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()).addFootnote(1, TOOL_NAME));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 32768));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",64, 1, 256));
 //        optSet.addOpt(new Opt('u', "out-buffer-size", "Size of buffers put on out-queue ", 1024, 128, 32768));
@@ -105,7 +106,7 @@ public class MpileupCounts {
 //        optSet.addOpt(new Opt('H', "header-only", "Print header and exit").addFootnote(1, TOOL_NAME));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[A little bit of help]");
-        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings and continue executing"));
+        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
         optSet.addOpt(new Opt('I', "iupac-codes-table", "Print the table of IUPAC nucleotide codes and exit"));
         optSet.addOpt(new Opt('D', "additional-codes-table", "Print the table of additional codes/symbols used by this program"));
         return optSet;
@@ -217,10 +218,12 @@ public class MpileupCounts {
             System.out.println("COUNTS\t" + getHeader(SAMPLE_NAMES));
             System.out.println("CALLS\t" + getHeader(SAMPLE_NAMES));
 
+            PrintStream bufferedOut = new PrintStream(new java.io.BufferedOutputStream(System.out, 65535));
+            
             //SPAWN CONSUMER THREADS 
             for (int i = 0; i < threads; i++) {
 //                MpileupConsumer consumer = new MpileupConsumer(inputQueue, minCoveragePerLocus, maxCoveragePerLocus, minSamples, maxPercErrAllele, TOOL_NAME);
-                MpileupConsumer consumer = new MpileupConsumer(inputQueue, optSet, TOOL_NAME);
+                MpileupConsumer consumer = new MpileupConsumer(inputQueue, optSet, TOOL_NAME, bufferedOut);
                 futures.add(readAndPopulateExecutor.submit(consumer));
             }
             readAndPopulateExecutor.shutdown();
