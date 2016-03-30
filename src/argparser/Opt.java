@@ -47,8 +47,9 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     private HashMap<Integer, String> footnotesMap;
 
     //parsed values if opt is not a simple flag
-    private final ArrayList<ArrayList<T>> values = new ArrayList<>();
-    private int optInstance = -1;
+//    private final ArrayList<ArrayList<T>> values = new ArrayList<>();
+    private final ArrayList<T> values = new ArrayList<>();
+//    private int optInstance = -1;
 
     /**
      * Create a "flag" opt
@@ -81,8 +82,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     /**
-     * Constructor gives access to most fields, all but one of (shortKey,
-     * longKey, helpString) may be null
+     * Constructor gives access to most fields, all but one of (shortKey, longKey, helpString) may be null
      *
      * @param shortKey [REQUIRED]
      * @param longKey [REQUIRED]
@@ -117,8 +117,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     /**
-     * Constructor gives access to 3 required fields as well as the default and
-     * min and max accepted values
+     * Constructor gives access to 3 required fields as well as the default and min and max accepted values
      *
      * @param shortKey [REQUIRED]
      * @param longKey [REQUIRED]
@@ -139,8 +138,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     /**
-     * Constructor gives access to 3 required fields as well as the default and
-     * min and max accepted values plus the min max args
+     * Constructor gives access to 3 required fields as well as the default and min and max accepted values plus the min
+     * max args
      *
      * @param shortKey [REQUIRED]
      * @param longKey [REQUIRED]
@@ -169,7 +168,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
 
     public void addValue(String valueString) {
 
-        if (maxValueArgs == 0) {
+        System.err.println(getOptLabelString()+" "+valueString);
+        if (getMaxValueArgs() == 0) {
             Reporter.reportNoMem("[FATAL]", "Boolean flag must not carry args. Offending value" + valueString, getClass().getSimpleName());
             System.exit(1);
         } else {
@@ -183,8 +183,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
                     Reporter.reportNoMem("[FATAL]", "Value for option '" + getOptLabelString() + "' must be set to at most " + getMaxValue() + ", offending value: " + valueString, getClass().getSimpleName());
                     System.exit(1);
                 }
-                if (getValues().size() >= maxValueArgs) {
-                    Reporter.reportNoMem("[FATAL]", "Option '" + getOptLabelString() + "' allows up to " + getMaxValueArgs() + " values, unable to add : " + valueString, getClass().getSimpleName());
+                if (getValues().size() >= getMaxValueArgs()) {
+                    Reporter.reportNoMem("[FATAL]", "Option '" + getOptLabelString() + "' maximum of " + getMaxValueArgs() + " value(s), unable to add: " + valueString, getClass().getSimpleName());
                     System.exit(1);
                 }
                 if (hasDefaultValue()) {
@@ -200,7 +200,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
                 System.err.println(e.getClass());
                 System.exit(1);
             }
-            values.get(getOptInstance()).add(value);
+            values.add(value);
+//            values.get(getOptInstance()).add(value);
         }
     }
 
@@ -394,16 +395,17 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     public ArrayList<T> getValues() {
-        int oi = getOptInstance();
-        if(oi == -1) {
-            return new ArrayList<>();
-        }
-        return values.get(oi);
+//        int oi = getOptInstance();
+//        if (oi == -1) {
+//            return new ArrayList<>();
+//        }
+//        return values.get(oi);       
+        return values;
     }
 
     public T getValueIfSingle() {
         if (values.size() == 1) {
-            return values.get(0).get(0);
+            return values.get(0);
         }
         return null;
     }
@@ -411,7 +413,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     public T getValueOrDefault() {
         if (isUsed()) {
             if (values.size() == 1) {
-                return values.get(0).get(0);
+                return values.get(0);
             }
         }
         return getDefaultValue();
@@ -445,7 +447,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         if (values == null) {
             return 0;
         } else {
-            return values.get(getOptInstance()).size();
+//            return values.get(getOptInstance()).size();
+            return values.size();
         }
     }
 
@@ -508,9 +511,10 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     /**
-     * Set min and max number of args accepted 
+     * Set min and max number of args accepted
+     *
      * @param numArgs
-     * @return 
+     * @return
      */
     public Opt setNumArgs(int numArgs) {
         this.minValueArgs = numArgs;
@@ -551,15 +555,19 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         return footnotesMap.get(key);
     }
 
-    public int getOptInstance() {
-        return optInstance;
-    }
+//    public int getOptInstance() {
+//        return optInstance;
+//    }
 
-    public void incrementOptInstance() {
-        values.add(new ArrayList<T>());
-        this.optInstance++;
-    }
-    
-    
+//    public boolean  incrementOptInstance() {
+//        if (this.optInstance < 0 || canBeMultiCalled) {
+//            values.add(new ArrayList<T>());
+//            this.optInstance++;
+//            return true;
+//        } else {
+//            Reporter.reportNoMem("[ERROR]", "Option '" + getOptLabelString() + "' can only be specified once", getClass().getSimpleName());
+//            return false;
+//        }
+//    }
 
 }

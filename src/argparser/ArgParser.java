@@ -84,7 +84,7 @@ public class ArgParser {
         boolean parsingPositional = false;
         Opt opt = null;
         while (it.hasNext()) {
-            String a = it.next();            
+            String a = it.next();
             if (a.equals("-h") || a.equals("--help")) {
                 UsageAndHelp usageAndHelp = optSet.getUsageAndHelp(callerName, args[0], helpWidth);
                 System.out.println();
@@ -103,12 +103,14 @@ public class ArgParser {
                 if (currentOpt == null) {
                     System.err.println("Unrecognized argument " + a + ", try -h or --help. Terminating...");
                     fatal = true;
-                }
-                currentOpt.incrementOptInstance(); //accommodates for an opt that can be called multiple times 
-                if (currentOpt.canTakeMoreValues()) {
-                    opt = currentOpt;
                 } else {
-                    currentOpt.setOptFlag(true);
+//                    currentOpt.incrementOptInstance(); //accommodates for an opt that can be called multiple times 
+//                    System.err.println(currentOpt.getLongKey());
+                    if(currentOpt.getMaxValueArgs() > 0) {
+                        opt = currentOpt;
+                    } else {
+                        currentOpt.setOptFlag(true);
+                    }
                 }
             } else if (opt == null) {
                 parsingPositional = true;
@@ -139,12 +141,12 @@ public class ArgParser {
                 Reporter.reportNoMem("[FATAL]", "Insufficient (" + o.getNumberOfValues() + ") values passed with option '" + o.getOptLabelString() + "', at least " + o.getMinValueArgs() + " expected", getClass().getSimpleName());
                 fatal = true;
             }
-            if(o.isRequired() && !o.isUsed()) {
-                Reporter.reportNoMem("[FATAL]", "Required option not used " + o.getOptLabelStringQuoted()+ " expected", getClass().getSimpleName());
-                fatal = true;                
+            if (o.isRequired() && !o.isUsed()) {
+                Reporter.reportNoMem("[FATAL]", "Required option not used " + o.getOptLabelStringQuoted() + " expected", getClass().getSimpleName());
+                fatal = true;
             }
         }
-        if(fatal) {
+        if (fatal) {
             System.exit(1);
         }
     }
