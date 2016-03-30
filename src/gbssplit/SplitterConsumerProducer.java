@@ -119,9 +119,9 @@ public class SplitterConsumerProducer implements Runnable {
                         int matchingBarcodes = 0;
                         for (Map.Entry<String, String> entrySet : barcodes.entrySet()) {
                             String barcode = entrySet.getKey();
-                            if (toks[1].startsWith(barcode)) {                                
+                            if (toks[1].startsWith(barcode)) {
                                 matchingBarcodes++;
-                                if(PSTI_STARTING_ONLY && !toks[1].startsWith(barcode+"TGCAG")) {
+                                if (PSTI_STARTING_ONLY && !toks[1].startsWith(barcode + "TGCAG")) {
                                     notPstIStart++;
                                     break;
                                 }
@@ -146,7 +146,7 @@ public class SplitterConsumerProducer implements Runnable {
                                 StringBuilder builderR1 = new StringBuilder();
                                 StringBuilder builderR2 = new StringBuilder();
                                 builderR1.append(toks[0]); //id
-                                
+
                                 if (TRIM_BARCODE) {
                                     toks[1] = toks[1].substring(barcode.length());
                                     toks[3] = toks[3].substring(barcode.length());
@@ -174,12 +174,12 @@ public class SplitterConsumerProducer implements Runnable {
                                 builderR1.append("\t").append(toks[3]); //qualline (possibly trimmed)
                                 int mateLen = 0;
                                 boolean trimmedPstI = false;
-                                if (toks.length == 8) {
+                                if (toks.length == 8) { //PE input
                                     builderR2.append(toks[4]); //mate id                                            
                                     if (TRIM_ADAPTERS) {
                                         int trimFrom = toks[5].indexOf("CTGCA" + SequenceOps.getReverseComplementString(barcode));
                                         if (trimFrom >= 0) {
-                                            toks[5] = toks[5].substring(0, trimFrom);
+                                            toks[5] = toks[5].substring(0, trimFrom); //TODO don't trim PstI site!
                                             toks[7] = toks[7].substring(0, trimFrom);
                                             trimmedPstI = true;
                                         }
@@ -189,32 +189,32 @@ public class SplitterConsumerProducer implements Runnable {
                                     builderR2.append("\t").append(toks[7]); //qual line
                                     mateLen = toks[5].length();
                                 }
+                                //If all len cutoffs met
                                 if (mateLen >= MIN_LENGTH_PAIR_EACH && toks[1].length() >= MIN_LENGTH_PAIR_EACH && mateLen + toks[1].length() >= MIN_LENGTH_PAIR_SUM) {
                                     bufferList.add(builderR1.append("\t").append(builderR2).toString());
-                                } else {
-                                    if (toks.length == 8) {
-                                        if (mateLen + toks[1].length() < MIN_LENGTH_PAIR_SUM) {
-                                            pairUnderLenSum++;
-                                        }
-                                        if (toks[1].length() < MIN_LENGTH_PAIR_EACH) {
-                                            pairedReadUnderLen++;
-                                        }
-                                        if (mateLen < MIN_LENGTH_PAIR_EACH) {
-                                            pairedReadUnderLen++;
-                                        }
+                                //else if PE input
+                                } else if (toks.length == 8) {  
+                                    //count pairs under combined length 
+                                    if (mateLen + toks[1].length() < MIN_LENGTH_PAIR_SUM) {
+                                        pairUnderLenSum++;
                                     }
-                                    if (toks[1].length() >= MIN_LENGTH_READ) {
+                                    if (toks[1].length() < MIN_LENGTH_PAIR_EACH) {
+                                        pairedReadUnderLen++;
+                                    } else {
                                         bufferList.add(builderR1.toString());
-                                    } else {
-                                        singleUnderLength++;
                                     }
-                                    if (mateLen >= MIN_LENGTH_READ) {
+                                    if (mateLen < MIN_LENGTH_PAIR_EACH) {
+                                        pairedReadUnderLen++;
+                                    } else {
                                         bufferList.add(builderR2.toString());
-                                    } else {
-                                        singleUnderLength++;
                                     }
-                                }
-
+                                //else if SE input
+                                } else if (toks[1].length() >= MIN_LENGTH_READ) {
+                                    bufferList.add(builderR1.toString());
+                                } else {
+                                    singleUnderLength++;
+                                } 
+                                //Cummulative trimming stats
                                 if (trimmedMspI && trimmedPstI) {
                                     trimmedBothCutSitesInPair++;
                                 } else if (trimmedMspI) {
@@ -259,19 +259,22 @@ public class SplitterConsumerProducer implements Runnable {
             inputQueue.put(new ArrayList<String>()); //inform other threads
             if (lines > 0) {
                 String name = Thread.currentThread().getName();
-                String message = "[" + name + "] " + NumberFormat.getNumberInstance().format(lines) + 
-                    " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch);
-                if(PSTI_STARTING_ONLY) {
-                    message+=", non-PstI start detected in " + NumberFormat.getNumberInstance().format(notPstIStart);
+                String message = "[" + name + "] " + NumberFormat.getNumberInstance().format(lines)
+                    + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch);
+                if (PSTI_STARTING_ONLY) {
+                    message += ", non-PstI start detected in " + NumberFormat.getNumberInstance().format(notPstIStart);
                 }
                 finalMessages.add(new Message(Message.Level.INFO, message, TOOL_NAME));
                 if (TRIM_ADAPTERS) {
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed both PstI read-through and MspI+adapter in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed only PstI read-through in " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " reads", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed only MspI+adapter in " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " reads", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(pairUnderLenSum) + " pairs under combined length " + MIN_LENGTH_PAIR_SUM, TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(pairedReadUnderLen) + " paired reads under length " + MIN_LENGTH_PAIR_EACH, TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] " + NumberFormat.getNumberInstance().format(singleUnderLength) + " single reads under length " + MIN_LENGTH_READ, TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed total " + NumberFormat.getNumberInstance().format(trimmedMspIcount + trimmedBothCutSitesInPair + trimmedPstIcount) + " fragments", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimming breakdown: ", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Trimmed MspI+3' Adapter from R1 and PstI+barcode from R2 in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Trimmed PstI+barcode from " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " R2 reads", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Trimmed MspI+3' Adapter from " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " R1 reads", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Length filtering breakdown: ", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(pairUnderLenSum) + " pairs under combined length " + MIN_LENGTH_PAIR_SUM, TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(pairedReadUnderLen) + " paired reads under length " + MIN_LENGTH_PAIR_EACH, TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(singleUnderLength) + " single reads under length " + MIN_LENGTH_READ, TOOL_NAME));
                 }
             }
 

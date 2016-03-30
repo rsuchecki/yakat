@@ -80,6 +80,9 @@ public class SplitGBS {
         OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
         OUT_Q_CAPACITY = (int) optSet.getOpt("q").getValueOrDefault();
 
+        if (optSet.getOpt("P").isUsed()) {
+            optSet.printUserSettings(TOOL_NAME);
+        }
 //        for(Opt o: optSet.getOptsList()) {
 //            Reporter.report("[INFO]", o.getOptLabelString()+" "+o.getValueOrDefault(), toolName);
 //        }
@@ -120,7 +123,8 @@ public class SplitGBS {
         optSet.addOpt(new Opt('c', "only-count", "Do not output reads"));
         optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
             + "i/o is the likely bottleneck and a writing thread will be spawned per each sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
-
+        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
+        
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
         optSet.addOpt(new Opt('o', "out-dir", "Output directory", 1).setDefaultValue("out_split"));
