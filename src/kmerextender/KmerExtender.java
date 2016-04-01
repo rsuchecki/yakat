@@ -241,7 +241,7 @@ public class KmerExtender {
             //PURGE NON-TERMINAL SeedPairMers FROM PairMerMaps 
             purgeSeedMersFromPaierMersMaps(kSizes, pairMerMaps);
             //CREATE PairMers REPRESENTING SEED-ENDS 
-            Reporter.report("[INFO]", "Now popolate seedMersMap", TOOL_NAME);
+            Reporter.report("[INFO]", "Now populate seedMersMap", TOOL_NAME);
             kToSeedMers = populateSeedMersMaps(kSizes);
         }
         

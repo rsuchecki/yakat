@@ -39,6 +39,10 @@ public class MpileupConsumer implements Runnable {
     private final boolean allWithinThresholds;
     private final String TOOL_NAME;
     private final PrintStream bufferedOut;
+    
+    private int minMissingSamples;
+    private int maxUnCalledSamples;
+    
 
     public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, OptSet optSet, String TOOL_NAME, PrintStream bufferedOut) {
         minCoveragePerLocus = (int) optSet.getOpt("c").getValueOrDefault();
@@ -149,6 +153,7 @@ public class MpileupConsumer implements Runnable {
                         }
                     }
                     //TODO uncovered should be set to > 0, > 1 is specific to having a very poor sample here
+//                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
                     if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
 
                         coveragesSB.append("\t");
@@ -170,7 +175,7 @@ public class MpileupConsumer implements Runnable {
 //                            outputQueue.put(bufferList);
 //                            bufferList = new ArrayList<>();
 //                        }
-                    }
+                    } 
                 }
                 bufferedOut.flush();
             }
@@ -234,7 +239,7 @@ public class MpileupConsumer implements Runnable {
      * minCoverageThreshold or
      *
      * @param encoded [?,#A,#C,#G,#T] (index zero ignored for now)
-     * @param totalDepth
+     * @param locusDepth
      * @param maxErrorPercent % of totalDepth threshold above which a base (or resulting IUPAC) is reported rather than
      * being ignored as erroneous
      * @paramminCoveragePerAlleleminCoverageThreshold int min depth for a base to be considered
@@ -243,10 +248,15 @@ public class MpileupConsumer implements Runnable {
      *
      * @return
      */
-    private char getIUPAC(int[] encoded, int totalDepth) {
+    private char getIUPAC(int[] encoded, int locusDepth) {
+        if(locusDepth == 0) {
+            return '.';
+        } else if(locusDepth < minCoveragePerLocus || locusDepth > maxCoveragePerLocus) {
+            return '?';
+        }
         boolean tt[] = new boolean[7]; //truth table i=1,2,3,4 values A,C,G,T...
         //Convert max perc error into max int coverage
-        int maxErrAlleleInt = (int) Math.floor(totalDepth * maxPercErrAllele / 100);
+        int maxErrAlleleInt = (int) Math.floor(locusDepth * maxPercErrAllele / 100);
 //        System.err.println("MaxErrInt="+maxErrInt);
         //Max of maxErr min coverage threshold 
 //        int minCoverage = Math.max((int) Math.ceil(totalDepth * (float) maxErrorPercent / 100), minCoverageThreshold);
@@ -315,7 +325,7 @@ public class MpileupConsumer implements Runnable {
             base = 'N';
         }
 
-        int maxErrLocusInt = (int) Math.floor(totalDepth * maxPercErrLocus / 100);
+        int maxErrLocusInt = (int) Math.floor(locusDepth * maxPercErrLocus / 100);
         if (totalOther > maxErrLocusInt) {
             return Character.toLowerCase(base);
         } else {

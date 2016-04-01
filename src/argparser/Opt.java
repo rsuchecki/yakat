@@ -168,7 +168,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
 
     public void addValue(String valueString) {
 
-        System.err.println(getOptLabelString()+" "+valueString);
+//        System.err.println(getOptLabelString()+" "+valueString);
         if (getMaxValueArgs() == 0) {
             Reporter.reportNoMem("[FATAL]", "Boolean flag must not carry args. Offending value" + valueString, getClass().getSimpleName());
             System.exit(1);

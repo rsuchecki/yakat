@@ -88,10 +88,14 @@ public class MpileupCounts {
         optSet.addOpt(new Opt('a', "min-coverage-per-allele", "Minimum coverage required for an allele to be considered", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt('c', "min-coverage-per-locus", "Minimum coverage required for a locus to be considered", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt('C', "max-coverage-per-locus", "Maximum coverage allowed for a locus to be considered", 1).setMinValue(1).setDefaultValue(1000));
-        optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(0).setDefaultValue(2));
         optSet.addOpt(new Opt('A', "max-percent-error-allele", "Percentage of coverage up to which an allele is regarded to be an error", 1).setMinValue(0.0).setDefaultValue(1.0));
         optSet.addOpt(new Opt('L', "max-percent-error-locus", "Percentage coverage of alternative alleles up to which a locus is reported", 1).setMinValue(0.0).setDefaultValue(1.0));
-        optSet.addOpt(new Opt('W', "all-within-threshold", "Print all loci within given thresholds even if no alternative alleles called"));
+        optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel("[Record reporting settings]");
+        optSet.addOpt(new Opt('W', "all-within-thresholds", "Print all loci within given thresholds even if no alternative alleles called"));
+//        optSet.addOpt(new Opt('z', "min-missing-samples", "Minimum samples with zero coverage", 1).setMinValue(0).setDefaultValue(0));
+//        optSet.addOpt(new Opt('u', "max-uncalled-samples", "Maximum samples for which the base was not called", 1).setMinValue(0).setDefaultValue(0));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Runtime settings]");
         String threadsOrderNote = "Note that in multi-threaded mode the order output lines need not reflect the input order";
@@ -118,6 +122,7 @@ public class MpileupCounts {
         for (String sampleId : sampleIds) {
             header.append("\t").append(sampleId);
         }
+        header.append("\t").append("Global");
 //        System.err.print("Ref\tPos");
 //        for (int i = 0; i < sampleIds.size(); i++) {
 //            System.err.print("\tA,C,G,T");            

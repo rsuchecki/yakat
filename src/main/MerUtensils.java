@@ -57,6 +57,9 @@ public class MerUtensils {
             new ParserTest(this.getClass().getSimpleName(), "test", args);
         } else if (args.length != 0 && args[0].matches("m(ulti)?mers")) {       
             new Multimers(args, name, "mmers");
+        } else if (args.length != 0 && args[0].matches("v(ersion)?")) {    
+            Package aPackage = this.getClass().getPackage();
+            String version = this.getClass().getPackage().getImplementationVersion();
         } else {
             printHelp();
         }
@@ -74,6 +77,7 @@ public class MerUtensils {
         System.out.println("   pmpileup   : count and call bases from mpileup");
         System.out.println("   ppileup    : extract some stats from (m)pileup TODO: move elswhere on under another sub-command");
         System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets TODO???");
+        System.out.println("   version    : ");
         
 //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
 //                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "

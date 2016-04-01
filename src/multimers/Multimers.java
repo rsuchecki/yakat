@@ -65,7 +65,7 @@ public class Multimers {
         TOOL_NAME = callerName + " " + toolName;
         //PARSE OPTS
         Opt opti = optSet.getOpt("i");
-        int optInstances = opti.getOptInstance();
+//        int optInstances = opti.getOptInstance();
         
 //        IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
 //        IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();

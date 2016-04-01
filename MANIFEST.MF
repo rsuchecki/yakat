@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Ant-Version: Apache Ant 1.9.4
+Created-By: 1.8.0_74-b02 (Oracle Corporation)
+Bundle-Name: merutensils
+Bundle-Version: 0.4.1
+Bundle-Date: 2016-03-29 16:35:38 ACDT
+Implementation-Title: merutensils
+Implementation-Version: 0.4.1
+Implementation-URL: http://www.url.com
+
