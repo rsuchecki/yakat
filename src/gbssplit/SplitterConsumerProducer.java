@@ -158,7 +158,7 @@ public class SplitterConsumerProducer implements Runnable {
                                 }
                                 boolean trimmedMspI = false;
                                 if (TRIM_ADAPTERS) {
-                                    int trimFrom = toks[1].indexOf("CCG" + ADAPTER);
+                                    int trimFrom = toks[1].indexOf("CCG" + ADAPTER)+3;
                                     if (trimFrom >= 0) {
 //                                        System.err.println(toks[1]+" <--BEFORE l="+toks[1].length());
                                         toks[1] = toks[1].substring(0, trimFrom);
@@ -177,7 +177,7 @@ public class SplitterConsumerProducer implements Runnable {
                                 if (toks.length == 8) { //PE input
                                     builderR2.append(toks[4]); //mate id                                            
                                     if (TRIM_ADAPTERS) {
-                                        int trimFrom = toks[5].indexOf("CTGCA" + SequenceOps.getReverseComplementString(barcode));
+                                        int trimFrom = toks[5].indexOf("CTGCA" + SequenceOps.getReverseComplementString(barcode))+5;
                                         if (trimFrom >= 0) {
                                             toks[5] = toks[5].substring(0, trimFrom); //TODO don't trim PstI site!
                                             toks[7] = toks[7].substring(0, trimFrom);
@@ -267,10 +267,10 @@ public class SplitterConsumerProducer implements Runnable {
                 finalMessages.add(new Message(Message.Level.INFO, message, TOOL_NAME));
                 if (TRIM_ADAPTERS) {
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed total " + NumberFormat.getNumberInstance().format(trimmedMspIcount + trimmedBothCutSitesInPair + trimmedPstIcount) + " fragments", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimming breakdown: ", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Trimmed MspI+3' Adapter from R1 and PstI+barcode from R2 in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Trimmed PstI+barcode from " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " R2 reads", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Trimmed MspI+3' Adapter from " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " R1 reads", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Barcode trimming breakdown: ", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified MspI+3' Adapter in R1 and PstI+barcode in R2 in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified PstI+barcode in " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " R2 reads", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified MspI+3' Adapter in " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " R1 reads", TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Length filtering breakdown: ", TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(pairUnderLenSum) + " pairs under combined length " + MIN_LENGTH_PAIR_SUM, TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(pairedReadUnderLen) + " paired reads under length " + MIN_LENGTH_PAIR_EACH, TOOL_NAME));
