@@ -93,12 +93,13 @@ public class MpileupCounts {
         optSet.addOpt(new Opt('L', "max-percent-error-locus", "Percentage coverage of alternative alleles up to which a locus is reported", 1).setMinValue(0.0).setDefaultValue(1.0));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Record reporting settings]");
+        optSet.addOpt(new Opt('H', "report-hets", "Print all loci within given thresholds if at leas one sample is heterozygous"));
         optSet.addOpt(new Opt('W', "all-within-thresholds", "Print all loci within given thresholds even if no alternative alleles called"));
 //        optSet.addOpt(new Opt('z', "min-missing-samples", "Minimum samples with zero coverage", 1).setMinValue(0).setDefaultValue(0));
 //        optSet.addOpt(new Opt('u', "max-uncalled-samples", "Maximum samples for which the base was not called", 1).setMinValue(0).setDefaultValue(0));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Runtime settings]");
-        String threadsOrderNote = "Note that in multi-threaded mode the order output lines need not reflect the input order";
+        String threadsOrderNote = "Note that in multi-threaded mode the output lines order need not reflect the input order";
         optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()).addFootnote(1, threadsOrderNote));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 32768));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",64, 1, 256));

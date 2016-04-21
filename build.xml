@@ -10,6 +10,48 @@
 <project name="merutensils" default="default" basedir=".">
     <description>Builds, tests, and runs the project merutensils.</description>
     <import file="nbproject/build-impl.xml"/>
+    
+    
+    <target name="-pre-init">
+<!--       <property name="project.name" value="NAME" />-->
+       <property name="version.num" value="0.4.6" />
+        <tstamp>
+            <format property="NOW" pattern="yyyy-MM-dd HH:mm:ss z" />
+        </tstamp>
+        <manifest file="manifest.mf">
+        <attribute name="Bundle-Name" value="${project.name}" />           
+        <attribute name="Bundle-Version" value="${version.num}" />
+        <attribute name="Bundle-Date" value="${NOW}" />
+      <!--<attribute name="Bundle-Revision" value="${svna.version}" />-->
+        <!--<attribute name="Implementation-Title" value="${project.name}" />-->
+        <attribute name="Implementation-Title" value="${NOW}" />
+        <attribute name="Implementation-Version" value="${version.num}" />
+        <!--<attribute name="Implementation-URL" value="http://www.example.com" />-->
+   </manifest>
+                
+
+        <!--<property file="version.properties"/>-->
+        <!--<property name="dist.jar" value="dist/${ant.project.name}-${version.num}.jar"/>-->
+    </target>
+    
+<!--    <target name="package_for_release" depends="jar,javadoc">
+        <mkdir dir="build/release"/>
+        <copy file="${dist.jar}" todir="build/release/"/>
+        <copy file="licence.txt" todir="build/release/"/>
+        <mkdir dir="build/release/doc"/>
+        <copy todir="build/release/doc">
+            <fileset dir="dist/javadoc" includes="**"/>
+        </copy>
+        <mkdir dir="build/release/src"/>
+        <copy todir="build/release/src">
+            <fileset dir="src" includes="**"/>
+        </copy>
+        <mkdir dir="build/release/test"/>
+        <copy todir="build/release/test">
+            <fileset dir="test" includes="**"/>
+        </copy>
+        <zip basedir="build/release/" includes="**" destfile="dist/${ant.project.name}-${project.version}.zip"/>
+    </target>-->
     <!--
 
     There exist several targets which are by default empty and which can be 

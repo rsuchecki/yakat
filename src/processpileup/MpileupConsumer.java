@@ -37,12 +37,12 @@ public class MpileupConsumer implements Runnable {
     private final double maxPercErrAllele;
     private final double maxPercErrLocus;
     private final boolean allWithinThresholds;
+    private final boolean reportHets;
     private final String TOOL_NAME;
     private final PrintStream bufferedOut;
-    
+
     private int minMissingSamples;
     private int maxUnCalledSamples;
-    
 
     public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, OptSet optSet, String TOOL_NAME, PrintStream bufferedOut) {
         minCoveragePerLocus = (int) optSet.getOpt("c").getValueOrDefault();
@@ -53,13 +53,13 @@ public class MpileupConsumer implements Runnable {
         maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
 //        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
         allWithinThresholds = optSet.getOptS('W').isUsed();
+        reportHets = optSet.getOptS('H').isUsed();
         this.inputQueue = inputQueue;
 //        this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
         this.bufferedOut = bufferedOut;
     }
 
-    
 //    public MpileupConsumer(BlockingQueue<ArrayList<String>> inputQueue, int minCoveragePerLocus,
 //        int maxCoverageThreshold, int minSamples, double maxPercAlternative, String TOOL_NAME) {
 //        this.inputQueue = inputQueue;
@@ -104,7 +104,7 @@ public class MpileupConsumer implements Runnable {
 
                     int coverageAllSamples = 0;
                     int samplesWithinCoverage = 0;
-                    int unknown = 0;
+                    int ambiguous = 0;
                     int uncovered = 0;
                     for (int i = 3; i < toks.length; i += 3) {
                         try {
@@ -122,8 +122,8 @@ public class MpileupConsumer implements Runnable {
 
                             char calledBase = getIUPAC(bases, coverage);
 //                            if (calledBase.matches("A|T|C|G")) {
-                            if(calledBase == '?') {
-                                unknown++;
+                            if (calledBase == '?') {
+                                ambiguous++;
                             } else if (calledBase == '.') {
                                 uncovered++;
                             } else {
@@ -154,19 +154,19 @@ public class MpileupConsumer implements Runnable {
                     }
                     //TODO uncovered should be set to > 0, > 1 is specific to having a very poor sample here
 //                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
-                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
-
-                        coveragesSB.append("\t");
-                        for (int j = 1; j < basesAllSamples.length; j++) {
-                            coveragesSB.append(basesAllSamples[j]);
-                            if (j < basesAllSamples.length - 1) {
-                                coveragesSB.append(",");
+                    if (samplesWithinCoverage >= minSamples) {
+                        if (calledDifferentBases || (allWithinThresholds && basesCalled > 0 && ambiguous == 0 && uncovered > 1)) {
+                            coveragesSB.append("\t");
+                            for (int j = 1; j < basesAllSamples.length; j++) {
+                                coveragesSB.append(basesAllSamples[j]);
+                                if (j < basesAllSamples.length - 1) {
+                                    coveragesSB.append(",");
+                                }
                             }
-                        }
-                        callsSB.append("\t").append(getIUPAC(basesAllSamples, coverageAllSamples));
+                            callsSB.append("\t").append(getIUPAC(basesAllSamples, coverageAllSamples));
 
-                        bufferedOut.println(coveragesSB);
-                        bufferedOut.println(callsSB);
+                            bufferedOut.println(coveragesSB);
+                            bufferedOut.println(callsSB);
 //                        System.out.println(coveragesSB);
 //                        System.out.println(callsSB);
 //                        bufferList.add(coveragesSB.toString());
@@ -174,8 +174,8 @@ public class MpileupConsumer implements Runnable {
 //                        if (bufferList.size() == OUT_BUFFER_SIZE) {
 //                            outputQueue.put(bufferList);
 //                            bufferList = new ArrayList<>();
-//                        }
-                    } 
+                        }
+                    }
                 }
                 bufferedOut.flush();
             }
@@ -249,9 +249,9 @@ public class MpileupConsumer implements Runnable {
      * @return
      */
     private char getIUPAC(int[] encoded, int locusDepth) {
-        if(locusDepth == 0) {
+        if (locusDepth == 0) {
             return '.';
-        } else if(locusDepth < minCoveragePerLocus || locusDepth > maxCoveragePerLocus) {
+        } else if (locusDepth < minCoveragePerLocus || locusDepth > maxCoveragePerLocus) {
             return '?';
         }
         boolean tt[] = new boolean[7]; //truth table i=1,2,3,4 values A,C,G,T...

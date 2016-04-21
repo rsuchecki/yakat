@@ -173,6 +173,7 @@ public class KmerExtender {
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet();
+        
         //INPUT
         optSet.setListingGroupLabel("[Input settings - general extender]");
         optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));

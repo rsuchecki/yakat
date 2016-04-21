@@ -85,6 +85,12 @@ public class OptSet {
 //        optGroups = new ArrayList<>();
     }
 
+    public void setSummary(String summary) {
+        this.summary = summary;
+    }
+
+    
+    
     public boolean hasVarArgOption() {
         for (Opt o : getOptsList()) {
             if (o.isVarArgsOption()) {

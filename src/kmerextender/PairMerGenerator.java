@@ -30,7 +30,7 @@ public class PairMerGenerator {
 //    private final String leftClip;
 //    private final String core;
 //    private final String rightClip;
-    private static final int MAX_1LONG_ENCODE = 32-1; //2bits per nucl, signed long so should be 31, but can use sign bit if lex ordering not needed, so 32 allowed 
+    private static final int MAX_1LONG_ENCODE = 32-1; //2bits per nucl, signed long so should be 31, but can use sign bit if lex ordering not needed
     private static final int MAX_2LONG_ENCODE = 64-1;
     private static final int MAX_3LONG_ENCODE = 96-1;
     private static final int MAX_4LONG_ENCODE = 128-1;

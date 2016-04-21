@@ -42,24 +42,27 @@ public class MerUtensils {
         } else if (args.length != 0 && args[0].matches("(k)?match(er)?")) {
             args[0] = "";
             new KmerMatch(args, name, "kmatch");
-        } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {       
+        } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {
             new KmerSetMerge(args, name, "kmerge");
-        } else if (args.length != 0 && args[0].matches("split(er)?")) {       
+        } else if (args.length != 0 && args[0].matches("split(er)?")) {
             new SplitGBS(args, name, "split");
-        } else if (args.length != 0 && args[0].matches("(p)?pileup")) {       
+        } else if (args.length != 0 && args[0].matches("(p)?pileup")) {
             new PileupStats(args, name, "pileup");
-        } else if (args.length != 0 && args[0].matches("(p)?mpileup")) {       
+        } else if (args.length != 0 && args[0].matches("(p)?mpileup")) {
             new MpileupCounts(args, name, "mpileup counts");
-        } else if (args.length != 0 && args[0].matches("pileupstatsmerge")) {       
+        } else if (args.length != 0 && args[0].matches("pileupstatsmerge")) {
             new PileupStatsMerge(args, name, "pileupstatsmerge");
         } else if (args.length != 0 && args[0].matches("test")) {
             args[0] = "";
             new ParserTest(this.getClass().getSimpleName(), "test", args);
-        } else if (args.length != 0 && args[0].matches("m(ulti)?mers")) {       
+        } else if (args.length != 0 && args[0].matches("m(ulti)?mers")) {
             new Multimers(args, name, "mmers");
-        } else if (args.length != 0 && args[0].matches("v(ersion)?")) {    
+        } else if (args.length != 0 && args[0].matches("v(ersion)?")) {
             Package aPackage = this.getClass().getPackage();
-            String version = this.getClass().getPackage().getImplementationVersion();
+            String version = aPackage.getImplementationVersion();
+//            String build = aPackage.getImplementationTitle();
+//            System.out.println(version + " " + build);
+            System.out.println(version);
         } else {
             printHelp();
         }
@@ -67,18 +70,19 @@ public class MerUtensils {
 
     private void printHelp() {
         System.out.println();
-        System.out.println("java -jar " + this.getClass().getSimpleName() + ".jar <command> ");
+        String version = this.getClass().getPackage().getImplementationVersion();
+        System.out.println("java -jar " + this.getClass().getSimpleName().toLowerCase() + "-" + version + ".jar <command> ");
         System.out.println("Commands:");
-        System.out.println("   kextend    : extend k-mers to unambiguous contigs");
-        System.out.println("   kmatch     : a.k.a bait");
-        System.out.println("   kmerge     : given sorted input, merge k-mer sets summing frequencies if available ");
+        System.out.println("   kextend    : extend k-mers to unambiguous contigs (optionally extend input \"seed\" sequences only)");
+//        System.out.println("   kmatch     : a.k.a bait");
+        System.out.println("   kmerge     : given sorted input, merge k-mer sets summing frequencies if available [THIS CAN NOW BE DONE USING kmc_tools complex]");
         System.out.println("              :");
-        System.out.println("   split      : split FASTQ GBS reads by barcodes, trim barcodes and adapters - TODO move elswhere? to a GBS-tools suite?");
+        System.out.println("   split      : split FASTQ GBS reads by barcodes, trim barcodes and adapters");
         System.out.println("   pmpileup   : count and call bases from mpileup");
-        System.out.println("   ppileup    : extract some stats from (m)pileup TODO: move elswhere on under another sub-command");
-        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets TODO???");
-        System.out.println("   version    : ");
-        
+        System.out.println("   ppileup    : extract some stats from (m)pileup");
+//        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");
+        System.out.println("   version    : print the version and build time then exit");
+
 //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
 //                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "
 //                + "the list of k-mers to KmerExtender. For smaller jobs FASTA or FASTQ input may suffice.";
