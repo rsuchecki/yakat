@@ -57,7 +57,7 @@ public class SplitterConsumerProducer implements Runnable {
     private final String TOOL_NAME;
     private boolean TRIM_BARCODE = true;
     private boolean TRIM_ADAPTERS = true;
-    private boolean PSTI_STARTING_ONLY = true;
+    private boolean OUTPUT_PSTI_STARTING_ONLY = true;
     private boolean ONLY_COUNT = false; //no output produced if true
 
 //    private AtomicInteger PRODUCER_THREADS;
@@ -65,7 +65,9 @@ public class SplitterConsumerProducer implements Runnable {
     private final int MIN_LENGTH_PAIR_SUM;
     private final int MIN_LENGTH_PAIR_EACH;
     private final String ADAPTER;
-    private ArrayList<Message> finalMessages;
+    private final ArrayList<Message> finalMessages;
+    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
+    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
 
     public SplitterConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue,
         KeyMap keyMap, String toolName, int OUT_BUFFER_SIZE, OptSet optSet,
@@ -78,7 +80,7 @@ public class SplitterConsumerProducer implements Runnable {
 
         TRIM_BARCODE = !optSet.getOpt("keep-barcodes").getOptFlag();
         TRIM_ADAPTERS = !optSet.getOpt("keep-adapters").getOptFlag();
-        PSTI_STARTING_ONLY = !optSet.getOpt("keep-non-PstI-starting").getOptFlag();
+        OUTPUT_PSTI_STARTING_ONLY = !optSet.getOpt("keep-non-PstI-starting").getOptFlag();
         ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
 
         ADAPTER = (String) optSet.getOpt("A").getValueOrDefault();
@@ -86,13 +88,13 @@ public class SplitterConsumerProducer implements Runnable {
         MIN_LENGTH_PAIR_EACH = (int) optSet.getOpt("e").getValueOrDefault();
         MIN_LENGTH_PAIR_SUM = (int) optSet.getOpt("s").getValueOrDefault();
         this.finalMessages = finalMessages;
+        sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
+        sampleToQueueMap = keyMap.getSampleToQueueMap();
     }
 
     @Override
     public void run() {
         try {
-            ConcurrentHashMap<String, SampleBuffer> sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
-            ConcurrentHashMap<String, BlockingQueue<SampleBuffer>> sampleToQueueMap = keyMap.getSampleToQueueMap();
             ArrayList<String> list;
             Pattern spliPattern = Pattern.compile("\t");
             long noBarcodeMatch = 0L;
@@ -121,27 +123,13 @@ public class SplitterConsumerProducer implements Runnable {
                             String barcode = entrySet.getKey();
                             if (toks[1].startsWith(barcode)) {
                                 matchingBarcodes++;
-                                if (PSTI_STARTING_ONLY && !toks[1].startsWith(barcode + "TGCAG")) {
+                                if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(barcode + "TGCAG")) {
                                     notPstIStart++;
                                     break;
                                 }
                                 String sample = entrySet.getValue();
-//                                ArrayList<String> bufferList = sampleToBufferMap.get(sample);
-                                SampleBuffer bufferList = sampleToBufferMap.get(sample);
-                                if (bufferList == null) { //nothing yet for this sample
-                                    bufferList = new SampleBuffer(sample, null, OUT_BUFFER_SIZE);
-                                    sampleToBufferMap.put(sample, bufferList);
+                                PerSampleBuffer sampleBuffer = getPerSampleBuffer(sample);
 
-                                }
-                                if (bufferList.size() == OUT_BUFFER_SIZE) { //buffer full, place on queue to write and start a new buffer
-                                    BlockingQueue<SampleBuffer> outputQueue = sampleToQueueMap.get(sample);
-                                    keyMap.addToSampleCount(sample, OUT_BUFFER_SIZE);
-                                    if (!ONLY_COUNT) {
-                                        outputQueue.put(bufferList);
-                                    }
-                                    bufferList = new SampleBuffer(sample, null, OUT_BUFFER_SIZE);
-                                    sampleToBufferMap.put(sample, bufferList);
-                                }
                                 //TRIM AND ASSESS RECORDS
                                 StringBuilder builderR1 = new StringBuilder();
                                 StringBuilder builderR2 = new StringBuilder();
@@ -191,7 +179,7 @@ public class SplitterConsumerProducer implements Runnable {
                                 }
                                 //If all len cutoffs met (assuming PE)
                                 if (mateLen >= MIN_LENGTH_PAIR_EACH && toks[1].length() >= MIN_LENGTH_PAIR_EACH && mateLen + toks[1].length() >= MIN_LENGTH_PAIR_SUM) {
-                                    bufferList.add(builderR1.append("\t").append(builderR2).toString());
+                                    sampleBuffer.add(builderR1.append("\t").append(builderR2).toString());
                                     //else if PE input
                                 } else if (toks.length == 8) {
                                     //count pairs under combined length 
@@ -201,22 +189,22 @@ public class SplitterConsumerProducer implements Runnable {
                                     if (toks[1].length() < MIN_LENGTH_PAIR_EACH) {
                                         pairedReadUnderLen++;
                                     } else {
-                                        bufferList.add(builderR1.toString());
+                                        sampleBuffer.add(builderR1.toString());
                                     }
                                     if (mateLen < MIN_LENGTH_PAIR_EACH) {
                                         pairedReadUnderLen++;
                                     } else {
-                                        bufferList.add(builderR2.toString());
+                                        sampleBuffer.add(builderR2.toString());
                                     }
                                     //else if SE input
                                 } else if (toks.length == 4) {
                                     if (toks[1].length() >= MIN_LENGTH_READ) {
-                                        bufferList.add(builderR1.toString());
+                                        sampleBuffer.add(builderR1.toString());
                                     } else {
                                         singleUnderLength++;
                                     }
                                 } else {
-                                    Reporter.report("[ERROR]","FASTQ erecord expected to have 4 or 8 fileds, observed fields="+toks.length, TOOL_NAME);
+                                    Reporter.report("[ERROR]", "FASTQ erecord expected to have 4 or 8 fileds, observed fields=" + toks.length, TOOL_NAME);
                                 }
                                 //Cummulative trimming stats
                                 if (trimmedMspI && trimmedPstI) {
@@ -243,15 +231,17 @@ public class SplitterConsumerProducer implements Runnable {
             Set<String> keySet = sampleToQueueMap.keySet();
 
             for (String sample : keySet) {
-                BlockingQueue<SampleBuffer> outQ = sampleToQueueMap.get(sample);
-                SampleBuffer bufferList = sampleToBufferMap.get(sample);
-                if (bufferList != null && !bufferList.isEmpty()) {
-                    if (!ONLY_COUNT) {
-                        outQ.put(bufferList);
-                    }
-                    keyMap.addToSampleCount(sample, bufferList.size());
-                }
-                outQ.put(new SampleBuffer());//inform other threads
+//                BlockingQueue<PerSampleBuffer> outQ = sampleToQueueMap.get(sample);
+//                PerSampleBuffer perSampleBuffer = sampleToBufferMap.get(sample);
+//                if (perSampleBuffer != null && !perSampleBuffer.isEmpty()) {
+//                    if (!ONLY_COUNT) {
+//                        outQ.put(perSampleBuffer);
+//                    }
+//                    keyMap.addToSampleCount(sample, perSampleBuffer.size());
+//                }
+                putOnQueue(sample, getPerSampleBuffer(sample));
+                putOnQueue(sample, new PerSampleBuffer()); //inform other threads
+//                outQ.put(new PerSampleBuffer());//inform other threads
             }
 
 //            if (PRODUCER_THREADS.decrementAndGet() == 0) {
@@ -265,7 +255,7 @@ public class SplitterConsumerProducer implements Runnable {
                 String name = Thread.currentThread().getName();
                 String message = "[" + name + "] " + NumberFormat.getNumberInstance().format(lines)
                     + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch);
-                if (PSTI_STARTING_ONLY) {
+                if (OUTPUT_PSTI_STARTING_ONLY) {
                     message += ", non-PstI start detected in " + NumberFormat.getNumberInstance().format(notPstIStart);
                 }
                 finalMessages.add(new Message(Message.Level.INFO, message, TOOL_NAME));
@@ -286,6 +276,33 @@ public class SplitterConsumerProducer implements Runnable {
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
+        }
+    }
+
+    private PerSampleBuffer getPerSampleBuffer(String sample) throws InterruptedException {
+        PerSampleBuffer sampleBuffer = sampleToBufferMap.get(sample);
+        if (sampleBuffer == null) { //nothing yet for this sample
+            sampleBuffer = new PerSampleBuffer(sample, null, OUT_BUFFER_SIZE);
+            sampleToBufferMap.put(sample, sampleBuffer);
+        }
+        if (sampleBuffer.size() == OUT_BUFFER_SIZE) { //buffer full, place on queue to write and start a new buffer
+//            BlockingQueue<PerSampleBuffer> outputQueue = sampleToQueueMap.get(sample);
+//            keyMap.addToSampleCount(sample, OUT_BUFFER_SIZE);
+//            if (!ONLY_COUNT) {
+//                outputQueue.put(sampleBuffer);
+//            }
+            putOnQueue(sample, sampleBuffer);
+            sampleBuffer = new PerSampleBuffer(sample, null, OUT_BUFFER_SIZE);
+            sampleToBufferMap.put(sample, sampleBuffer);
+        }
+        return sampleBuffer;
+    }
+
+    private void putOnQueue(String sample, PerSampleBuffer sampleBuffer) throws InterruptedException {
+        BlockingQueue<PerSampleBuffer> outputQueue = sampleToQueueMap.get(sample);
+        keyMap.addToSampleCount(sample, OUT_BUFFER_SIZE);
+        if (!ONLY_COUNT) {
+            outputQueue.put(sampleBuffer);
         }
     }
 

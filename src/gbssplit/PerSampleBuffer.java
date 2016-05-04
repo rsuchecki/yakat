@@ -22,46 +22,46 @@ import java.util.ArrayList;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class SampleBuffer {
+public class PerSampleBuffer {
 //    private String sampleId;
     private final String sampleId;
     private final String outFileName;
     private boolean appendToOutputFile;
     private ArrayList<String> bufferedRecords;
 
-    public SampleBuffer(String sampleId, String outFileName, int bufferSize) {
+    public PerSampleBuffer(String sampleId, String outFileName, int bufferSize) {
         this.sampleId = sampleId;
         this.outFileName = outFileName;
         this.bufferedRecords = new ArrayList<>(bufferSize);
     }
 
-    public SampleBuffer() {
+    public PerSampleBuffer() {
         this.sampleId = null;
         this.outFileName = null;
     }
     
     
 
-    public SampleBuffer resetBuffer(int bufferSize) {
-        this.bufferedRecords = new ArrayList<>(bufferSize);        
-        return this;
-    }
+//    public PerSampleBuffer resetBuffer(int bufferSize) {
+//        this.bufferedRecords = new ArrayList<>(bufferSize);        
+//        return this;
+//    }
     
-    public String getSampleId() {
-        return sampleId;
-    }
-
-    public String getOutFileName() {
-        return outFileName;
-    }
-
-    public boolean isAppendToOutputFile() {
-        return appendToOutputFile;
-    }
-
-    public ArrayList<String> getBufferedRecords() {
-        return bufferedRecords;
-    }
+//    public String getSampleId() {
+//        return sampleId;
+//    }
+//
+//    public String getOutFileName() {
+//        return outFileName;
+//    }
+//
+//    public boolean isAppendToOutputFile() {
+//        return appendToOutputFile;
+//    }
+//
+//    public ArrayList<String> getBufferedRecords() {
+//        return bufferedRecords;
+//    }
 
     public int size() {
         return bufferedRecords.size();

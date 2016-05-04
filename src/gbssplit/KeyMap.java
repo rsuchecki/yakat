@@ -37,8 +37,11 @@ import shared.Reporter;
 public class KeyMap {
 
     private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> keyMap;
-    private ConcurrentHashMap<String, BlockingQueue<SampleBuffer>> sampleToQueueMap;
+    private ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     private ConcurrentHashMap<String, Long> sampleToCountMap;
+    private ArrayBlockingQueue<PerSampleBuffer> matchlessOutQueue ;
+    private String matchlessOutPrefix;
+    
     
     private final int OUT_Q_CAPACITY;
     private final String TOOL_NAME;
@@ -97,14 +100,14 @@ public class KeyMap {
                         System.exit(1);
                     } else {
                         barcodeToSample.put(barcode, sample);
-                        sampleToQueueMap.put(sample, new ArrayBlockingQueue<SampleBuffer>(OUT_Q_CAPACITY));
+                        sampleToQueueMap.put(sample, new ArrayBlockingQueue<PerSampleBuffer>(OUT_Q_CAPACITY));
 //                        sampleToCountMap.put(sample, 0L);
                     }
                 } else {
                     ConcurrentHashMap<String, String> barcodeToSample = new ConcurrentHashMap<>();
                     barcodeToSample.put(barcode, sample);
                     keyMap.put(flowcell, barcodeToSample);
-                    sampleToQueueMap.put(sample, new ArrayBlockingQueue<SampleBuffer>(OUT_Q_CAPACITY));
+                    sampleToQueueMap.put(sample, new ArrayBlockingQueue<PerSampleBuffer>(OUT_Q_CAPACITY));
 //                    sampleToCountMap.put(sample, 0L);
                 }
             }
@@ -125,8 +128,12 @@ public class KeyMap {
         }
     }
 
-    public ConcurrentHashMap<String, BlockingQueue<SampleBuffer>> getSampleToQueueMap() {
+    public ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> getSampleToQueueMap() {
         return sampleToQueueMap;
+    }
+    
+    public void putOnQueue(String Sample, PerSampleBuffer sampleBuffer) {
+        
     }
 
     public ConcurrentHashMap<String, Long> getSampleToCountMap() {

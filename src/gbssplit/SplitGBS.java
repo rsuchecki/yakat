@@ -51,6 +51,7 @@ public class SplitGBS {
     private final String R1_SUFFIX;
     private final String R2_SUFFIX;
     private final String SE_SUFFIX;
+    private  String MATCHLESS_OUT = null;
     private final int OUT_BUFFER_SIZE;
     private final int OUT_Q_CAPACITY;
 
@@ -80,6 +81,9 @@ public class SplitGBS {
         OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
         OUT_Q_CAPACITY = (int) optSet.getOpt("q").getValueOrDefault();
 
+        if (optSet.getOpt("M").isUsed()) {
+            MATCHLESS_OUT = (String) optSet.getOpt("M").getValueOrDefault();
+        }
         if (optSet.getOpt("P").isUsed()) {
             optSet.printUserSettings(TOOL_NAME);
         }
@@ -124,13 +128,14 @@ public class SplitGBS {
         optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
             + "i/o is the likely bottleneck and a writing thread will be spawned per each sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
         optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
-        
+
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
         optSet.addOpt(new Opt('o', "out-dir", "Output directory", 1).setDefaultValue("out_split"));
         optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
         optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
         optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
+        optSet.addOpt(new Opt('M', "matchless-output", "Output reads with unmatched barcodes to R1/R2/SE file(s) prefixed with <arg>. If not set, these reads will be discarded", 1));
         footId++;
         String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if encountering 'out of memory' errors.";
         optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
@@ -214,11 +219,11 @@ public class SplitGBS {
                 optSet, finalMessages)));
         }
 
-        //WRITER THREADS in not set to just count the 
+        //WRITER THREADS not set if just counting
         if (!optSet.getOpt("only-count").getOptFlag()) {
-            for (Map.Entry<String, BlockingQueue<SampleBuffer>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
+            for (Map.Entry<String, BlockingQueue<PerSampleBuffer>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
                 String sample = entrySet.getKey();
-                BlockingQueue<SampleBuffer> queue = entrySet.getValue();
+                BlockingQueue<PerSampleBuffer> queue = entrySet.getValue();
 //            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, SPLITTER_THREADS)));
                 ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(queue, TOOL_NAME, OUT_DIR, sample, SPLITTER_THREADS, R1_SUFFIX, R2_SUFFIX, SE_SUFFIX)));
             }
