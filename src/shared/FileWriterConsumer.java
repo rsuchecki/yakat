@@ -15,7 +15,7 @@
  */
 package shared;
 
-import gbssplit.SampleBuffer;
+import gbssplit.PerSampleBuffer;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -32,7 +32,7 @@ import java.util.zip.GZIPOutputStream;
  */
 public class FileWriterConsumer implements Runnable {
 
-    private final BlockingQueue<SampleBuffer> outputQueue;
+    private final BlockingQueue<PerSampleBuffer> outputQueue;
     private final int BUFFER_SIZE = 8192; // 
     private final String RECORD_NAME = "FASTQ records";
     private final String TOOL_NAME;
@@ -44,7 +44,7 @@ public class FileWriterConsumer implements Runnable {
     private final String SE_SUFFIX;
 
 
-    public FileWriterConsumer(BlockingQueue<SampleBuffer> outputQueue, String TOOL_NAME, String DIR_NAME, String FILE_NAME, 
+    public FileWriterConsumer(BlockingQueue<PerSampleBuffer> outputQueue, String TOOL_NAME, String DIR_NAME, String FILE_NAME, 
         int PRODUCER_THREADS, String R1_SUFFIX, String R2_SUFFIX, String SE_SUFFIX) {
         this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
@@ -92,7 +92,7 @@ public class FileWriterConsumer implements Runnable {
         BufferedWriter writer2 = null;
         BufferedWriter writerOrphans = null;
         try {
-            SampleBuffer list;
+            PerSampleBuffer list;
             long outputCountPaired = 0L;
             long outputCountSingle = 0L;
             boolean appendPE = true;
@@ -115,7 +115,7 @@ public class FileWriterConsumer implements Runnable {
                         writerOrphans.write(sbOrphans.toString());
                         outputCountSingle++;
                     } else if (splits.length == 8) {
-                        if (writer1 == null) {
+                        if (writer1 == null || writer2 == null) {
                             //create 2 writers                    
                             writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R1_SUFFIX, appendPE)), "UTF-8"), BUFFER_SIZE);
                             writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R2_SUFFIX, appendPE)), "UTF-8"), BUFFER_SIZE);

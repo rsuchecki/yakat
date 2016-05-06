@@ -41,7 +41,7 @@ public class Info {
 "|  D      | not C (D comes after C)       | A |   | G | T  |\n" +
 "|  H      | not G (H comes after G)       | A | C |   | T  |\n" +
 "|  V      | not T (V comes after T and U) | A | C | G |    |\n" +
-"|  N or - | any Nucleotide (not a gap)    | A | C | G | T  |\n" +
+"|  N      | any Nucleotide                | A | C | G | T  |\n" +
 "|---------+-------------------------------+---+---+---+----|\n" +
 "Source: https://en.wikipedia.org/wiki/Nucleic_acid_notation\n";
         }
