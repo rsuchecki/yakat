@@ -18,8 +18,6 @@ package processpileup;
 import argparser.ArgParser;
 import argparser.Opt;
 import argparser.OptSet;
-import argparser.PositionalOpt;
-import gbssplit.SampleBuffer;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
@@ -32,8 +30,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.GZIPInputStream;
 import shared.Reporter;
 

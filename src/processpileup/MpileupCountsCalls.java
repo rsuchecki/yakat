@@ -18,25 +18,13 @@ package processpileup;
 import argparser.ArgParser;
 import argparser.Opt;
 import argparser.OptSet;
-import argparser.PositionalOpt;
-import gbssplit.SampleBuffer;
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -46,9 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import java.util.zip.GZIPInputStream;
 import kmerextender.KmerExtender;
-import kmerextender.PairMerMapPopulatorConsumer;
 import shared.Info;
 import shared.InputReaderProducer;
 import shared.Reporter;
@@ -57,7 +43,7 @@ import shared.Reporter;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class MpileupCounts {
+public class MpileupCountsCalls {
 
     private final String TOOL_NAME;
     boolean IGNORE_SPLICING = true;
@@ -66,7 +52,7 @@ public class MpileupCounts {
 //    private ArrayList<String> SAMPLE_NAMES;
     private final int HELP_WIDTH = 200;
 
-    public MpileupCounts(String[] args, String callerName, String toolName) {
+    public MpileupCountsCalls(String[] args, String callerName, String toolName) {
         TOOL_NAME = callerName + " " + toolName;
 
         OptSet optSet = populateOptSet();
@@ -77,23 +63,35 @@ public class MpileupCounts {
     }
 
     private OptSet populateOptSet() {
-        OptSet optSet = new OptSet("Process multi-sample mpileup input. Base call lines printed to stdout prefixed with ^CALLS\\t, "
-            + "base count lines printed to stdout prefixed by ^COUNTS\\t");
+        OptSet optSet = new OptSet("Process multi-sample mpileup input. Base calls printed to stdout on lines prefixed with ^CALLS\\t, "
+            + "base count printed to stdout on lines prefixed by ^COUNTS\\t");
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
         optSet.addOpt(new Opt('n', "sample-names", "space separated sample names, order must correspond to mpileup input").setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE));
         optSet.addOpt(new Opt('p', "pileup-file", "Input (m)pileup file, alternatively use stdin", 1));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Base calling settings]");
-        optSet.addOpt(new Opt('a', "min-coverage-per-allele", "Minimum coverage required for an allele to be considered", 1).setMinValue(1).setDefaultValue(2));
-        optSet.addOpt(new Opt('c', "min-coverage-per-locus", "Minimum coverage required for a locus to be considered", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt('a', "min-coverage-per-allele", "Minimum coverage required for an allele to be considered in a locus call", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt('c', "min-coverage-per-locus", "Minimum coverage required for a locus to be considered ", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt('C', "max-coverage-per-locus", "Maximum coverage allowed for a locus to be considered", 1).setMinValue(1).setDefaultValue(1000));
-        optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(0).setDefaultValue(2));
         optSet.addOpt(new Opt('A', "max-percent-error-allele", "Percentage of coverage up to which an allele is regarded to be an error", 1).setMinValue(0.0).setDefaultValue(1.0));
         optSet.addOpt(new Opt('L', "max-percent-error-locus", "Percentage coverage of alternative alleles up to which a locus is reported", 1).setMinValue(0.0).setDefaultValue(1.0));
+        optSet.addOpt(new Opt(null, "zero-reads-char", "[TODO] A character denoting zero reads at a postion for a given sample", 1).setDefaultValue('.'));
+        optSet.addOpt(new Opt(null, "ambiguous-call-char", "[TODO] A character indicating uncertain call (e.g. due to low coverage or unclear zygosity at locus)", 1).setDefaultValue('?'));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Record reporting settings]");
-        optSet.addOpt(new Opt('H', "report-hets", "Print all loci within given thresholds if at leas one sample is heterozygous"));
+        optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(0).setDefaultValue(2));
+        
+        optSet.addOpt(new Opt(null, "min-samples-called", "[TODO] Minimum samples for which the base was called", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-samples-called", "[TODO] Maximum samples for which the base was called", 1).setMinValue(1));
+        optSet.addOpt(new Opt(null, "min-samples-zero-coverage", "[TODO] May be useful for presence-absence analyses", 1).setMinValue(0).setDefaultValue(0));
+        optSet.addOpt(new Opt(null, "max-samples-zero-coverage", "[TODO] May be useful for presence-absence analyses", 1).setMinValue(0));
+        optSet.addOpt(new Opt(null, "min-samples-uncertain", "[TODO] Minimum samples for which the base was not called due to uncertainty", 1).setMinValue(0).setDefaultValue(0));
+        optSet.addOpt(new Opt(null, "max-samples-uncertain", "[TODO] Maximum samples for which the base was not called due to uncertainty", 1).setMinValue(1));
+        
+        optSet.addOpt(new Opt(null, "min-snps-to-reference", "[TODO] Report a position if at least <arg> samples have a SNP to reference ",1 ).setMinValue(0).setDefaultValue(0));
+        optSet.addOpt(new Opt(null, "min-het-calls", "[TODO] Report a position if at least <arg> samples calls are heterozygous",1 ).setMinValue(0).setDefaultValue(0));
+        optSet.addOpt(new Opt(null, "max-het-calls", "[TODO] Report a position if at most <arg> samples calls are heterozygous",1 ).setMinValue(0));
         optSet.addOpt(new Opt('W', "all-within-thresholds", "Print all loci within given thresholds even if no alternative alleles called"));
 //        optSet.addOpt(new Opt('z', "min-missing-samples", "Minimum samples with zero coverage", 1).setMinValue(0).setDefaultValue(0));
 //        optSet.addOpt(new Opt('u', "max-uncalled-samples", "Maximum samples for which the base was not called", 1).setMinValue(0).setDefaultValue(0));
@@ -123,7 +121,7 @@ public class MpileupCounts {
         for (String sampleId : sampleIds) {
             header.append("\t").append(sampleId);
         }
-        header.append("\t").append("Global");
+//        header.append("\t").append("Global");
 //        System.err.print("Ref\tPos");
 //        for (int i = 0; i < sampleIds.size(); i++) {
 //            System.err.print("\tA,C,G,T");            

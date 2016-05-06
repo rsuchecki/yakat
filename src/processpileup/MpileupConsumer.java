@@ -37,10 +37,13 @@ public class MpileupConsumer implements Runnable {
     private final double maxPercErrAllele;
     private final double maxPercErrLocus;
     private final boolean allWithinThresholds;
-    private final boolean reportHets;
+//    private final boolean reportHets;
     private final String TOOL_NAME;
     private final PrintStream bufferedOut;
 
+    private char zeroReadsChar;
+    private char ambiguousCallChar;
+    
     private int minMissingSamples;
     private int maxUnCalledSamples;
 
@@ -52,8 +55,13 @@ public class MpileupConsumer implements Runnable {
         maxPercErrAllele = (double) optSet.getOpt("A").getValueOrDefault();
         maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
 //        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
+
+        zeroReadsChar = (Character) optSet.getOpt("zero-reads-char").getValueOrDefault();
+        ambiguousCallChar = (Character) optSet.getOpt("ambiguous-call-char").getValueOrDefault();
+
+
         allWithinThresholds = optSet.getOptS('W').isUsed();
-        reportHets = optSet.getOptS('H').isUsed();
+//        reportHets = optSet.getOptS('H').isUsed();
         this.inputQueue = inputQueue;
 //        this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
@@ -87,25 +95,26 @@ public class MpileupConsumer implements Runnable {
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     String[] toks = line.split("\t");
-                    int r = 0;
-                    //tos 0,1,2 are ref, position, refbase
+                    //toks 0,1,2 are ref, position, refbase
                     char refBase = toks[2].charAt(0);
+                    char refBaseUpper = Character.toUpperCase(refBase);
                     StringBuilder coveragesSB = new StringBuilder("COUNTS");
                     StringBuilder callsSB = new StringBuilder("CALLS");
                     StringBuilder common = new StringBuilder("\t");
                     common.append(toks[0]).append("\t").append(toks[1]).append("\t").append(toks[2]);
                     callsSB.append(common);
                     coveragesSB.append(common);
-                    boolean calledDifferentBases = false;
+                    boolean betweenSamplesSnps = false;
 //                    String lastCalledBase = "N";
                     char lastCalledBase = '#';
-                    int basesCalled = 0;
+                    int samplesWithBaseCalled = 0;
                     int[] basesAllSamples = new int[7];
 
                     int coverageAllSamples = 0;
                     int samplesWithinCoverage = 0;
-                    int ambiguous = 0;
-                    int uncovered = 0;
+                    int uncertain = 0;
+                    int samplesZeroCoverage = 0;
+                    int snpsToRef = 0;
                     for (int i = 3; i < toks.length; i += 3) {
                         try {
                             int coverage = Integer.parseInt(toks[i]);
@@ -121,17 +130,21 @@ public class MpileupConsumer implements Runnable {
 //                            String calledBase = callBase(bases, maxPercAlternative, minCoverageThreshold);
 
                             char calledBase = getIUPAC(bases, coverage);
+                            char calledBaseUpper = Character.toUpperCase(calledBase);
 //                            if (calledBase.matches("A|T|C|G")) {
-                            if (calledBase == '?') {
-                                ambiguous++;
-                            } else if (calledBase == '.') {
-                                uncovered++;
-                            } else {
+                            if (calledBase == ambiguousCallChar) {
+                                uncertain++;
+                            } else if (calledBase == zeroReadsChar) {
+                                samplesZeroCoverage++;
+                            } else {                                
+                                if (calledBaseUpper != refBaseUpper) {
+                                    snpsToRef++;
+                                }
                                 if (Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase) && lastCalledBase != '#') {
-                                    calledDifferentBases = true;
+                                    betweenSamplesSnps = true;
                                 }
                                 lastCalledBase = calledBase;
-                                basesCalled++;
+                                samplesWithBaseCalled++;
                             }
                             callsSB.append("\t");
                             callsSB.append(calledBase);
@@ -152,18 +165,18 @@ public class MpileupConsumer implements Runnable {
                             System.exit(1);
                         }
                     }
-                    //TODO uncovered should be set to > 0, > 1 is specific to having a very poor sample here
+                    //TODO zeroReads should be set to > 0, > 1 is specific to having a very poor sample here
 //                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
                     if (samplesWithinCoverage >= minSamples) {
-                        if (calledDifferentBases || (allWithinThresholds && basesCalled > 0 && ambiguous == 0 && uncovered > 1)) {
-                            coveragesSB.append("\t");
-                            for (int j = 1; j < basesAllSamples.length; j++) {
-                                coveragesSB.append(basesAllSamples[j]);
-                                if (j < basesAllSamples.length - 1) {
-                                    coveragesSB.append(",");
-                                }
-                            }
-                            callsSB.append("\t").append(getIUPAC(basesAllSamples, coverageAllSamples));
+                        if (betweenSamplesSnps || (allWithinThresholds && samplesWithBaseCalled > 0 && uncertain == 0 && samplesZeroCoverage > 1)) {
+//                            coveragesSB.append("\t");
+//                            for (int j = 1; j < basesAllSamples.length; j++) {
+//                                coveragesSB.append(basesAllSamples[j]);
+//                                if (j < basesAllSamples.length - 1) {
+//                                    coveragesSB.append(",");
+//                                }
+//                            }
+//                            callsSB.append("\t").append(getIUPAC(basesAllSamples, coverageAllSamples));
 
                             bufferedOut.println(coveragesSB);
                             bufferedOut.println(callsSB);
@@ -212,7 +225,7 @@ public class MpileupConsumer implements Runnable {
             return ' ';
         }
         //If uncertain
-        return '?';
+        return ambiguousCallChar;
     }
 
 //    private char getIUPAC(int [] callCounts, int ) {
@@ -250,9 +263,9 @@ public class MpileupConsumer implements Runnable {
      */
     private char getIUPAC(int[] encoded, int locusDepth) {
         if (locusDepth == 0) {
-            return '.';
+            return zeroReadsChar;
         } else if (locusDepth < minCoveragePerLocus || locusDepth > maxCoveragePerLocus) {
-            return '?';
+            return ambiguousCallChar;
         }
         boolean tt[] = new boolean[7]; //truth table i=1,2,3,4 values A,C,G,T...
         //Convert max perc error into max int coverage
@@ -275,9 +288,9 @@ public class MpileupConsumer implements Runnable {
                 totalOther += encoded[i];
             }
         }
-        char base = '?';
+        char base = ambiguousCallChar;
         if (totalOther > maxErrAlleleInt) {
-            return '?';
+            return ambiguousCallChar;
         }
         if (!tt[1] && !tt[2] && !tt[3] && !tt[4]) {
             if (tt[5] && !tt[6]) { //insertion in reference
@@ -285,14 +298,14 @@ public class MpileupConsumer implements Runnable {
             } else if (!tt[5] && tt[6]) { //deletion in reference
                 base = 'I';
             } else if (tt[5] && tt[6]) { //deletion and insertion??
-                base = '?';
+                base = ambiguousCallChar;
             } else if (totalOther == 0) {
-                base = '.';
+                base = zeroReadsChar;
             } else {
-                base = '?';
+                base = ambiguousCallChar;
             }
         } else if ((tt[1] || tt[2] || tt[3] || tt[4]) && (tt[5] || tt[6])) { //base and an indel???
-            base = '?';
+            base = ambiguousCallChar;
         } else if (tt[1] && !tt[2] && !tt[3] && !tt[4]) { //A
             base = 'A';
         } else if (!tt[1] && tt[2] && !tt[3] && !tt[4]) { //C
