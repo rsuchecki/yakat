@@ -21,7 +21,7 @@ import kmerextender.KmerExtender;
 import kmermatch.TODO.KmerMatch;
 import kmerger.KmerSetMerge;
 import multimers.Multimers;
-import processpileup.MpileupCounts;
+import processpileup.MpileupCountsCalls;
 import processpileup.PileupStats;
 import processpileup.adhoc.PileupStatsMerge;
 
@@ -49,7 +49,7 @@ public class MerUtensils {
         } else if (args.length != 0 && args[0].matches("(p)?pileup")) {
             new PileupStats(args, name, "pileup");
         } else if (args.length != 0 && args[0].matches("(p)?mpileup")) {
-            new MpileupCounts(args, name, "mpileup counts");
+            new MpileupCountsCalls(args, name, "mpileup counts");
         } else if (args.length != 0 && args[0].matches("pileupstatsmerge")) {
             new PileupStatsMerge(args, name, "pileupstatsmerge");
         } else if (args.length != 0 && args[0].matches("test")) {
