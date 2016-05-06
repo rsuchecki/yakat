@@ -209,6 +209,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         Integer i = 0;
         Long l = 0L;
         Double d = 0.0;
+        Character c = 'c';
         T value = (T) inputValueString;
         if (storedValue.getClass().isInstance(l)) {
             Long valueLong = NumberFormat.getInstance().parse(inputValueString).longValue();
@@ -220,6 +221,14 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         } else if (storedValue.getClass().isInstance(d)) {
             Double valueDouble = NumberFormat.getInstance().parse(inputValueString).doubleValue();
             value = (T) valueDouble;
+        } else if (storedValue.getClass().isInstance(c)) {
+            if (inputValueString.length() == 1) {
+                Character valueChar = inputValueString.charAt(0);
+                value = (T) valueChar;
+            } else {
+                Reporter.reportNoMem("[FATAL]", "A single char expected, offending value: '" + inputValueString+"'", getClass().getSimpleName());
+                
+            }
         }
         return value;
     }
@@ -233,6 +242,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         Integer i = 0;
         Long l = 0L;
         Double d = 0.0;
+        Character c = 'c';
         if (value.getClass().isInstance(d)) {
             d = (Double) value;
             if (Math.abs(d) < 10E9 && Math.abs(d) > 10E-9) {
@@ -244,7 +254,9 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
             }
         } else if (value.getClass().isInstance(i)) {
             i = (Integer) value;
-            if (Math.abs(i) < 10E9 && Math.abs(i) > 10E-9) {
+            if (i == 0) {
+                return "0";
+            } else if (Math.abs(i) < 10E9 && Math.abs(i) > 10E-9) {
                 return NumberFormat.getInstance().format(i);
             } else {
                 return CommonMaths.getScientific(i);
@@ -256,6 +268,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
             } else {
                 return CommonMaths.getScientific(l);
             }
+        } else if (value.getClass().isInstance(c)) {
+            return "" + (Character) value;
         } else {
             return (String) value;
         }
@@ -310,6 +324,24 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
             }
         }
         return sb.toString();
+    }
+
+    public CharSequence getKeysString() {
+        StringBuilder s = new StringBuilder();
+        if (hasShortKey()) {
+            s.append("-").append(getShortKey());
+        } else {
+            s.append("    ");
+        }
+        if (hasShortKey() && hasLongKey()) {
+            s.append(", ");
+        }
+        if (hasLongKey()) {
+            s.append("--").append(getLongKey());
+        } else {
+//                help.append("    ");
+        }
+        return s;
     }
 
     public int getLongKeyLength() {
@@ -558,7 +590,6 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
 //    public int getOptInstance() {
 //        return optInstance;
 //    }
-
 //    public boolean  incrementOptInstance() {
 //        if (this.optInstance < 0 || canBeMultiCalled) {
 //            values.add(new ArrayList<T>());
@@ -569,5 +600,4 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
 //            return false;
 //        }
 //    }
-
 }

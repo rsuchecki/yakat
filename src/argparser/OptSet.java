@@ -89,8 +89,6 @@ public class OptSet {
         this.summary = summary;
     }
 
-    
-    
     public boolean hasVarArgOption() {
         for (Opt o : getOptsList()) {
             if (o.isVarArgsOption()) {
@@ -280,19 +278,20 @@ public class OptSet {
                 }
             }
             help.append(" ");
-            if (opt.hasShortKey()) {
-                help.append("-").append(opt.getShortKey());
-            } else {
-                help.append("    ");
-            }
-            if (opt.hasShortKey() && opt.hasLongKey()) {
-                help.append(", ");
-            }
-            if (opt.hasLongKey()) {
-                help.append("--").append(opt.getLongKey());
-            } else {
+            help.append(opt.getKeysString());
+//            if (opt.hasShortKey()) {
+//                help.append("-").append(opt.getShortKey());
+//            } else {
 //                help.append("    ");
-            }
+//            }
+//            if (opt.hasShortKey() && opt.hasLongKey()) {
+//                help.append(", ");
+//            }
+//            if (opt.hasLongKey()) {
+//                help.append("--").append(opt.getLongKey());
+//            } else {
+////                help.append("    ");
+//            }
             if (opt.getMaxValueArgs() > 1 || opt.getMinValueArgs() > 1) {
                 help.append(" <args>");
             } else if (opt.getMaxValueArgs() == 1 || opt.getMinValueArgs() == 1) {
@@ -458,20 +457,40 @@ public class OptSet {
     }
 
     public void printUserSettings(String TOOL_NAME) {
+        int currentListingGroup = -1;
         for (Opt o : getOptsList()) {
+            if (o.getListingGroup() > currentListingGroup) {
+                currentListingGroup = o.getListingGroup();
+                String groupLabel = getListingGroupLabel(currentListingGroup);
+                if (!groupLabel.isEmpty()) {
+                    Reporter.reportNoMem("[OPTS]",groupLabel, TOOL_NAME);
+                }
+            }
             StringBuilder sb = new StringBuilder();
             if (o.getMaxValueArgs() > 0) {
-                sb.append("-").append(o.getShortKey()).append(", --").append(o.getLongKey()).append(" ");
+                sb.append(o.getKeysString());
+//                sb.append("-").append(o.getShortKey()).append(", --").append(o.getLongKey()).append(" ");
+                sb.append(" ");
                 if (o.getValues().size() > 1) {
                     ArrayList values = o.getValues();
                     for (Object ob : values) {
                         sb.append(" ").append(ob.toString());
                     }
                 } else {
-                    sb.append(o.getValueOrDefault());
+                    if(o.getValueOrDefault() == null) {
+                        sb.append("N/A");                        
+                    } else {
+                        sb.append(o.getValueOrDefault());
+                    }
                 }
             } else if (o.isUsed()) {
-                sb.append("-").append(o.getShortKey()).append(", --").append(o.getLongKey());
+                sb.append(o.getKeysString());
+//                if(o.hasShortKey()) {
+//                    sb.append("-").append(o.getShortKey());
+//                }
+//                if(o.hasLongKey()) {
+//                    sb.append(", --").append(o.getLongKey());
+//                }
             }
             if (o.isUsed()) {
                 sb.append(" [USER-SET]");
