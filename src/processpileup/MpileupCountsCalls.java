@@ -76,23 +76,24 @@ public class MpileupCountsCalls {
         optSet.addOpt(new Opt('C', "max-coverage-per-locus", "Maximum coverage allowed for a locus to be considered", 1).setMinValue(1).setDefaultValue(1000));
         optSet.addOpt(new Opt('A', "max-percent-error-allele", "Percentage of coverage up to which an allele is regarded to be an error", 1).setMinValue(0.0).setDefaultValue(1.0));
         optSet.addOpt(new Opt('L', "max-percent-error-locus", "Percentage coverage of alternative alleles up to which a locus is reported", 1).setMinValue(0.0).setDefaultValue(1.0));
-        optSet.addOpt(new Opt(null, "zero-reads-char", "[TODO] A character denoting zero reads at a postion for a given sample", 1).setDefaultValue('.'));
-        optSet.addOpt(new Opt(null, "ambiguous-call-char", "[TODO] A character indicating uncertain call (e.g. due to low coverage or unclear zygosity at locus)", 1).setDefaultValue('?'));
+        optSet.addOpt(new Opt(null, "min-minor-major-ratio", "[TODO] Minimum fraction of a minor allele bases required to call a heterozygous base", 1).setMinValue(0.0).setMaxValue(0.5));
+        optSet.addOpt(new Opt(null, "zero-reads-char", "A character denoting zero reads at a postion for a given sample", 1).setDefaultValue('.'));
+        optSet.addOpt(new Opt(null, "ambiguous-call-char", "A character indicating uncertain call (e.g. due to low coverage or unclear zygosity at locus)", 1).setDefaultValue('?'));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Record reporting settings]");
         optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(0).setDefaultValue(2));
         
+        optSet.addOpt(new Opt('W', "all-within-thresholds", "Print all loci within given thresholds even if no alternative alleles called"));
         optSet.addOpt(new Opt(null, "min-samples-called", "[TODO] Minimum samples for which the base was called", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "max-samples-called", "[TODO] Maximum samples for which the base was called", 1).setMinValue(1));
         optSet.addOpt(new Opt(null, "min-samples-zero-coverage", "[TODO] May be useful for presence-absence analyses", 1).setMinValue(0).setDefaultValue(0));
         optSet.addOpt(new Opt(null, "max-samples-zero-coverage", "[TODO] May be useful for presence-absence analyses", 1).setMinValue(0));
-        optSet.addOpt(new Opt(null, "min-samples-uncertain", "[TODO] Minimum samples for which the base was not called due to uncertainty", 1).setMinValue(0).setDefaultValue(0));
-        optSet.addOpt(new Opt(null, "max-samples-uncertain", "[TODO] Maximum samples for which the base was not called due to uncertainty", 1).setMinValue(1));
         
         optSet.addOpt(new Opt(null, "min-snps-to-reference", "[TODO] Report a position if at least <arg> samples have a SNP to reference ",1 ).setMinValue(0).setDefaultValue(0));
-        optSet.addOpt(new Opt(null, "min-het-calls", "[TODO] Report a position if at least <arg> samples calls are heterozygous",1 ).setMinValue(0).setDefaultValue(0));
-        optSet.addOpt(new Opt(null, "max-het-calls", "[TODO] Report a position if at most <arg> samples calls are heterozygous",1 ).setMinValue(0));
-        optSet.addOpt(new Opt('W', "all-within-thresholds", "Print all loci within given thresholds even if no alternative alleles called"));
+        optSet.addOpt(new Opt(null, "min-calls-uncertain", "Minimum samples for which the base was not called due to uncertainty", 1).setMinValue(0).setDefaultValue(0));
+        optSet.addOpt(new Opt(null, "max-calls-uncertain", "Maximum samples for which the base was not called due to uncertainty", 1).setMinValue(0).setDefaultValue(65535));
+        optSet.addOpt(new Opt(null, "min-calls-het", "Report a position if at least <arg> calls are heterozygous",1 ).setMinValue(0).setDefaultValue(0));
+        optSet.addOpt(new Opt(null, "max-calls-het", "Report a position if at most <arg> calls are heterozygous",1 ).setMinValue(0).setDefaultValue(65535));
 //        optSet.addOpt(new Opt('z', "min-missing-samples", "Minimum samples with zero coverage", 1).setMinValue(0).setDefaultValue(0));
 //        optSet.addOpt(new Opt('u', "max-uncalled-samples", "Maximum samples for which the base was not called", 1).setMinValue(0).setDefaultValue(0));
         optSet.incrementLisitngGroup();
@@ -163,7 +164,7 @@ public class MpileupCountsCalls {
             exit = true;
         }
         if (optSet.getOpt("D").isUsed()) {
-            System.out.println(getOutputCodes());
+            System.out.println(getOutputCodes(optSet));
             exit = true;
         }
         if (exit) {
@@ -254,16 +255,18 @@ public class MpileupCountsCalls {
         Reporter.report("[INFO]", "Done!", TOOL_NAME);
     }
 
-    private CharSequence getOutputCodes() {
+    private CharSequence getOutputCodes(OptSet optSet) {
         StringBuilder codes = new StringBuilder();
-        codes.append("|---------+--------------------------------------------------|\n");
-        codes.append("|  Symbol | Description                                      |\n");
-        codes.append("|---------+--------------------------------------------------|\n");
-        codes.append("|    ?    + insufficient or conflicting information to call  |\n");
-        codes.append("|    E    + deletion in read / insertion in reference        |\n");
-        codes.append("|    I    + insertion in read / deletion in the reference    |\n");
-        codes.append("|         + whitespace indicates no aligned bases            |\n");
-        codes.append("|---------+--------------------------------------------------|\n\n");
+        char m = (Character)optSet.getOpt("ambiguous-call-char").getValueOrDefault();
+        char a = (Character)optSet.getOpt("zero-reads-char").getValueOrDefault();
+        codes.append("|---------+-------------------------------------------------------|\n");
+        codes.append("|  Symbol | Description                                           |\n");
+        codes.append("|---------+-------------------------------------------------------|\n");
+        codes.append("|    "+m+"    + insufficient or conflicting information so not called |\n");
+        codes.append("|    E    + deletion in read / insertion in the reference         |\n");
+        codes.append("|    I    + insertion in read / deletion in the reference         |\n");
+        codes.append("|    "+a+"    + indicates no aligned bases                            |\n");
+        codes.append("|---------+-------------------------------------------------------|\n\n");
 
         codes.append("|------------------------------------------------------------|\n");
         codes.append("|  COUNTS array represents numbers of identified bases       |\n");

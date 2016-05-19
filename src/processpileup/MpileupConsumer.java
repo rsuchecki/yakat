@@ -44,6 +44,11 @@ public class MpileupConsumer implements Runnable {
     private char zeroReadsChar;
     private char ambiguousCallChar;
     
+    private int minCallsHet;
+    private int maxCallsHet;
+    private int minCallsUncertain;
+    private int maxCallsUnceratin;
+    
     private int minMissingSamples;
     private int maxUnCalledSamples;
 
@@ -59,6 +64,12 @@ public class MpileupConsumer implements Runnable {
         zeroReadsChar = (Character) optSet.getOpt("zero-reads-char").getValueOrDefault();
         ambiguousCallChar = (Character) optSet.getOpt("ambiguous-call-char").getValueOrDefault();
 
+        
+        minCallsHet = (int) optSet.getOpt("min-calls-het").getValueOrDefault();
+        maxCallsHet = (int) optSet.getOpt("max-calls-het").getValueOrDefault();
+        minCallsUncertain = (int) optSet.getOpt("min-calls-uncertain").getValueOrDefault();
+        maxCallsUnceratin = (int) optSet.getOpt("max-calls-uncertain").getValueOrDefault();
+        
 
         allWithinThresholds = optSet.getOptS('W').isUsed();
 //        reportHets = optSet.getOptS('H').isUsed();
@@ -115,6 +126,7 @@ public class MpileupConsumer implements Runnable {
                     int uncertain = 0;
                     int samplesZeroCoverage = 0;
                     int snpsToRef = 0;
+                    int hetCalls = 0;
                     for (int i = 3; i < toks.length; i += 3) {
                         try {
                             int coverage = Integer.parseInt(toks[i]);
@@ -132,15 +144,19 @@ public class MpileupConsumer implements Runnable {
                             char calledBase = getIUPAC(bases, coverage);
                             char calledBaseUpper = Character.toUpperCase(calledBase);
 //                            if (calledBase.matches("A|T|C|G")) {
+                            
                             if (calledBase == ambiguousCallChar) {
                                 uncertain++;
                             } else if (calledBase == zeroReadsChar) {
                                 samplesZeroCoverage++;
-                            } else {                                
+                            } else {   
+                                if(!isACGT(calledBase)) {
+                                    hetCalls++;
+                                }
                                 if (calledBaseUpper != refBaseUpper) {
                                     snpsToRef++;
                                 }
-                                if (Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase) && lastCalledBase != '#') {
+                                if (lastCalledBase != '#' && Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase)) {
                                     betweenSamplesSnps = true;
                                 }
                                 lastCalledBase = calledBase;
@@ -168,7 +184,11 @@ public class MpileupConsumer implements Runnable {
                     //TODO zeroReads should be set to > 0, > 1 is specific to having a very poor sample here
 //                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
                     if (samplesWithinCoverage >= minSamples) {
-                        if (betweenSamplesSnps || (allWithinThresholds && samplesWithBaseCalled > 0 && uncertain == 0 && samplesZeroCoverage > 1)) {
+                        if (betweenSamplesSnps || 
+                            ( allWithinThresholds
+                            && hetCalls >= minCallsHet && hetCalls <= maxCallsHet 
+                            && uncertain >= minCallsUncertain && uncertain <= maxCallsUnceratin)) {
+//                            && samplesWithBaseCalled > 0 && uncertain == 0 && samplesZeroCoverage > 1)) {
 //                            coveragesSB.append("\t");
 //                            for (int j = 1; j < basesAllSamples.length; j++) {
 //                                coveragesSB.append(basesAllSamples[j]);
@@ -197,6 +217,20 @@ public class MpileupConsumer implements Runnable {
             inputQueue.put(new ArrayList<String>()); //inform other threads
         } catch (InterruptedException ex) {
             ex.printStackTrace();
+        }
+    }
+    
+    private boolean isACGT(char c) {
+        switch (c) {
+            case 'A' : return true;
+            case 'C' : return true;
+            case 'G' : return true;
+            case 'T' : return true;
+            case 'a' : return true;
+            case 'c' : return true;
+            case 'g' : return true;
+            case 't' : return true;
+            default :  return false;
         }
     }
 
