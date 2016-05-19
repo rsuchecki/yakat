@@ -45,5 +45,9 @@ public class Sequence {
         this.sequenceString = sequenceString;
     }
     
+    public int getLength() {
+        return sequenceString.length();
+    }
+    
     
 }
