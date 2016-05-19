@@ -24,6 +24,7 @@ import multimers.Multimers;
 import processpileup.MpileupCountsCalls;
 import processpileup.PileupStats;
 import processpileup.adhoc.PileupStatsMerge;
+import vsearchprocess.MsaParserListVariants;
 
 /**
  *
@@ -57,7 +58,10 @@ public class MerUtensils {
             new ParserTest(this.getClass().getSimpleName(), "test", args);
         } else if (args.length != 0 && args[0].matches("m(ulti)?mers")) {
             new Multimers(args, name, "mmers");
-        } else if (args.length != 0 && args[0].matches("v(ersion)?")) {
+        } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {
+//            new (args, name, "vclustersvars");
+            new MsaParserListVariants(args[1]);
+        } else if (args.length != 0 && args[0].matches("(v|ver)(sion)?")) {
             Package aPackage = this.getClass().getPackage();
             String version = aPackage.getImplementationVersion();
 //            String build = aPackage.getImplementationTitle();
@@ -73,15 +77,16 @@ public class MerUtensils {
         String version = this.getClass().getPackage().getImplementationVersion();
         System.out.println("java -jar " + this.getClass().getSimpleName().toLowerCase() + "-" + version + ".jar <command> ");
         System.out.println("Commands:");
-        System.out.println("   kextend    : extend k-mers to unambiguous contigs (optionally extend input \"seed\" sequences only)");
+        System.out.println("   kextend       : extend k-mers to unambiguous contigs (optionally extend input \"seed\" sequences only)");
 //        System.out.println("   kmatch     : a.k.a bait");
-        System.out.println("   kmerge     : given sorted input, merge k-mer sets summing frequencies if available [THIS CAN NOW BE DONE USING kmc_tools complex]");
-        System.out.println("              :");
-        System.out.println("   split      : split FASTQ GBS reads by barcodes, trim barcodes and adapters");
-        System.out.println("   pmpileup   : count and call bases from mpileup");
-        System.out.println("   ppileup    : extract some stats from (m)pileup");
+        System.out.println("   kmerge        : given sorted input, merge k-mer sets summing frequencies if available [THIS CAN NOW BE DONE USING kmc_tools complex]");
+        System.out.println("                 :");
+        System.out.println("   split         : split FASTQ GBS reads by barcodes, trim barcodes and adapters");
+        System.out.println("   pmpileup      : count and call bases from mpileup");
+        System.out.println("   ppileup       : extract some stats from (m)pileup");
+        System.out.println("   vclusters     : call variants from vsearch clustering msa output");
 //        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");
-        System.out.println("   version    : print the version and build time then exit");
+        System.out.println("   version       : print the version and build time then exit");
 
 //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
 //                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "
