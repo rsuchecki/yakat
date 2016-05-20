@@ -38,6 +38,7 @@ import kmerextender.KmerExtender;
 import shared.Info;
 import shared.InputReaderProducer;
 import shared.Reporter;
+import shared.StdRedirect;
 
 /**
  *
@@ -46,7 +47,7 @@ import shared.Reporter;
 public class MpileupCountsCalls {
 
     private final String TOOL_NAME;
-    boolean IGNORE_SPLICING = true;
+//    boolean IGNORE_SPLICING = true;
 //    private String INPUT_FILE;
 
 //    private ArrayList<String> SAMPLE_NAMES;
@@ -58,7 +59,8 @@ public class MpileupCountsCalls {
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
-        stdRedirect(optSet);
+//        stdRedirect(optSet);
+        new StdRedirect(optSet, TOOL_NAME);
         parallelMpileupProcessing(optSet);
     }
 
@@ -131,30 +133,30 @@ public class MpileupCountsCalls {
         return header;
     }
 
-    private void stdRedirect(OptSet optSet) {
-        String outRedirect;
-        String errRedirect;
-        if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
-            try {
-                File file = new File(outRedirect);
-                PrintStream printStream;
-                printStream = new PrintStream(new FileOutputStream(file));
-                System.setOut(printStream);
-            } catch (FileNotFoundException ex) {
-                Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, TOOL_NAME);
-            }
-        }
-        if ((errRedirect = (String) optSet.getOpt("e").getValueOrDefault()) != null) {
-            try {
-                File file = new File(errRedirect);
-                PrintStream printStream;
-                printStream = new PrintStream(new FileOutputStream(file));
-                System.setErr(printStream);
-            } catch (FileNotFoundException ex) {
-                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, TOOL_NAME);
-            }
-        }
-    }
+//    private void stdRedirect(OptSet optSet) {
+//        String outRedirect;
+//        String errRedirect;
+//        if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
+//            try {
+//                File file = new File(outRedirect);
+//                PrintStream printStream;
+//                printStream = new PrintStream(new FileOutputStream(file));
+//                System.setOut(printStream);
+//            } catch (FileNotFoundException ex) {
+//                Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, TOOL_NAME);
+//            }
+//        }
+//        if ((errRedirect = (String) optSet.getOpt("e").getValueOrDefault()) != null) {
+//            try {
+//                File file = new File(errRedirect);
+//                PrintStream printStream;
+//                printStream = new PrintStream(new FileOutputStream(file));
+//                System.setErr(printStream);
+//            } catch (FileNotFoundException ex) {
+//                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, TOOL_NAME);
+//            }
+//        }
+//    }
 
     private void parallelMpileupProcessing(OptSet optSet) {
 
