@@ -60,7 +60,7 @@ public class MerUtensils {
             new Multimers(args, name, "mmers");
         } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {
 //            new (args, name, "vclustersvars");
-            new MsaParserListVariants(args[1]);
+            new MsaParserListVariants(args, name, "vclust");
         } else if (args.length != 0 && args[0].matches("(v|ver)(sion)?")) {
             Package aPackage = this.getClass().getPackage();
             String version = aPackage.getImplementationVersion();
