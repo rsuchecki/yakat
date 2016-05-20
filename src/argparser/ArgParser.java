@@ -146,6 +146,12 @@ public class ArgParser {
                 fatal = true;
             }
         }
+        for(PositionalOpt po : optSet.getPositionalOptsList()) {
+            if(po.isRequired() && !po.isUsed()) {
+                Reporter.reportNoMem("[FATAL]", "Required positional argument not spefified by the user, " + po.getUsageString() + " expected", getClass().getSimpleName());                
+                fatal = true;
+            }
+        }
         if (fatal) {
             System.exit(1);
         }
