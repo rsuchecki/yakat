@@ -21,13 +21,17 @@ import argparser.OptSet;
 import argparser.PositionalOpt;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
 import shared.Sequence;
 import shared.FastaReader;
 import shared.Reporter;
@@ -41,8 +45,9 @@ public class MsaParserListVariants {
 
     private final static String DELIMITER = "\t";
 //    private char[] getCharsAtPosition(int position) {
-            private final String TOOL_NAME;
+    private final String TOOL_NAME;
     private final int HELP_WIDTH = 200;
+    private final int READER_BUFFER_SIZE = 8192;
 
 //    }
     private int maxIndelLength = 1;
@@ -56,39 +61,58 @@ public class MsaParserListVariants {
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
         new StdRedirect(optSet, TOOL_NAME);
-        readMSASequencesFromFasta(optSet.getPositionalOptsList().get(0).getValue());
+        String fileName = (String) optSet.getOpt("clusters-msa").getValueOrDefault();
+        readMSASequencesFromFasta(fileName);
+//        readMSASequencesFromFasta(optSet.getPositionalOptsList().get(0).getValue());
     }
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet("Parse MSA output of VSEARCH clustering, call variants within each cluster. ");
-        
+
         //CONSIDER SETTINGS
         //  INPUT LABELS TO DISTINGUISH SAMPLES, PREVENT CALLING SNPS WITHIN SAMPLES
         //  SNP CALLING SETTINGS
-                //       -M, --msaFastaSNPsIndels <file>    : Given a FASTA MSA file, list SNPs and indels up to -i, --indelLen bases [REQUIRED for [3]]
-                // -x, --maxSeqsPerCluster <int>      : Only output SNPs/indels if up to <int> sequences in the input file, not set by default
-                // -i, --maxIndelLen <int>            : Maximum indel length to report, defaults to 1
-                // -d, --minIndelDistFromEnds <int>   : Treat indels up to <int> bases from one of the ends as padding and ignore, defaults to 3
-
-        
-        
-        
+        //       -M, --msaFastaSNPsIndels <file>    : Given a FASTA MSA file, list SNPs and indels up to -i, --indelLen bases [REQUIRED for [3]]
+        // -x, --maxSeqsPerCluster <int>      : Only output SNPs/indels if up to <int> sequences in the input file, not set by default
+        // -i, --maxIndelLen <int>            : Maximum indel length to report, defaults to 1
+        // -d, --minIndelDistFromEnds <int>   : Treat indels up to <int> bases from one of the ends as padding and ignore, defaults to 3
+        // --sample-id-prefices
+        //IF SNPS IN A GIVEN CLUSTER DISPLAY ONE-TO-MANY RELATIONSHIP, CONSIDER MERGING THE "MANY" INTO ONE SEQUENCE
+//>*ms5wt_445588
+//CATCTTGAGGACGTTGTAGCTATGGTGCGTCACGACCATGAAATTGGCCAGGGTCGGGTACCCGAGGATGACATTGTATGGCAGACGGATGTGAGCGATGTCGAAGTCAATGAGGTCGGTGCGGTAGTTGTCGTGTTGTTCGAAGGTGACGGGGAGGTGGACCTGCCCGATCGGGGTGGTGGAGCCGTCGGTCA
+//>ms5mut_154471
+//----------------------------------------------GCCAGGGTTGGGTACCCGAGGATGACATTGTATGGCAGACGGATGTGAGCGATGTCGA------------------------------------------------------------------------------------------
+//>ms5mut_161305
+//----TTGAGGACGTTGTAGCTATGGTGCGTCACGACCATGAAATTGGCCAGGGTTGGGTACC------------------------------------------------------------------------------------------------------------------------------------
+//>ms5mut_154274
+//-------------------------------------ATGAAATTGGCCAGGGTTGGGTACCCGAGGATGACATTGTATGGCAGACGGATGTG-----------------------------------------------------------------------------------------------------
+//>ms5mut_196156
+//----------------------------------------------------GTTGGGTACCCGAGGATGACATTGTATGGCAGACGGATGTGAGCGATGTCGAAGTC--------------------------------------------------------------------------------------
+//stdin	*ms5wt_445588	ms5mut_154471	55	C	T
+//stdin	*ms5wt_445588	ms5mut_161305	55	C	T
+//stdin	*ms5wt_445588	ms5mut_154274	55	C	T
+//stdin	*ms5wt_445588	ms5mut_196156	55	C	T
         //INPUT
-//        optSet.setListingGroupLabel("[Input settings]");
-//        optSet.addOpt(new Opt('n', "sample-names", "space separated sample names, order must correspond to mpileup input").setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE));
-//        optSet.addOpt(new Opt('p', "pileup-file", "Input (m)pileup file, alternatively use stdin", 1));
+        optSet.setListingGroupLabel("[Input settings]");
+        optSet.addOpt(new Opt(null, "sample-id-prefices", "Space separated sample identifier prefices").setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE));
+        optSet.addOpt(new Opt(null, "clusters-msa", "The vsearch cluster msaout file, alternatively use stdin", 1));
 //        optSet.incrementLisitngGroup();
 //        optSet.setListingGroupLabel("[Base calling settings]");
 //        optSet.addOpt(new Opt('a', "min-coverage-per-allele", "Minimum coverage required for an allele to be considered in a locus call", 1).setMinValue(1).setDefaultValue(2));
-//        optSet.addOpt(new Opt('c', "min-coverage-per-locus", "Minimum coverage required for a locus to be considered ", 1).setMinValue(1).setDefaultValue(2));
-//        optSet.addOpt(new Opt('C', "max-coverage-per-locus", "Maximum coverage allowed for a locus to be considered", 1).setMinValue(1).setDefaultValue(1000));
 //        optSet.addOpt(new Opt('A', "max-percent-error-allele", "Percentage of coverage up to which an allele is regarded to be an error", 1).setMinValue(0.0).setDefaultValue(1.0));
 //        optSet.addOpt(new Opt('L', "max-percent-error-locus", "Percentage coverage of alternative alleles up to which a locus is reported", 1).setMinValue(0.0).setDefaultValue(1.0));
 //        optSet.addOpt(new Opt(null, "min-minor-major-ratio", "[TODO] Minimum fraction of a minor allele bases required to call a heterozygous base", 1).setMinValue(0.0).setMaxValue(0.5));
 //        optSet.addOpt(new Opt(null, "zero-reads-char", "A character denoting zero reads at a postion for a given sample", 1).setDefaultValue('.'));
 //        optSet.addOpt(new Opt(null, "ambiguous-call-char", "A character indicating uncertain call (e.g. due to low coverage or unclear zygosity at locus)", 1).setDefaultValue('?'));
-//        optSet.incrementLisitngGroup();
-//        optSet.setListingGroupLabel("[Record reporting settings]");
+        optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel("[Cluster processing settings]");
+        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-sequences-per-cluster", "Maximum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(1000));
+        optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel("[Variant calling and reporting]");
+//        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-indel-length", "Maximum length of an indel ", 1).setMinValue(0).setDefaultValue(1));
+        optSet.addOpt(new Opt(null, "min-indel-distance-from-ends", "'Indels' close to the ends of an (MSA) alignment are more likely to be false/padding", 1).setMinValue(1).setDefaultValue(3));
 //        optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(0).setDefaultValue(2));
 //        
 //        optSet.addOpt(new Opt('W', "all-within-thresholds", "Print all loci within given thresholds even if no alternative alleles called"));
@@ -104,7 +128,7 @@ public class MsaParserListVariants {
 //        optSet.addOpt(new Opt(null, "max-calls-het", "Report a position if at most <arg> calls are heterozygous",1 ).setMinValue(0).setDefaultValue(65535));
 ////        optSet.addOpt(new Opt('z', "min-missing-samples", "Minimum samples with zero coverage", 1).setMinValue(0).setDefaultValue(0));
 ////        optSet.addOpt(new Opt('u', "max-uncalled-samples", "Maximum samples for which the base was not called", 1).setMinValue(0).setDefaultValue(0));
-//        optSet.incrementLisitngGroup();
+        optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Runtime settings]");
 //        String threadsOrderNote = "Note that in multi-threaded mode the output lines order need not reflect the input order";
 //        optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()).addFootnote(1, threadsOrderNote));
@@ -121,18 +145,25 @@ public class MsaParserListVariants {
 //        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
 //        optSet.addOpt(new Opt('I', "iupac-codes-table", "Print the table of IUPAC nucleotide codes and exit"));
 //        optSet.addOpt(new Opt('D', "additional-codes-table", "Print the table of additional codes/symbols used by this program"));
-        boolean positionalArgumentRequired = true;
-        optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAME", "name of input file ", 1, positionalArgumentRequired));
+//        boolean positionalArgumentRequired = true;
+//        optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAME", "name of input file ", 1, positionalArgumentRequired));
         return optSet;
     }
-    
-    public void readMSASequencesFromFasta(String fastaFileName) {
+
+    public void readMSASequencesFromFasta(String fileName) {
         ArrayList<Sequence> sequencesList = new ArrayList<>();
-        File newFile = new File(fastaFileName);
         BufferedReader bufferdReader = null;
         try {
             String inputLine;
-            bufferdReader = new BufferedReader(new FileReader(newFile));
+            if (fileName == null) {
+                Reporter.report("[INFO]", "Input file(s) not specified, reading from stdin ", TOOL_NAME);
+                bufferdReader = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
+            } else if (fileName.endsWith(".gz")) {
+                InputStream gzipStream = new GZIPInputStream(new FileInputStream(fileName), READER_BUFFER_SIZE);
+                bufferdReader = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
+            } else {
+                bufferdReader = new BufferedReader(new FileReader(new File(fileName)), READER_BUFFER_SIZE);
+            }
             String id = "";
             StringBuilder seqBuilder = new StringBuilder();
             while ((inputLine = bufferdReader.readLine()) != null) {
@@ -146,9 +177,9 @@ public class MsaParserListVariants {
                     if (line.startsWith(">*")) { //INDICATING NE CLUSTER                        
                         //INIT NEW 
                         sequencesList = new ArrayList<>();
-                    } else if(line.equals(">consensus")) {
+                    } else if (line.equals(">consensus")) {
                         //PROCESS PREVIOUS CLUSER 
-                        if(sequencesList.size() > 1) {
+                        if (sequencesList.size() > 1) {
                             parseMSA(sequencesList);
                         }
                         //SKIP the consensus
@@ -160,17 +191,17 @@ public class MsaParserListVariants {
                 }
             }
             if (id.isEmpty()) {
-                System.err.println("Error reading FASTA [" + fastaFileName + "]. No identifier lines? Terminating... ");
+                System.err.println("Error reading FASTA [" + fileName + "]. No identifier lines? Terminating... ");
                 System.exit(1);
             } else {
-                System.err.println("Can ignore this if dont' care about the consensus sequence");
+//                System.err.println("Can ignore this if don't care about the consensus sequence");
 //                String identifierString[] = id.split(" ");
 //                String key = identifierString[0];
 //                    sequencesList.add(new Sequence(id, seqBuilder.toString()));
             }
 
         } catch (FileNotFoundException ex) {
-            Reporter.report("[ERROR]", "File not found: " + newFile.getName(), "PUT-NAME-HERE");
+            Reporter.report("[ERROR]", "File not found: " + fileName, TOOL_NAME);
         } catch (IOException ex) {
             ex.printStackTrace();
         } finally {
@@ -185,14 +216,16 @@ public class MsaParserListVariants {
     }
 
 //    public void parseMSA(ArrayList<Sequence> msaSequences, int maxIndelLength, int minIndelDistFromEnds, Integer maxSeqsPerCluster) {
-    public void parseMSA(ArrayList<Sequence> msaSequences) {
-        System.out.println("CLUSTER");
+    public void parseMSA(ArrayList<Sequence> msaSequences) {        
+        System.out.println("\nCLUSTER");
         for (Sequence msaSequence : msaSequences) {
-            System.out.println(">"+msaSequence.getId());
+            System.out.println(">" + msaSequence.getId());
             System.out.println(msaSequence.getSequenceString());
         }
         
         
+        
+
 //        HashMap<String, ArrayList<Integer>> idToIndelPostion = new HashMap<>();
 //        ArrayList<Sequence> msaSequences = FastaReader.listOfSequencesFromFasta(filenameMsaOfACluster, null);        
 //        if(msaSequences.isEmpty()) {
@@ -202,7 +235,6 @@ public class MsaParserListVariants {
         int numSeqs = msaSequences.size();
         if (maxSeqsPerCluster == null || numSeqs <= maxSeqsPerCluster) { //if set, ignore clusters with more than maxSeqsPerCluster elements 
             Collections.sort(msaSequences, new SequenceLengthComparator());
-
             int alnLen = msaSequences.get(0).getLength();
 
             //record positions regarded as padding (rather than indels)
@@ -249,6 +281,16 @@ public class MsaParserListVariants {
                 paddingsList.add(padding);
             }
 
+            //MERGE CLUASTERED SEQUENCES WITHIN SAMPLE/BULK?
+            //BI-PARTITE MATCHING?
+            
+            
+            
+            
+            
+            
+            
+            
             //FOR EACH POSITION
             for (int position = 0; position < alnLen; position++) {
                 char[] bases = new char[numSeqs];
@@ -263,13 +305,14 @@ public class MsaParserListVariants {
                     for (int anotherSeq = seq + 1; anotherSeq < bases.length; anotherSeq++) {
                         boolean anotherSeqPadding = paddingsList.get(anotherSeq)[position];
                         if (base != bases[anotherSeq] && !padding && !anotherSeqPadding) {
-                            String source;
+//                            String source;
 //                            if (filenameMsaOfACluster == null) {
-                            source = "stdin";
+//                            source = "stdin";
 //                            } else {
 //                                source = filenameMsaOfACluster.replaceFirst(".*/", "");
 //                            }
-                            StringBuilder sb = new StringBuilder(source);
+//                            StringBuilder sb = new StringBuilder(source);
+                            StringBuilder sb = new StringBuilder();
 
                             String id1 = msaSequences.get(seq).getId();
                             String id2 = msaSequences.get(anotherSeq).getId();
