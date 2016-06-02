@@ -28,8 +28,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
 import shared.Sequence;
@@ -50,10 +52,6 @@ public class MsaParserListVariants {
     private final int READER_BUFFER_SIZE = 8192;
 
 //    }
-    private int maxIndelLength = 1;
-    private int minIndelDistFromEnds = 3;
-    private Integer maxSeqsPerCluster;
-
     public MsaParserListVariants(String[] args, String callerName, String toolName) {
         TOOL_NAME = callerName + " " + toolName;
 
@@ -62,7 +60,7 @@ public class MsaParserListVariants {
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
         new StdRedirect(optSet, TOOL_NAME);
         String fileName = (String) optSet.getOpt("clusters-msa").getValueOrDefault();
-        readMSASequencesFromFasta(fileName);
+        readAndProcessMSASequencesFromFasta(fileName, optSet);
 //        readMSASequencesFromFasta(optSet.getPositionalOptsList().get(0).getValue());
     }
 
@@ -94,7 +92,8 @@ public class MsaParserListVariants {
 //stdin	*ms5wt_445588	ms5mut_196156	55	C	T
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
-        optSet.addOpt(new Opt(null, "sample-id-prefices", "Space separated sample identifier prefices").setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE));
+        optSet.addOpt(new Opt(null, "sample-ids", "Space separated sample identifiers which form the prefices of the input FASTA identifiers")
+            .setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
         optSet.addOpt(new Opt(null, "clusters-msa", "The vsearch cluster msaout file, alternatively use stdin", 1));
 //        optSet.incrementLisitngGroup();
 //        optSet.setListingGroupLabel("[Base calling settings]");
@@ -106,28 +105,19 @@ public class MsaParserListVariants {
 //        optSet.addOpt(new Opt(null, "ambiguous-call-char", "A character indicating uncertain call (e.g. due to low coverage or unclear zygosity at locus)", 1).setDefaultValue('?'));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Cluster processing settings]");
-        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
-        optSet.addOpt(new Opt(null, "max-sequences-per-cluster", "Maximum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(1000));
+        optSet.addOpt(new Opt(null, "min-samples-clustered", "Minimum number of samples in a cluster", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "min-seqs-clustered", "Minimum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-seqs-clustered", "Maximum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(1000));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Variant calling and reporting]");
 //        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-inter-snps", "SNPs will be reported if at most <arg> inter-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-intra-snps", "SNPs will be reported if at most <arg> intra-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(1));
         optSet.addOpt(new Opt(null, "max-indel-length", "Maximum length of an indel ", 1).setMinValue(0).setDefaultValue(1));
-        optSet.addOpt(new Opt(null, "min-indel-distance-from-ends", "'Indels' close to the ends of an (MSA) alignment are more likely to be false/padding", 1).setMinValue(1).setDefaultValue(3));
-//        optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(0).setDefaultValue(2));
-//        
-//        optSet.addOpt(new Opt('W', "all-within-thresholds", "Print all loci within given thresholds even if no alternative alleles called"));
-//        optSet.addOpt(new Opt(null, "min-samples-called", "[TODO] Minimum samples for which the base was called", 1).setMinValue(1).setDefaultValue(2));
-//        optSet.addOpt(new Opt(null, "max-samples-called", "[TODO] Maximum samples for which the base was called", 1).setMinValue(1));
-//        optSet.addOpt(new Opt(null, "min-samples-zero-coverage", "[TODO] May be useful for presence-absence analyses", 1).setMinValue(0).setDefaultValue(0));
-//        optSet.addOpt(new Opt(null, "max-samples-zero-coverage", "[TODO] May be useful for presence-absence analyses", 1).setMinValue(0));
-//        
-//        optSet.addOpt(new Opt(null, "min-snps-to-reference", "[TODO] Report a position if at least <arg> samples have a SNP to reference ",1 ).setMinValue(0).setDefaultValue(0));
-//        optSet.addOpt(new Opt(null, "min-calls-uncertain", "Minimum samples for which the base was not called due to uncertainty", 1).setMinValue(0).setDefaultValue(0));
-//        optSet.addOpt(new Opt(null, "max-calls-uncertain", "Maximum samples for which the base was not called due to uncertainty", 1).setMinValue(0).setDefaultValue(65535));
-//        optSet.addOpt(new Opt(null, "min-calls-het", "Report a position if at least <arg> calls are heterozygous",1 ).setMinValue(0).setDefaultValue(0));
-//        optSet.addOpt(new Opt(null, "max-calls-het", "Report a position if at most <arg> calls are heterozygous",1 ).setMinValue(0).setDefaultValue(65535));
-////        optSet.addOpt(new Opt('z', "min-missing-samples", "Minimum samples with zero coverage", 1).setMinValue(0).setDefaultValue(0));
-////        optSet.addOpt(new Opt('u', "max-uncalled-samples", "Maximum samples for which the base was not called", 1).setMinValue(0).setDefaultValue(0));
+        optSet.addOpt(new Opt(null, "min-indel-distance", "Treat '-' positions less than <arg> bases from ends of an (MSA) alignment as padding not indels", 1).setMinValue(1).setDefaultValue(3));
+        optSet.addOpt(new Opt(null, "supress-inter-snps", "Do not report inter-sample SNPs"));
+        optSet.addOpt(new Opt(null, "supress-intra-snps", "Do not report intra-sample SNPs"));
+        optSet.addOpt(new Opt(null, "reverse-lex-order", "Variants will be reported in reverse lexicographical order of the sample/bulk identifiers"));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Runtime settings]");
 //        String threadsOrderNote = "Note that in multi-threaded mode the output lines order need not reflect the input order";
@@ -150,8 +140,11 @@ public class MsaParserListVariants {
         return optSet;
     }
 
-    public void readMSASequencesFromFasta(String fileName) {
-        ArrayList<Sequence> sequencesList = new ArrayList<>();
+    public void readAndProcessMSASequencesFromFasta(String fileName, OptSet optSet) {
+        ArrayList<String> SAMPLE_NAMES = (ArrayList<String>) optSet.getOpt("sample-ids").getValues();
+
+//        ArrayList<Sequence> sequencesList = new ArrayList<>();
+        ClusteredSequencesMSA clusteredSeqs = new ClusteredSequencesMSA(SAMPLE_NAMES, TOOL_NAME);
         BufferedReader bufferdReader = null;
         try {
             String inputLine;
@@ -166,22 +159,29 @@ public class MsaParserListVariants {
             }
             String id = "";
             StringBuilder seqBuilder = new StringBuilder();
+            int clusterNumber = 0;
             while ((inputLine = bufferdReader.readLine()) != null) {
                 String line = inputLine.trim();
                 if (line.startsWith(">")) {
                     if (seqBuilder.length() > 0) {   //SEQUENCE STORED EARLIER                        
-                        sequencesList.add(new Sequence(id, seqBuilder.toString()));
+//                        sequencesList.add(new Sequence(id, seqBuilder.toString()));
+                        if (!id.startsWith("consensus")) {
+                            clusteredSeqs.addSequence(new MsaSequence(id, seqBuilder.toString()));
+                        }
+
                         seqBuilder = new StringBuilder();
                     }
                     id = line.substring(1); //store current id, get rid of ">"
-                    if (line.startsWith(">*")) { //INDICATING NE CLUSTER                        
+                    if (line.startsWith(">*")) { //INDICATING NEW CLUSTER                        
+                        id = id.substring(1); //get rid of "*"
                         //INIT NEW 
-                        sequencesList = new ArrayList<>();
+//                        sequencesList = new ArrayList<>();
+                        clusteredSeqs = new ClusteredSequencesMSA(SAMPLE_NAMES, TOOL_NAME);
                     } else if (line.equals(">consensus")) {
                         //PROCESS PREVIOUS CLUSER 
-                        if (sequencesList.size() > 1) {
-                            parseMSA(sequencesList);
-                        }
+//                        if (sequencesList.size() > 1) {
+                        processCluster(clusteredSeqs, optSet, ++clusterNumber);
+//                        }
                         //SKIP the consensus
 //                        continue;
                     }
@@ -215,160 +215,50 @@ public class MsaParserListVariants {
         }
     }
 
-//    public void parseMSA(ArrayList<Sequence> msaSequences, int maxIndelLength, int minIndelDistFromEnds, Integer maxSeqsPerCluster) {
-    public void parseMSA(ArrayList<Sequence> msaSequences) {        
-        System.out.println("\nCLUSTER");
-        for (Sequence msaSequence : msaSequences) {
-            System.out.println(">" + msaSequence.getId());
-            System.out.println(msaSequence.getSequenceString());
-        }
-        
-        
-        
+    private void processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber) {
 
-//        HashMap<String, ArrayList<Integer>> idToIndelPostion = new HashMap<>();
-//        ArrayList<Sequence> msaSequences = FastaReader.listOfSequencesFromFasta(filenameMsaOfACluster, null);        
-//        if(msaSequences.isEmpty()) {
-//            System.err.println("Error. No FASTA records read from expected MSA file: "+filenameMsaOfACluster);
-//            System.exit(1);
-//        }
-        int numSeqs = msaSequences.size();
-        if (maxSeqsPerCluster == null || numSeqs <= maxSeqsPerCluster) { //if set, ignore clusters with more than maxSeqsPerCluster elements 
-            Collections.sort(msaSequences, new SequenceLengthComparator());
-            int alnLen = msaSequences.get(0).getLength();
+        int minSamplesClustered = (int) optSet.getOpt("min-samples-clustered").getValueOrDefault();
+        int minSeqsClustered = (int) optSet.getOpt("min-seqs-clustered").getValueOrDefault();
+        int maxSeqsClustered = (int) optSet.getOpt("max-seqs-clustered").getValueOrDefault();
+        int maxIntraSnps = (int) optSet.getOpt("max-intra-snps").getValueOrDefault();
+        int maxInterSnps = (int) optSet.getOpt("max-inter-snps").getValueOrDefault();
 
-            //record positions regarded as padding (rather than indels)
-            ArrayList<boolean[]> paddingsList = new ArrayList<>(numSeqs);
-            for (Sequence sequence : msaSequences) {
-                boolean[] padding = new boolean[alnLen];
-//            System.err.println(sequence.getSequenceString());
-                for (int j = 0; j < alnLen; j++) {
-                    if (sequence.getSequenceString().charAt(j) == '-') {
-                        padding[j] = true;
-//                    System.err.println("Padding pos = " + (j + 1) + " in seq " + sequence.getIdentifierString());
-                    }
-                }
-                int padLength = 0;
-                for (int positionInSeq = 0; positionInSeq < padding.length + 1; positionInSeq++) {
-                    boolean processLast = false;
-                    if (positionInSeq == padding.length) {  //Getlast position
-                        processLast = true;
-                    }
+        int maxIndelLength = (int) optSet.getOpt("max-indel-length").getValueOrDefault();
+        int minIndelDistFromEnds = (int) optSet.getOpt("min-indel-distance").getValueOrDefault();
 
-                    if (!processLast && padding[positionInSeq]) {
-                        padLength++;
-                    } else {
+        boolean reverseLex = optSet.getOpt("reverse-lex-order").getOptFlag();
+        boolean supressIntra = optSet.getOpt("supress-intra-snps").getOptFlag();
+        boolean supressInter = optSet.getOpt("supress-inter-snps").getOptFlag();
 
-                        //IF padding strech shorter than maxIndelLength THEN it may be an indel and not padding
-                        if (padLength > 0 && padLength <= maxIndelLength) {
-                            boolean headPadding = false;
-                            for (int positionInPadStretch = padLength; positionInPadStretch > 0; positionInPadStretch--) {
-                                //IGNORE indels adjacent to SEQ ENDS, that is, treat them as alignment padding
-                                if (positionInSeq - positionInPadStretch < minIndelDistFromEnds || headPadding || positionInSeq > alnLen - minIndelDistFromEnds) {
-                                    headPadding = true;
-//                                System.err.println("Not unpadding pos = " + (positionInSeq - positionInPadStretch + 1) + " in seq " + sequence.getIdentifierString());
-                                    break; //IF WE CLASS THIS POSITION AS PADDING, THE REST OF THE STRETCH IS PADDING AS WELL                                
-                                } else {
-                                    padding[positionInSeq - positionInPadStretch] = false;
-                                    headPadding = false;
-//                                System.err.println("Unpadding pos = " + (positionInSeq - positionInPadStretch + 1) + " in seq " + sequence.getIdentifierString());
-                                }
-                            }
-                        }
-                        padLength = 0;
-                    }
-                }
-                paddingsList.add(padding);
+        if (clusteredSeqs.size() >= minSeqsClustered && clusteredSeqs.size() <= maxSeqsClustered && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
+            //CALL WITHIN EACH SAMPLE
+            clusteredSeqs.callSNPsWithinEachSample(maxIndelLength, minIndelDistFromEnds);
+            String suffix = null;
+            if (!clusteredSeqs.getIntraSnps().isEmpty()) {
+                suffix = "HAS_INTRA";
             }
+//            String clusterString = "ALL";
+            //MERGE NON-CONFLICTING SEQUENCES WITHIN EACH SAMPLE
+            if (clusteredSeqs.mergeSequencesWithinSamples(maxIndelLength, minIndelDistFromEnds)) {
+//                clusterString = "MERGED";
+            }
+            //CALL BETWEEN SAMPLES
+            clusteredSeqs.callSNPsBetweenAllSamples(maxIndelLength, minIndelDistFromEnds);
 
-            //MERGE CLUASTERED SEQUENCES WITHIN SAMPLE/BULK?
-            //BI-PARTITE MATCHING?
-            
-            
-            
-            
-            
-            
-            
-            
-            //FOR EACH POSITION
-            for (int position = 0; position < alnLen; position++) {
-                char[] bases = new char[numSeqs];
-                //RECORD BASES FROM ALL SEQS
-                for (int i = 0; i < numSeqs; i++) {
-                    bases[i] = msaSequences.get(i).getSequenceString().charAt(position);
+            //PRINT
+            if (clusteredSeqs.getIntraSnps().size() <= maxIntraSnps && clusteredSeqs.getInterSnps().size() <= maxInterSnps) {
+                clusteredSeqs.printCluster(clusterNumber);
+//                clusteredSeqs.printCluster((clusterNumber) + " " + clusterString, maxIndelLength);
+                if (!supressIntra) {
+                    clusteredSeqs.printIntraSnps(clusterNumber, reverseLex, DELIMITER, "INTRA");
                 }
-                //FOR RECORDED BASE OF A SEQUENCE, COMPARE WITH BASES IN OTHER SEQS
-                for (int seq = 0; seq < bases.length - 1; seq++) {
-                    char base = bases[seq];
-                    boolean padding = paddingsList.get(seq)[position];
-                    for (int anotherSeq = seq + 1; anotherSeq < bases.length; anotherSeq++) {
-                        boolean anotherSeqPadding = paddingsList.get(anotherSeq)[position];
-                        if (base != bases[anotherSeq] && !padding && !anotherSeqPadding) {
-//                            String source;
-//                            if (filenameMsaOfACluster == null) {
-//                            source = "stdin";
-//                            } else {
-//                                source = filenameMsaOfACluster.replaceFirst(".*/", "");
-//                            }
-//                            StringBuilder sb = new StringBuilder(source);
-                            StringBuilder sb = new StringBuilder();
-
-                            String id1 = msaSequences.get(seq).getId();
-                            String id2 = msaSequences.get(anotherSeq).getId();
-
-                            if (id1.compareTo(id2) < 0) {
-                                sb.append(DELIMITER).append(id1);
-                                sb.append(DELIMITER).append(id2);
-                                sb.append(DELIMITER).append(position + 1).append(DELIMITER).append(base).append(DELIMITER).append(bases[anotherSeq]);
-                            } else {
-                                sb.append(DELIMITER).append(id2);
-                                sb.append(DELIMITER).append(id1);
-                                sb.append(DELIMITER).append(position + 1).append(DELIMITER).append(bases[anotherSeq]).append(DELIMITER).append(base);
-
-                            }
-
-                            System.out.println(sb.toString());
-                        }
-
-                    }
-
+                if (!supressInter) {
+                    clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix);
                 }
             }
         }
-
     }
 
-//    /**
-//     * Corrects indel positions for offset introduced by MSA and where
-//     * applicable reverse complementing before MSA so that the corrected
-//     * position matches the original non rc'd sequence Suffix '_rc' is removed
-//     * if present in the seq identifier
-//     *
-//     * @param indelPosition
-//     * @param sequence
-//     * @return
-//     */
-//    private int getCorrectedIndelPosition(Integer indelPosition, Sequence sequence) {
-//        String seqUpToIndel;
-//        //WHAT IF SEQ RC'd WHEN PARSING CD-HIT OUTPUT?
-//        //1. 
-//        //2. REMOVE rc suffix from identifier
-//        //3. RC INDEl POSITION
-//        //4. PROCEED WITH COORDNIATE CORRECTION 
-//        if (sequence.getSequenceString().charAt(indelPosition - 1) != '-') {
-//            indelPosition--; //offset fix where a '-' was not introduced in the sequence
-//        }
-//        if (sequence.getIdentifierString().endsWith("_rc")) {
-//            seqUpToIndel = sequence.getSequenceString().substring(indelPosition);
-////            indelPosition = seqUpToIndel.length();
-//            sequence.setIdentifierString(sequence.getIdentifierString().replaceAll("_rc", "")); //SMALL _rc  ONLY, THE CAPITAL _RC HAS NOTHING TO DO WITH OUR CH-HIT OR MSA!
-//        } else {
-//            seqUpToIndel = sequence.getSubsequence(0, indelPosition);
-//        }
-//        String ungappedUpToIndel = seqUpToIndel.replaceAll("-", "");
-//        return ungappedUpToIndel.length();
-//    }
     private class SequenceLengthComparator implements Comparator<Sequence> {
 
         @Override
