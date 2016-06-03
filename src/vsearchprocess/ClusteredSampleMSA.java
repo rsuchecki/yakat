@@ -58,13 +58,8 @@ public class ClusteredSampleMSA {
         return snpsWithin == null ? 0 : snpsWithin.size();
     }
 
-    /**
-     *
-     * @param maxIndelLength
-     * @param minIndelDistFromEnds
-     * @return
-     */
-    public boolean mergeSequences(int maxIndelLength, int minIndelDistFromEnds) {
+
+    public boolean mergeSequences() {
         boolean merged = false;
         int numSeqs = getSequences().size();
         if (numSeqs > 1) {
@@ -105,15 +100,8 @@ public class ClusteredSampleMSA {
                 MsaSequence msaSequence = new MsaSequence(id.toString(), consensus.toString());
 
                 //IF PADDING WITHIN MERGED SEQUENCE -> DO NOT OVERWRITE THE ORIGINAL SEQS
-                String[] split = msaSequence.getSequenceString().split("[^-]");
-                int nonTipPadding = 0;
-                for (int i = 1; i < split.length - 1; i++) { //skipping first and last elems (these represent padding at tips)
-                    int length = split[i].length();
-                    if (length > maxIndelLength) { //ALLOW INDELS UP TO SPECIFIED THRESHOLD
-                        nonTipPadding += split[i].length();
-                    }
-                }
-                if (nonTipPadding > 0) {
+                
+                if (msaSequence.getNonTipPaddingLength() > 0) {
 //                    System.out.println("PADDING: "+Arrays.toString(split));                    
                 } else {
 
@@ -145,9 +133,15 @@ public class ClusteredSampleMSA {
             int len = getSequences().get(0).getLength();
             for (int k = 0; k < getSequences().size() - 1; k++) {
                 MsaSequence s1 = getSequences().get(k);
+                if(s1.getNonTipPaddingLength() > 0) {
+                    continue;
+                }
                 boolean[] padding1 = s1.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
                 for (int l = 1; l < getSequences().size(); l++) {
                     MsaSequence s2 = getSequences().get(l);
+                    if(s2.getNonTipPaddingLength() > 0) {
+                        continue;
+                    }
                     boolean[] padding2 = s2.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
                     for (int i = 0; i < len; i++) {
                         if (s1.getSequenceString().charAt(i) != s2.getSequenceString().charAt(i) && !padding1[i] && !padding2[i]) {

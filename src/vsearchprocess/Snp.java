@@ -61,24 +61,24 @@ public class Snp {
         return position + 1;
     }
 
-    public CharSequence getSnpString(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix) {
+    public CharSequence getSnpString(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, int maxIndelLength) {
         StringBuilder sb = new StringBuilder("Cluster_");
         sb.append(clusterNumber);
-        String id1 = s1.getId();
-        String id2 = s2.getId();
-        int order = id1.compareTo(id2);
+//        String id1 = s1.getId();
+//        String id2 = s2.getId();
+        sb.append(DELIMITER).append(s1.getLength()); //Here the length refers to alignment and not necessarily the sequence
+        int order = s1.getId().compareTo(s2.getId());
         order = reverseLex ? -order : order;
-        if (order > 0) {
-            sb.append(DELIMITER).append(id1).append(DELIMITER).append(s1.getLength());
-            sb.append(DELIMITER).append(id2).append(DELIMITER).append(s2.getLength());
-            sb.append(DELIMITER).append(getPosition_1()).append(DELIMITER);
-            sb.append(s1.getSequenceString().charAt(getPosition_0())).append(DELIMITER).append(s2.getSequenceString().charAt(getPosition_0()));
-        } else {
-            sb.append(DELIMITER).append(id2).append(DELIMITER).append(s2.getLength());
-            sb.append(DELIMITER).append(id1).append(DELIMITER).append(s1.getLength());
-            sb.append(DELIMITER).append(getPosition_1()).append(DELIMITER);
-            sb.append(s2.getSequenceString().charAt(getPosition_0())).append(DELIMITER).append(s1.getSequenceString().charAt(getPosition_0()));
+        if (order > 0) {         
+            MsaSequence tmp = s1;
+            s1 = s2;
+            s2 = tmp;
         }
+        sb.append(DELIMITER).append(s1.getId()).append(DELIMITER).append(s1.getUnpaddedLength());
+        sb.append(DELIMITER).append(s2.getId()).append(DELIMITER).append(s2.getUnpaddedLength());
+        sb.append(DELIMITER).append(getPosition_1()).append(DELIMITER);
+        sb.append(s1.getSequenceString().charAt(getPosition_0())).append(DELIMITER).append(s2.getSequenceString().charAt(getPosition_0()));
+        
         sb.append(DELIMITER);
         if(suffix != null) {
             sb.append(suffix);

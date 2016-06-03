@@ -65,7 +65,8 @@ public class MsaParserListVariants {
     }
 
     private OptSet populateOptSet() {
-        OptSet optSet = new OptSet("Parse MSA output of VSEARCH clustering, call variants within each cluster. ");
+        OptSet optSet = new OptSet("Parse MSA output of VSEARCH clustering, call variants within each cluster. "
+            + "Variants printed to stdout, clusters underlying those printed to stderr.");
 
         //CONSIDER SETTINGS
         //  INPUT LABELS TO DISTINGUISH SAMPLES, PREVENT CALLING SNPS WITHIN SAMPLES
@@ -95,6 +96,7 @@ public class MsaParserListVariants {
         optSet.addOpt(new Opt(null, "sample-ids", "Space separated sample identifiers which form the prefices of the input FASTA identifiers")
             .setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
         optSet.addOpt(new Opt(null, "clusters-msa", "The vsearch cluster msaout file, alternatively use stdin", 1));
+//        optSet.addOpt(new Opt(null, "original-fasta", "The original FASTA file gven to vsearch, if specified it will be used to extract the input sequences' lengths", 1));
 //        optSet.incrementLisitngGroup();
 //        optSet.setListingGroupLabel("[Base calling settings]");
 //        optSet.addOpt(new Opt('a', "min-coverage-per-allele", "Minimum coverage required for an allele to be considered in a locus call", 1).setMinValue(1).setDefaultValue(2));
@@ -142,14 +144,43 @@ public class MsaParserListVariants {
 
     public void readAndProcessMSASequencesFromFasta(String fileName, OptSet optSet) {
         ArrayList<String> SAMPLE_NAMES = (ArrayList<String>) optSet.getOpt("sample-ids").getValues();
-
+//        String originalFastaFileName = (String)optSet.getOpt("original-fasta").getValueOrDefault();
+//        HashMap<String, Integer> lengthsMap;
+//        if(originalFastaFileName != null) {
+//            lengthsMap = FastaReader.hashMapOfSequenceLengthsFromFasta(originalFastaFileName, null); 
+//        } else {
+//            lengthsMap = new HashMap<>(0);
+//        }
 //        ArrayList<Sequence> sequencesList = new ArrayList<>();
+
+
+        StringBuilder sb = new StringBuilder("ClusterId");
+        sb.append(DELIMITER);
+        sb.append("AlnLen");
+        sb.append(DELIMITER);
+        sb.append("Id1");
+        sb.append(DELIMITER);
+        sb.append("Len1");
+        sb.append(DELIMITER);
+        sb.append("Id2");
+        sb.append(DELIMITER);
+        sb.append("Len2");
+        sb.append(DELIMITER);
+        sb.append("Pos");
+        sb.append(DELIMITER);
+        sb.append("Base1");
+        sb.append(DELIMITER);
+        sb.append("Base2");
+        sb.append(DELIMITER);
+        sb.append("Comments");
+        System.out.println(sb);
+
         ClusteredSequencesMSA clusteredSeqs = new ClusteredSequencesMSA(SAMPLE_NAMES, TOOL_NAME);
         BufferedReader bufferdReader = null;
         try {
             String inputLine;
             if (fileName == null) {
-                Reporter.report("[INFO]", "Input file(s) not specified, reading from stdin ", TOOL_NAME);
+//                Reporter.report("[INFO]", "Input file(s) not specified, reading from stdin ", TOOL_NAME);
                 bufferdReader = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
             } else if (fileName.endsWith(".gz")) {
                 InputStream gzipStream = new GZIPInputStream(new FileInputStream(fileName), READER_BUFFER_SIZE);
@@ -167,6 +198,7 @@ public class MsaParserListVariants {
 //                        sequencesList.add(new Sequence(id, seqBuilder.toString()));
                         if (!id.startsWith("consensus")) {
                             clusteredSeqs.addSequence(new MsaSequence(id, seqBuilder.toString()));
+//                            clusteredSeqs.addSequence(new MsaSequence(id, seqBuilder.toString(), lengthsMap.get(id)));
                         }
 
                         seqBuilder = new StringBuilder();
@@ -180,7 +212,7 @@ public class MsaParserListVariants {
                     } else if (line.equals(">consensus")) {
                         //PROCESS PREVIOUS CLUSER 
 //                        if (sequencesList.size() > 1) {
-                        processCluster(clusteredSeqs, optSet, ++clusterNumber);
+                        clusterNumber = processCluster(clusteredSeqs, optSet, clusterNumber);
 //                        }
                         //SKIP the consensus
 //                        continue;
@@ -215,7 +247,7 @@ public class MsaParserListVariants {
         }
     }
 
-    private void processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber) {
+    private int processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber) {
 
         int minSamplesClustered = (int) optSet.getOpt("min-samples-clustered").getValueOrDefault();
         int minSeqsClustered = (int) optSet.getOpt("min-seqs-clustered").getValueOrDefault();
@@ -230,6 +262,8 @@ public class MsaParserListVariants {
         boolean supressIntra = optSet.getOpt("supress-intra-snps").getOptFlag();
         boolean supressInter = optSet.getOpt("supress-inter-snps").getOptFlag();
 
+
+        
         if (clusteredSeqs.size() >= minSeqsClustered && clusteredSeqs.size() <= maxSeqsClustered && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
             //CALL WITHIN EACH SAMPLE
             clusteredSeqs.callSNPsWithinEachSample(maxIndelLength, minIndelDistFromEnds);
@@ -239,7 +273,7 @@ public class MsaParserListVariants {
             }
 //            String clusterString = "ALL";
             //MERGE NON-CONFLICTING SEQUENCES WITHIN EACH SAMPLE
-            if (clusteredSeqs.mergeSequencesWithinSamples(maxIndelLength, minIndelDistFromEnds)) {
+            if (clusteredSeqs.mergeSequencesWithinSamples()) {
 //                clusterString = "MERGED";
             }
             //CALL BETWEEN SAMPLES
@@ -247,23 +281,24 @@ public class MsaParserListVariants {
 
             //PRINT
             if (clusteredSeqs.getIntraSnps().size() <= maxIntraSnps && clusteredSeqs.getInterSnps().size() <= maxInterSnps) {
-                clusteredSeqs.printCluster(clusterNumber);
+                clusteredSeqs.printCluster(++clusterNumber);
 //                clusteredSeqs.printCluster((clusterNumber) + " " + clusterString, maxIndelLength);
                 if (!supressIntra) {
-                    clusteredSeqs.printIntraSnps(clusterNumber, reverseLex, DELIMITER, "INTRA");
+                    clusteredSeqs.printIntraSnps(clusterNumber, reverseLex, DELIMITER, "INTRA", maxIndelLength);
                 }
                 if (!supressInter) {
-                    clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix);
+                    clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix, maxIndelLength);
                 }
-            }
+            }            
         }
+        return clusterNumber;
     }
 
-    private class SequenceLengthComparator implements Comparator<Sequence> {
-
-        @Override
-        public int compare(Sequence sequence, Sequence anotherSequence) {
-            return sequence.getLength() - anotherSequence.getLength();
-        }
-    }
+//    private class SequenceLengthComparator implements Comparator<Sequence> {
+//
+//        @Override
+//        public int compare(Sequence sequence, Sequence anotherSequence) {
+//            return sequence.getLength() - anotherSequence.getLength();
+//        }
+//    }
 }

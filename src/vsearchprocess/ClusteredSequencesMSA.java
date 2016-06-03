@@ -121,21 +121,21 @@ public class ClusteredSequencesMSA {
 //        }
 //        return false;
 //    }
-    
+
     public int getNumClusteredSamples() {
         int samples = 0;
-        for(ClusteredSampleMSA c: map.values()) {
-            if(c.size() > 0) {
+        for (ClusteredSampleMSA c : map.values()) {
+            if (c.size() > 0) {
                 samples++;
             }
-        }        
+        }
         return samples;
     }
 
-    public boolean mergeSequencesWithinSamples(int maxIndelLength, int minIndelDistFromEnds) {
+    public boolean mergeSequencesWithinSamples() {
         int merged = 0;
         for (ClusteredSampleMSA sequences : map.values()) {
-            if (sequences.mergeSequences(maxIndelLength, minIndelDistFromEnds)) {
+            if (sequences.mergeSequences()) {
                 merged++;
             }
         }
@@ -166,8 +166,14 @@ public class ClusteredSequencesMSA {
     private void callSNPsBetween2Samples(ClusteredSampleMSA sample1, ClusteredSampleMSA sample2, int maxIndelLength, int minIndelDistFromEnds) {
         int len = getMsaAlignmentLength();
         for (MsaSequence s1 : sample1.getSequences()) {
+            if (s1.getNonTipPaddingLength() > 0) {
+                continue;
+            }
             boolean[] padding1 = s1.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
             for (MsaSequence s2 : sample2.getSequences()) {
+                if(s2.getNonTipPaddingLength() > 0) {
+                    continue;
+                }
                 boolean[] padding2 = s2.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
                 for (int i = 0; i < len; i++) {
                     if (s1.getSequenceString().charAt(i) != s2.getSequenceString().charAt(i) && !padding1[i] && !padding2[i]) {
@@ -189,18 +195,18 @@ public class ClusteredSequencesMSA {
         System.err.println(sb);
     }
 
-    public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix) {
+    public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, int maxIndelLength) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : intraSnps) {
-            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix)).append(System.lineSeparator());
+            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix, maxIndelLength)).append(System.lineSeparator());
         }
         System.out.print(sb);
     }
 
-    public void printInterSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix) {
+    public void printInterSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, int maxIndelLength) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : interSnps) {
-            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix)).append(System.lineSeparator());
+            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix, maxIndelLength)).append(System.lineSeparator());
         }
         System.out.print(sb);
     }
