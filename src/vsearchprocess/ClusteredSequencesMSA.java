@@ -192,7 +192,7 @@ public class ClusteredSequencesMSA {
             sb.append(System.lineSeparator());
             sb.append(msaSequence.getSequenceString()).append(System.lineSeparator());
         }
-        System.err.println(sb);
+        System.err.print(sb);
     }
 
     public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, int maxIndelLength) {

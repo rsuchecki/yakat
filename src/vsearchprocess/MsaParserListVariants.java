@@ -268,8 +268,10 @@ public class MsaParserListVariants {
             //CALL WITHIN EACH SAMPLE
             clusteredSeqs.callSNPsWithinEachSample(maxIndelLength, minIndelDistFromEnds);
             String suffix = null;
+            boolean hasIntra = false;
             if (!clusteredSeqs.getIntraSnps().isEmpty()) {
                 suffix = "HAS_INTRA";
+                hasIntra = true;
             }
 //            String clusterString = "ALL";
             //MERGE NON-CONFLICTING SEQUENCES WITHIN EACH SAMPLE
@@ -278,12 +280,17 @@ public class MsaParserListVariants {
             }
             //CALL BETWEEN SAMPLES
             clusteredSeqs.callSNPsBetweenAllSamples(maxIndelLength, minIndelDistFromEnds);
-
+            boolean hasInter = false;
+            if(!clusteredSeqs.getInterSnps().isEmpty()) {
+                hasInter = true;
+            }
             //PRINT
-            if (clusteredSeqs.getIntraSnps().size() <= maxIntraSnps && clusteredSeqs.getInterSnps().size() <= maxInterSnps) {
-                clusteredSeqs.printCluster(++clusterNumber);
+            if (clusteredSeqs.getIntraSnps().size() <= maxIntraSnps && clusteredSeqs.getInterSnps().size() <= maxInterSnps) {                
 //                clusteredSeqs.printCluster((clusterNumber) + " " + clusterString, maxIndelLength);
-                if (!supressIntra) {
+                if((hasIntra && !supressIntra) || (hasInter && !supressInter)) {
+                    clusteredSeqs.printCluster(++clusterNumber);
+                }
+                if (!supressIntra) {                    
                     clusteredSeqs.printIntraSnps(clusterNumber, reverseLex, DELIMITER, "INTRA", maxIndelLength);
                 }
                 if (!supressInter) {

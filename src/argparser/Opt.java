@@ -463,6 +463,10 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         this.listingGroupPosition = listingGroupPosition;
     }
 
+    /**
+     * True if has been set by user
+     * @return boolean
+     */
     public boolean getOptFlag() {
         return optFlag;
     }
