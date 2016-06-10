@@ -17,6 +17,9 @@ package kmerextender;
 
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import shared.Reporter;
 
 /**
  * Wrapper around a concurrent collection (ConcurrentSkipListMap, but other options possible) of PairMer objects. After
@@ -45,12 +48,10 @@ public class PairMersMap extends shared.MerMap {
     public boolean isEmpty() {
         return pairMersSkipListMap == null || pairMersSkipListMap.isEmpty();
     }
-    
+
     public boolean isNull() {
         return pairMersSkipListMap == null;
     }
-    
-    
 
 //    /**
 //     * First tries to atomically add a k-mer to the Map, if this fails,
@@ -84,14 +85,22 @@ public class PairMersMap extends shared.MerMap {
      * @param inputKmersUnique
      */
     public void addToPairMersMap(CharSequence sequence, int from, int to, boolean frontClip, boolean inputKmersUnique) {
-        PairMer pairMer = PairMerGenerator.generatePairMer(sequence, from, to, frontClip);
-
-        //Atomic operation START
-        PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
-        //Atomic operation END
-        if (previousStoredPairMer != null) {
-            //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
-            previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
+        boolean failed = false;
+        PairMer pairMer = null;
+        try {
+            pairMer = PairMerGenerator.generatePairMer(sequence, from, to, frontClip);
+        } catch (NonACGTException ex) {
+//            Reporter.report("[WARNING]", ex.getMessage(), getClass().getCanonicalName());
+            failed = true;
+        }
+        if (!failed) {
+            //Atomic operation START
+            PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
+            //Atomic operation END
+            if (previousStoredPairMer != null) {
+                //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
+                previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
+            }
         }
     }
 
@@ -102,7 +111,7 @@ public class PairMersMap extends shared.MerMap {
      * @param k
      * @return PairMer if present in Map, null otherwise
      */
-    public PairMer get(String core, int k) {
+    public PairMer get(String core, int k) throws NonACGTException {
         return pairMersSkipListMap.get(PairMerGenerator.getPairMer(core, k));
     }
 
@@ -207,8 +216,5 @@ public class PairMersMap extends shared.MerMap {
     public Integer getK() {
         return k;
     }
-    
-    
-    
 
 }

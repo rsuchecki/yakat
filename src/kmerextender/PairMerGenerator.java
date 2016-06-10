@@ -106,7 +106,7 @@ public class PairMerGenerator {
      * @param frontClip
      * @return 
      */
-    public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip) {        
+    public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip) throws NonACGTException{        
             
 //        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
 //            return new PairMer1LongEncoded(leftClip, core, rightClip);
@@ -131,7 +131,7 @@ public class PairMerGenerator {
      * @param k, used to encode pairMer using the correct data structure
      * @return PairMer to be used for interrogating a Map
      */
-    public static PairMer getPairMer(String core, int k) {
+    public static PairMer getPairMer(String core, int k) throws NonACGTException {
 //        if (k - 1 <= MAX_1LONG_ENCODE) {
 //            return new PairMer1LongEncoded(core);
 //        } else if (k - 1 <= MAX_2LONG_ENCODE) {

@@ -43,11 +43,14 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @param from
      * @param to inclusive
      * @param frontClip
+     * @throws kmerextender.NonACGTException
      */
-    public PairMerIntArrEncoded(CharSequence sequence, int from, int to, boolean frontClip) {
+    public PairMerIntArrEncoded(CharSequence sequence, int from, int to, boolean frontClip) throws NonACGTException {
         addFirstKmer(sequence, from, to, frontClip);
     }
 
+    
+    
 //    /**
 //     * Proper constructor
 //     *
@@ -63,7 +66,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      *
      * @param kmerCoreOnly
      */
-    public PairMerIntArrEncoded(String kmerCoreOnly) {
+    public PairMerIntArrEncoded(String kmerCoreOnly) throws NonACGTException {
 //        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
         encodeCoreCanonical(kmerCoreOnly, 0, kmerCoreOnly.length() - 1);
 //        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
@@ -113,7 +116,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @param frontClip
      */
 //    protected final void addFirstKmer(int leftClipAt, CharSequence sequence, int rightClipAt, int coreStart, int coreEnd) {
-    protected final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip) {
+    protected final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip) throws NonACGTException {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
             int coreStart = frontClip ? from + 1 : from;
             int coreEnd = frontClip ? to : to - 1;
@@ -415,7 +418,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @param to inclusive
      * @return true if stored forward, false if RC
      */
-    public final boolean encodeCoreCanonical(CharSequence sequence, int from, int to) {
+    public final boolean encodeCoreCanonical(CharSequence sequence, int from, int to) throws NonACGTException {
 //        System.err.println("Encoding seq len=" + kmerString.length());
 
         int INT_LENGTH = 30; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
@@ -477,12 +480,14 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
                         //00 in Reverse-Complement                        
                         positionInIntRc += 2;
                         break;
-                    default:
-                        System.err.println("Failed ecoding kmerstring to int array....");
-                        System.err.println("Offending char: " + sequence.charAt(position));
-                        System.err.println("in " + sequence);
-                        System.err.println("....exiting");
-                        System.exit(1);
+                    default:                        
+                        String message = "Failed ecoding kmerstring to int array. Offending char: " + sequence.charAt(position)+" in "+ sequence;
+                        throw new NonACGTException(message);
+//                        System.err.println();
+//                        System.err.println("Offending char: " + sequence.charAt(position));
+//                        System.err.println("in " + sequence);
+//                        System.err.println("....exiting");
+//                        System.exit(1);
                 }
                 positionInInt += 2;
                 position++;

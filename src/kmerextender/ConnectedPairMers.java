@@ -20,6 +20,8 @@ import shared.SequenceOps;
 import shared.Reporter;
 import java.util.HashMap;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Class for storing a set of connected PairMers with the connections between them
@@ -48,9 +50,15 @@ public class ConnectedPairMers {
             PairMerStrings wrapper = new PairMerStrings(pairMer, k);
             //
             String otherCoreOfKmer1 = wrapper.getOtherCoreOfKmer1();
-            PairMer otherPairMer1 = pairMersMap.get(otherCoreOfKmer1, k);
+            PairMer otherPairMer1 = null;
             String otherCoreOfKmer2 = wrapper.getOtherCoreOfKmer2();
-            PairMer otherPairMer2 = pairMersMap.get(otherCoreOfKmer2, k);
+            PairMer otherPairMer2 = null;
+            try {
+                otherPairMer1 = pairMersMap.get(otherCoreOfKmer1, k);
+                otherPairMer2 = pairMersMap.get(otherCoreOfKmer2, k);
+            } catch (NonACGTException ex) {
+                Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
+            }
 
             
             
