@@ -49,5 +49,14 @@ public class Sequence {
         return sequenceString.length();
     }
     
+    public CharSequence getFasta(boolean addLengthInDescriptionLine) {
+        StringBuilder sb = new StringBuilder(">"); 
+        sb.append(getId());
+        if(addLengthInDescriptionLine) {
+            sb.append(" ").append(getLength());
+        }
+        sb.append(System.lineSeparator()).append(getSequenceString());
+        return sb;
+    }
     
 }
