@@ -15,9 +15,12 @@
  */
 package vsearchprocess;
 
+import java.io.BufferedWriter;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Map;
 import shared.Reporter;
 import shared.Sequence;
 
@@ -32,9 +35,10 @@ public class ClusteredSequencesMSA {
     private Integer msaAlignmentLength;
     private ArrayList<Snp> intraSnps = new ArrayList<>(0);
     private ArrayList<Snp> interSnps = new ArrayList<>(0);
+    private HashMap<String, MsaSeqPair> seqPairs = new HashMap<>();
 
 //    ArrayList<Sequence> list;
-    private String TOOL_NAME;
+    private final String TOOL_NAME;
 
     public ClusteredSequencesMSA(ArrayList<String> sampleNames, String TOOL_NAME) {
         this.TOOL_NAME = TOOL_NAME;
@@ -57,6 +61,20 @@ public class ClusteredSequencesMSA {
         return sequences;
     }
 
+    public boolean hasInterSnps(double minIdentity) {
+        int count = 0;
+        for (Snp snp : interSnps) {
+            String id1 = snp.getSequence1().getId();
+            String id2 = snp.getSequence2().getId();            
+            String key = id1.compareTo(id2) < 0 ? id1+id2 : id2+id1;
+            MsaSeqPair pair = seqPairs.get(key);
+            if (pair.getMinIdentity() > minIdentity) {
+                count++;
+            }
+        }
+        return count > 0;
+    }
+    
     public ArrayList<Snp> getIntraSnps() {
         return intraSnps;
     }
@@ -169,22 +187,62 @@ public class ClusteredSequencesMSA {
             if (s1.getNonTipPaddingLength() > 0) {
                 continue;
             }
+            String id1 = s1.getId();
             boolean[] padding1 = s1.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
             for (MsaSequence s2 : sample2.getSequences()) {
-                if(s2.getNonTipPaddingLength() > 0) {
+                String id2 = s2.getId();
+                String pairKey = id1.compareTo(id2) < 0 ? id1+id2 : id2+id1;
+                if (s2.getNonTipPaddingLength() > 0) {
                     continue;
                 }
                 boolean[] padding2 = s2.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
                 for (int i = 0; i < len; i++) {
                     if (s1.getSequenceString().charAt(i) != s2.getSequenceString().charAt(i) && !padding1[i] && !padding2[i]) {
                         interSnps.add(new Snp(s1, s2, i));
+                        //COUNT SNPS PER PAIR
+                        MsaSeqPair pair = seqPairs.get(pairKey);
+                        if (pair == null) {
+                            pair = new MsaSeqPair(s1, s2);
+                            pair.addSnp();
+                            seqPairs.put(pairKey, pair);
+                        } else {
+                            pair.addSnp();
+                        }
                     }
                 }
             }
         }
     }
 
-    public void printCluster(int clusterNumber) {
+    public ArrayList<Double> getPairwiseIntraIdenities() {
+        ArrayList<Double> ids = new ArrayList<>(seqPairs.size());
+        for (Map.Entry<String, MsaSeqPair> entry : seqPairs.entrySet()) {
+            MsaSeqPair pair = entry.getValue();
+            ids.add(pair.getMinIdentity());
+        }
+        return ids;
+    }
+//
+//    public CharSequence calculateIdentities() {
+//        StringBuilder sb = new StringBuilder();
+//        for (Map.Entry<String, MsaSeqPair> entry : seqPairs.entrySet()) {
+//            MsaSeqPair pair = entry.getValue();
+//            sb.append(pair.getS1().getId()).append("\t");
+//            sb.append(pair.getS2().getId()).append("\t");            
+//            sb.append("MM=").append(pair.getSnps()).append("\t");
+//            sb.append("Len1=").append(pair.getS1().getUnpaddedLength()).append("\t");
+//            sb.append("Ipd1=").append(pair.getS1().getNonTipPaddingLength()).append("\t");
+//            sb.append("Id1=").append(pair.getIdentity1()).append("\t");
+//            sb.append("Len2=").append(pair.getS2().getUnpaddedLength()).append("\t");
+//            sb.append("Ipd2=").append(pair.getS2().getNonTipPaddingLength()).append("\t");
+//            sb.append("Id2=").append(pair.getIdentity2()).append("\t");
+//            
+//            sb.append(System.lineSeparator());
+//        }
+//        return sb;
+//    }
+
+    public CharSequence getClusterForPrint(int clusterNumber) {
 //        System.out.println("\nCLUSTER: " + clusterLabel);      
         StringBuilder sb = new StringBuilder();
         for (Sequence msaSequence : getSequencesList()) {
@@ -192,21 +250,24 @@ public class ClusteredSequencesMSA {
             sb.append(System.lineSeparator());
             sb.append(msaSequence.getSequenceString()).append(System.lineSeparator());
         }
-        System.err.print(sb);
+        return sb;
     }
 
-    public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, int maxIndelLength) {
+    public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : intraSnps) {
-            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix, maxIndelLength)).append(System.lineSeparator());
+            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix)).append(System.lineSeparator());
         }
         System.out.print(sb);
     }
 
-    public void printInterSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, int maxIndelLength) {
+    public void printInterSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, double minInterIdentity) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : interSnps) {
-            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix, maxIndelLength)).append(System.lineSeparator());
+            MsaSeqPair pair = seqPairs.get(snp.getSequence1().getId() + snp.getSequence2().getId());
+            if (pair.getMinIdentity() > minInterIdentity) {
+                sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix)).append(System.lineSeparator());
+            }
         }
         System.out.print(sb);
     }

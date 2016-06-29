@@ -23,7 +23,7 @@ public class Snp {
 
     private MsaSequence s1;
     private MsaSequence s2;
-    private int position;
+    private final int position;
 
     /**
      *
@@ -32,16 +32,21 @@ public class Snp {
      * @param position (zero indexed)
      */
     public Snp(MsaSequence s1, MsaSequence s2, int position) {
-        this.s1 = s1;
-        this.s2 = s2;
+        if (s1.getId().compareTo(s2.getId()) < 0) {
+            this.s1 = s1;
+            this.s2 = s2;
+        } else {
+            this.s1 = s2;
+            this.s2 = s1;
+        }
         this.position = position;
     }
 
-    public MsaSequence getS1() {
+    public MsaSequence getSequence1() {
         return s1;
     }
 
-    public MsaSequence getS2() {
+    public MsaSequence getSequence2() {
         return s2;
     }
 
@@ -49,7 +54,7 @@ public class Snp {
      *
      * @return zero-indexed position
      */
-    public int getPosition_0() {
+    public int getPositionZeroIndexed() {
         return position;
     }
 
@@ -57,11 +62,11 @@ public class Snp {
      *
      * @return 1-indexed position
      */
-    public int getPosition_1() {
+    public int getPositionOneIndexed() {
         return position + 1;
     }
 
-    public CharSequence getSnpString(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, int maxIndelLength) {
+    public CharSequence getSnpString(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix) {
         StringBuilder sb = new StringBuilder("Cluster_");
         sb.append(clusterNumber);
 //        String id1 = s1.getId();
@@ -76,8 +81,8 @@ public class Snp {
         }
         sb.append(DELIMITER).append(s1.getId()).append(DELIMITER).append(s1.getUnpaddedLength());
         sb.append(DELIMITER).append(s2.getId()).append(DELIMITER).append(s2.getUnpaddedLength());
-        sb.append(DELIMITER).append(getPosition_1()).append(DELIMITER);
-        sb.append(s1.getSequenceString().charAt(getPosition_0())).append(DELIMITER).append(s2.getSequenceString().charAt(getPosition_0()));
+        sb.append(DELIMITER).append(getPositionOneIndexed()).append(DELIMITER);
+        sb.append(s1.getSequenceString().charAt(getPositionZeroIndexed())).append(DELIMITER).append(s2.getSequenceString().charAt(getPositionZeroIndexed()));
         
         sb.append(DELIMITER);
         if(suffix != null) {

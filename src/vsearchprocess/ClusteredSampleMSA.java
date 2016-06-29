@@ -25,7 +25,7 @@ import java.util.Map;
  */
 public class ClusteredSampleMSA {
 
-    private ArrayList<MsaSequence> sequences;
+    private final ArrayList<MsaSequence> sequences;
     private final String sampleId;
     private ArrayList<Snp> snpsWithin;
 
