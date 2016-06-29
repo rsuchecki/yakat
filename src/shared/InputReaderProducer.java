@@ -56,7 +56,7 @@ public class InputReaderProducer implements Runnable {
 
     public enum GuessedInputFormat {
         KMERS, FASTA_SE_ONE_LINE, FASTA_PE_ONE_LINE, FASTQ_SE_ONE_LINE, FASTQ_PE_ONE_LINE, FASTA, FASTQ,
-        MPILEUP, UNSUPPORTED_OR_UNRECOGNIZED;
+        MPILEUP, UNSUPPORTED_OR_UNRECOGNIZED, EMPTY;
     }
 
     public InputReaderProducer(BlockingQueue queue, String inputFile, Integer k, String toolName, int RECORD_BUFFER_SIZE) {
@@ -161,6 +161,10 @@ public class InputReaderProducer implements Runnable {
                 //IF FORMAT SUPPORT NOT IMPLEMENTED OR UNRECOGNZED 
                 guessedInputFormat = guessInputFormat(testLines);
                 Reporter.report("[INFO]", "Input format guessed: " + guessedInputFormat.toString(), TOOL_NAME);
+                if (guessedInputFormat == GuessedInputFormat.EMPTY) {
+                    Reporter.report("[WARNING]", "Empty input file/stream...", TOOL_NAME);
+                    putOnQueue(new ArrayList<String>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING                    
+                }
                 if (guessedInputFormat == GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED) {
                     Reporter.report("[ERROR]", "Unrecognized or unsupported input, terminating...", TOOL_NAME);
                     putOnQueue(new ArrayList<String>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
@@ -325,7 +329,7 @@ public class InputReaderProducer implements Runnable {
      */
     private GuessedInputFormat guessInputFormat(ArrayList<String> testLines) {
         if (testLines.isEmpty()) {
-            return GuessedInputFormat.UNSUPPORTED_OR_UNRECOGNIZED;
+            return GuessedInputFormat.EMPTY;
         }
         if (!testLines.get(0).startsWith("@") && !testLines.get(0).startsWith(">") & testLines.size()>1) {
             String[] split0 = testLines.get(0).split("\t| ");
