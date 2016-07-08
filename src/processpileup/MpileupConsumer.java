@@ -43,12 +43,14 @@ public class MpileupConsumer implements Runnable {
 
     private char zeroReadsChar;
     private char ambiguousCallChar;
-    
+
+    private Integer minSnpsToRef;
+
     private int minCallsHet;
     private int maxCallsHet;
     private int minCallsUncertain;
     private int maxCallsUnceratin;
-    
+
     private int minMissingSamples;
     private int maxUnCalledSamples;
 
@@ -64,12 +66,12 @@ public class MpileupConsumer implements Runnable {
         zeroReadsChar = (Character) optSet.getOpt("zero-reads-char").getValueOrDefault();
         ambiguousCallChar = (Character) optSet.getOpt("ambiguous-call-char").getValueOrDefault();
 
-        
+        minSnpsToRef = (Integer) optSet.getOpt("min-snps-to-reference").getValueOrDefault();
+
         minCallsHet = (int) optSet.getOpt("min-calls-het").getValueOrDefault();
         maxCallsHet = (int) optSet.getOpt("max-calls-het").getValueOrDefault();
         minCallsUncertain = (int) optSet.getOpt("min-calls-uncertain").getValueOrDefault();
         maxCallsUnceratin = (int) optSet.getOpt("max-calls-uncertain").getValueOrDefault();
-        
 
         allWithinThresholds = optSet.getOptS('W').isUsed();
 //        reportHets = optSet.getOptS('H').isUsed();
@@ -118,8 +120,8 @@ public class MpileupConsumer implements Runnable {
                     boolean betweenSamplesSnps = false;
 //                    String lastCalledBase = "N";
                     char lastCalledBase = '#';
-                    int samplesWithBaseCalled = 0;
-                    int[] basesAllSamples = new int[7];
+//                    int samplesWithBaseCalled = 0;
+//                    int[] basesAllSamples = new int[7];
 
                     int coverageAllSamples = 0;
                     int samplesWithinCoverage = 0;
@@ -135,22 +137,22 @@ public class MpileupConsumer implements Runnable {
                                 samplesWithinCoverage++;
                             }
                             int[] bases = getBaseCounts(toks[i + 1], refBase);
-                            for (int j = 0; j < bases.length; j++) {
-                                basesAllSamples[j] += bases[j];
-                            }
+//                            for (int j = 0; j < bases.length; j++) {
+//                                basesAllSamples[j] += bases[j];
+//                            }
                             coveragesSB.append("\t");
 //                            String calledBase = callBase(bases, maxPercAlternative, minCoverageThreshold);
 
                             char calledBase = getIUPAC(bases, coverage);
                             char calledBaseUpper = Character.toUpperCase(calledBase);
 //                            if (calledBase.matches("A|T|C|G")) {
-                            
+
                             if (calledBase == ambiguousCallChar) {
                                 uncertain++;
                             } else if (calledBase == zeroReadsChar) {
                                 samplesZeroCoverage++;
-                            } else {   
-                                if(!isACGT(calledBase)) {
+                            } else {
+                                if (!isACGT(calledBase)) {
                                     hetCalls++;
                                 }
                                 if (calledBaseUpper != refBaseUpper) {
@@ -160,7 +162,7 @@ public class MpileupConsumer implements Runnable {
                                     betweenSamplesSnps = true;
                                 }
                                 lastCalledBase = calledBase;
-                                samplesWithBaseCalled++;
+//                                samplesWithBaseCalled++;
                             }
                             callsSB.append("\t");
                             callsSB.append(calledBase);
@@ -184,9 +186,9 @@ public class MpileupConsumer implements Runnable {
                     //TODO zeroReads should be set to > 0, > 1 is specific to having a very poor sample here
 //                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
                     if (samplesWithinCoverage >= minSamples) {
-                        if (betweenSamplesSnps || 
-                            ( allWithinThresholds
-                            && hetCalls >= minCallsHet && hetCalls <= maxCallsHet 
+                        if (betweenSamplesSnps || (minSnpsToRef != null && snpsToRef >= minSnpsToRef)
+                            || (allWithinThresholds
+                            && hetCalls >= minCallsHet && hetCalls <= maxCallsHet
                             && uncertain >= minCallsUncertain && uncertain <= maxCallsUnceratin)) {
 //                            && samplesWithBaseCalled > 0 && uncertain == 0 && samplesZeroCoverage > 1)) {
 //                            coveragesSB.append("\t");
@@ -198,8 +200,8 @@ public class MpileupConsumer implements Runnable {
 //                            }
 //                            callsSB.append("\t").append(getIUPAC(basesAllSamples, coverageAllSamples));
 
-                            bufferedOut.println(coveragesSB);
-                            bufferedOut.println(callsSB);
+                                bufferedOut.println(coveragesSB);
+                                bufferedOut.println(callsSB);
 //                        System.out.println(coveragesSB);
 //                        System.out.println(callsSB);
 //                        bufferList.add(coveragesSB.toString());
@@ -219,18 +221,27 @@ public class MpileupConsumer implements Runnable {
             ex.printStackTrace();
         }
     }
-    
+
     private boolean isACGT(char c) {
         switch (c) {
-            case 'A' : return true;
-            case 'C' : return true;
-            case 'G' : return true;
-            case 'T' : return true;
-            case 'a' : return true;
-            case 'c' : return true;
-            case 'g' : return true;
-            case 't' : return true;
-            default :  return false;
+            case 'A':
+                return true;
+            case 'C':
+                return true;
+            case 'G':
+                return true;
+            case 'T':
+                return true;
+            case 'a':
+                return true;
+            case 'c':
+                return true;
+            case 'g':
+                return true;
+            case 't':
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -281,15 +292,17 @@ public class MpileupConsumer implements Runnable {
     }
 
     /**
-     * Given an array of numbers representing observed base counts [?,#A,#C,#G,#T] (index zero ignored for now) call
-     * IUPAC representation of the observed bases. Bases are not considered for IUPAC reporting if there are less than
-     * minCoverageThreshold or
+     * Given an array of numbers representing observed base counts
+     * [?,#A,#C,#G,#T] (index zero ignored for now) call IUPAC representation of
+     * the observed bases. Bases are not considered for IUPAC reporting if there
+     * are less than minCoverageThreshold or
      *
      * @param encoded [?,#A,#C,#G,#T] (index zero ignored for now)
      * @param locusDepth
-     * @param maxErrorPercent % of totalDepth threshold above which a base (or resulting IUPAC) is reported rather than
-     * being ignored as erroneous
-     * @paramminCoveragePerAlleleminCoverageThreshold int min depth for a base to be considered
+     * @param maxErrorPercent % of totalDepth threshold above which a base (or
+     * resulting IUPAC) is reported rather than being ignored as erroneous
+     * @paramminCoveragePerAlleleminCoverageThreshold int min depth for a base
+     * to be considered
      *
      * TODO EXTEND TO ACCOMMODATE IDELS
      *
