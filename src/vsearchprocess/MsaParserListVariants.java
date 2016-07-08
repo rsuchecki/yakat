@@ -67,6 +67,9 @@ public class MsaParserListVariants {
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
+        if (optSet.getOpt("P").isUsed()) {
+            optSet.printUserSettings(TOOL_NAME);
+        }
         new StdRedirect(optSet, TOOL_NAME);
         String fileName = (String) optSet.getOpt("clusters-msa").getValueOrDefault();
         readAndProcessMSASequencesFromFasta(fileName, optSet);
@@ -148,7 +151,7 @@ public class MsaParserListVariants {
 ////        optSet.addOpt(new Opt('H', "header-only", "Print header and exit").addFootnote(1, TOOL_NAME));
 //        optSet.incrementLisitngGroup();
 //        optSet.setListingGroupLabel("[A little bit of help]");
-//        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
+        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
 //        optSet.addOpt(new Opt('I', "iupac-codes-table", "Print the table of IUPAC nucleotide codes and exit"));
 //        optSet.addOpt(new Opt('D', "additional-codes-table", "Print the table of additional codes/symbols used by this program"));
 //        boolean positionalArgumentRequired = true;
