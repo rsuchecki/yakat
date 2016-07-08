@@ -18,7 +18,6 @@ package kmerextender;
 import shared.SequenceOps;
 import shared.Reporter;
 import java.util.Arrays;
-import java.util.stream.IntStream;
 
 /**
  * Proof of concept structure to hold up to 2 k-mers paired

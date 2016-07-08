@@ -15,7 +15,6 @@
  */
 package kmermatch.TODO;
 
-import com.sun.webkit.SharedBuffer;
 import kmerextender.*;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentSkipListMap;

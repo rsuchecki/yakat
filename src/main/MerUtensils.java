@@ -21,9 +21,10 @@ import kmerextender.KmerExtender;
 import kmermatch.TODO.KmerMatch;
 import kmerger.KmerSetMerge;
 import multimers.Multimers;
-import processpileup.MpileupCountsCalls;
+import processpileup.ProcessPileup;
 import processpileup.PileupStats;
 import processpileup.adhoc.PileupStatsMerge;
+import snpmers.SnpMers;
 import vsearchprocess.MsaParserListVariants;
 
 /**
@@ -50,7 +51,7 @@ public class MerUtensils {
         } else if (args.length != 0 && args[0].matches("(p)?pileup")) {
             new PileupStats(args, name, "pileup");
         } else if (args.length != 0 && args[0].matches("(p)?mpileup")) {
-            new MpileupCountsCalls(args, name, "mpileup counts");
+            new ProcessPileup(args, name, "mpileup counts");
         } else if (args.length != 0 && args[0].matches("pileupstatsmerge")) {
             new PileupStatsMerge(args, name, "pileupstatsmerge");
         } else if (args.length != 0 && args[0].matches("test")) {
@@ -58,6 +59,8 @@ public class MerUtensils {
             new ParserTest(this.getClass().getSimpleName(), "test", args);
         } else if (args.length != 0 && args[0].matches("m(ulti)?mers")) {
             new Multimers(args, name, "mmers");
+        } else if (args.length != 0 && args[0].matches("sn(i)?pmers")) {
+            new SnpMers(args, name, "snpmers");
         } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {
 //            new (args, name, "vclustersvars");
             new MsaParserListVariants(args, name, "vclust");
