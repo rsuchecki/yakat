@@ -35,6 +35,11 @@ public class CommonMaths implements Serializable {
 //        System.out.println("\nAveraged = "+scaledDown);
         return scaledDown;
     }
+    
+    public static int round(double value) {
+        return (int) round(value, 0);
+    }
+    
 
     public static String getRandomString() {
         StringBuilder sb = new StringBuilder("");

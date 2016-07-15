@@ -15,7 +15,6 @@
  */
 package snpmers;
 
-import vsearchprocess.*;
 import argparser.ArgParser;
 import argparser.Opt;
 import argparser.OptSet;
@@ -30,9 +29,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
+import shared.FastaReader;
 import shared.Reporter;
+import shared.Sequence;
+import shared.SequenceOps;
 import shared.StdRedirect;
 
 /**
@@ -46,6 +54,10 @@ public class SnpMers {
     private final int HELP_WIDTH = 200;
     private final int READER_BUFFER_SIZE = 8192;
     private final int WRITER_BUFFER_SIZE = 8192;
+    private HashMap<CharSequence, KmerLink> map;
+        ArrayList<SnpFilter> snpFilters;
+
+    private boolean DEBUG = false;
 
 //    }
     public SnpMers(String[] args, String callerName, String toolName) {
@@ -57,25 +69,32 @@ public class SnpMers {
         if (optSet.getOpt("P").isUsed()) {
             optSet.printUserSettings(TOOL_NAME);
         }
+        if (optSet.getOpt("D").isUsed()) {
+            DEBUG = true;
+        }
         new StdRedirect(optSet, TOOL_NAME);
-        String fastaFileName = (String) optSet.getOpt("f").getValueOrDefault();
-        String snpsFileName = (String) optSet.getOpt("s").getValueOrDefault();
+
+        buildSnpMerMap(optSet);
+
+        threadKmersThroughMap(optSet);
+
 //        readAndProcessMSASequencesFromFasta(fileName, optSet);
 //        readMSASequencesFromFasta(optSet.getPositionalOptsList().get(0).getValue());
     }
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet("Given a list of NIKS-derived inter-parent SNPs and the corresponding"
-            + "MSA fasta, read k-mers from offspring samples and record frequencies of k-mers overlapping with "
+            + "MSA FASTA, read k-mers from offspring samples and record frequencies of k-mers overlapping with "
             + "the input SNPs. These can then be used to call offsping base for a given parental SNP.");
 
-        
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
 //        optSet.addOpt(new Opt(null, "sample-ids", "Space separated sample identifiers which form the prefices of the input FASTA identifiers")
 //            .setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
+        optSet.addOpt(new Opt('k', "k-mer-length", "", 1).setRequired(true).setMinValue(3).setMaxValue(255));
         optSet.addOpt(new Opt('s', "niks-snps", "File containing the table of SNPs called by NIKS", 1));
         optSet.addOpt(new Opt('f', "niks-fasta", "The (msa) FASTA file matching the SNP information", 1));
+        optSet.addOpt(new Opt('K', null, "A set of k-mers to be threaded through the map of k-mer-links to SNPs", 1));
 //        optSet.incrementLisitngGroup();
 //        optSet.setListingGroupLabel("[Cluster processing settings]");
 //        optSet.addOpt(new Opt(null, "min-samples-clustered", "Minimum number of samples in a cluster", 1).setMinValue(1).setDefaultValue(2));
@@ -112,217 +131,258 @@ public class SnpMers {
 //        optSet.setListingGroupLabel("[A little bit of help]");
         optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
 //        optSet.addOpt(new Opt('I', "iupac-codes-table", "Print the table of IUPAC nucleotide codes and exit"));
-//        optSet.addOpt(new Opt('D', "additional-codes-table", "Print the table of additional codes/symbols used by this program"));
+        optSet.addOpt(new Opt('D', "debug", "Print additional info for debugging purposes"));
 //        boolean positionalArgumentRequired = true;
 //        optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAME", "name of input file ", 1, positionalArgumentRequired));
         return optSet;
     }
 
-//    public void readAndProcessMSASequencesFromFasta(String fileName, OptSet optSet) {
-//        ArrayList<String> SAMPLE_NAMES = (ArrayList<String>) optSet.getOpt("sample-ids").getValues();
-//
-////        String originalFastaFileName = (String)optSet.getOpt("original-fasta").getValueOrDefault();
-////        HashMap<String, Integer> lengthsMap;
-////        if(originalFastaFileName != null) {
-////            lengthsMap = FastaReader.hashMapOfSequenceLengthsFromFasta(originalFastaFileName, null); 
-////        } else {
-////            lengthsMap = new HashMap<>(0);
-////        }
-////        ArrayList<Sequence> sequencesList = new ArrayList<>();
-//        StringBuilder sb = new StringBuilder("ClusterId");
-//        sb.append(DELIMITER);
-//        sb.append("AlnLen");
-//        sb.append(DELIMITER);
-//        sb.append("Id1");
-//        sb.append(DELIMITER);
-//        sb.append("Len1");
-//        sb.append(DELIMITER);
-//        sb.append("Id2");
-//        sb.append(DELIMITER);
-//        sb.append("Len2");
-//        sb.append(DELIMITER);
-//        sb.append("Pos");
-//        sb.append(DELIMITER);
-//        sb.append("Base1");
-//        sb.append(DELIMITER);
-//        sb.append("Base2");
-//        sb.append(DELIMITER);
-//        sb.append("Comments");
-//        System.out.println(sb);
-//
-//        ClusteredSequencesMSA clusteredSeqs = new ClusteredSequencesMSA(SAMPLE_NAMES, TOOL_NAME);
-//        BufferedReader bufferdReader = null;
-//
-//        BufferedWriter unclusteredFastaOut = null;
-//        BufferedWriter clustersFastaOut = null;
-//        String unclusteredOutFile = (String) optSet.getOpt("out-unclustered-fasta").getValueOrDefault();
-//        String clustersOutFile = (String) optSet.getOpt("out-clusters-msa").getValueOrDefault();
-//        int unclusteredOutMinLength = (int) optSet.getOpt("out-unclustered-min-len").getValueOrDefault();
-//        try {
-//            if (unclusteredOutFile != null) {
-//                unclusteredFastaOut = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(unclusteredOutFile))), WRITER_BUFFER_SIZE);
-//            }
-//            if (clustersOutFile != null) {
-//                clustersFastaOut = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(clustersOutFile))), WRITER_BUFFER_SIZE);
-//            }
-//            String inputLine;
-//            if (fileName == null) {
-////                Reporter.report("[INFO]", "Input file(s) not specified, reading from stdin ", TOOL_NAME);
-//                bufferdReader = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
-//            } else if (fileName.endsWith(".gz")) {
-//                InputStream gzipStream = new GZIPInputStream(new FileInputStream(fileName), READER_BUFFER_SIZE);
-//                bufferdReader = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
-//            } else {
-//                bufferdReader = new BufferedReader(new FileReader(new File(fileName)), READER_BUFFER_SIZE);
-//            }
-//            String id = "";
-//            StringBuilder seqBuilder = new StringBuilder();
-//            int clusterNumber = 0;
-//            while ((inputLine = bufferdReader.readLine()) != null) {
-//                String line = inputLine.trim();
-//                if (line.startsWith(">")) {
-//                    if (seqBuilder.length() > 0) {   //SEQUENCE STORED EARLIER                        
-////                        sequencesList.add(new Sequence(id, seqBuilder.toString()));
-//                        if (!id.startsWith("consensus")) {
-//                            clusteredSeqs.addSequence(new MsaSequence(id, seqBuilder.toString()));
-////                            clusteredSeqs.addSequence(new MsaSequence(id, seqBuilder.toString(), lengthsMap.get(id)));
-//                        }
-//                        seqBuilder = new StringBuilder();
-//                    }
-//                    id = line.substring(1); //store current id, get rid of ">"
-//                    if (line.startsWith(">*")) { //INDICATING NEW CLUSTER                        
-//                        id = id.substring(1); //get rid of "*"
-//                        //INIT NEW 
-////                        sequencesList = new ArrayList<>();
-//                        clusteredSeqs = new ClusteredSequencesMSA(SAMPLE_NAMES, TOOL_NAME);
-//                    } else if (line.equals(">consensus")) {
-//                        //PROCESS PREVIOUS CLUSER 
-////                        if (sequencesList.size() > 1) {
-//                        clusterNumber = processCluster(clusteredSeqs, optSet, clusterNumber, clustersFastaOut);
-//
-//                        if (unclusteredFastaOut != null && clusteredSeqs.size() == 1) {
-//                            MsaSequence seq = clusteredSeqs.getSequencesList().get(0);
-//                            if (seq.getUnpaddedLength() >= unclusteredOutMinLength) {
-//                                unclusteredFastaOut.write(clusteredSeqs.getSequencesList().get(0).getFasta(true).toString());
-//                                unclusteredFastaOut.newLine();
-//                            }
-//                        }
-////                        }
-//                        //SKIP the consensus
-////                        continue;
-//                    }
-//
-//                } else {
-//                    seqBuilder.append(line);
-//                }
-//            }
-//            if (unclusteredFastaOut != null) {
-//                unclusteredFastaOut.flush();
-//                unclusteredFastaOut.close();
-//            }
-//            if (clustersFastaOut != null) {
-//                clustersFastaOut.flush();
-//                clustersFastaOut.close();
-//            }
-//
-//            if (id.isEmpty()) {
-//                System.err.println("Error reading FASTA [" + fileName + "]. No identifier lines? Terminating... ");
-//                System.exit(1);
-//            } else {
-////                System.err.println("Can ignore this if don't care about the consensus sequence");
-////                String identifierString[] = id.split(" ");
-////                String key = identifierString[0];
-////                    sequencesList.add(new Sequence(id, seqBuilder.toString()));
-//            }
-//
-//        } catch (FileNotFoundException ex) {
-//            Reporter.report("[ERROR]", "File not found: " + fileName, TOOL_NAME);
-//        } catch (IOException ex) {
-//            ex.printStackTrace();
-//        } finally {
-//            try {
-//                if (bufferdReader != null) {
-//                    bufferdReader.close();
-//                }
-//            } catch (IOException ex) {
-//                ex.printStackTrace();
-//            }
-//        }
-//
-//    }
-//
-//    private int processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber, BufferedWriter clustersFastaOut) throws IOException {
-//
-//        int minSamplesClustered = (int) optSet.getOpt("min-samples-clustered").getValueOrDefault();
-//        int minSeqsClustered = (int) optSet.getOpt("min-seqs-clustered").getValueOrDefault();
-//        int maxSeqsClustered = (int) optSet.getOpt("max-seqs-clustered").getValueOrDefault();
-//        int maxIntraSnps = (int) optSet.getOpt("max-intra-snps").getValueOrDefault();
-//        int maxInterSnps = (int) optSet.getOpt("max-inter-snps").getValueOrDefault();
-//
-//        int maxIndelLength = (int) optSet.getOpt("max-indel-length").getValueOrDefault();
-//        int minIndelDistFromEnds = (int) optSet.getOpt("min-indel-distance").getValueOrDefault();
-//        
-//        double minInterIdentity = (double) optSet.getOpt("min-inter-identity").getValueOrDefault();
-//
-//        boolean reverseLex = optSet.getOpt("reverse-lex-order").getOptFlag();
-//        boolean supressIntra = optSet.getOpt("supress-intra-snps").getOptFlag();
-//        boolean supressInter = optSet.getOpt("supress-inter-snps").getOptFlag();
-//
-//        
-//        if (clusteredSeqs.size() >= minSeqsClustered && clusteredSeqs.size() <= maxSeqsClustered && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
-//            //CALL WITHIN EACH SAMPLE
-//            clusteredSeqs.callSNPsWithinEachSample(maxIndelLength, minIndelDistFromEnds);
-//            String suffix = null;
-//            boolean hasIntra = false;
-//            if (!clusteredSeqs.getIntraSnps().isEmpty()) {
-//                suffix = "HAS_INTRA";
-//                hasIntra = true;
-//            }
-////            String clusterString = "ALL";
-//            //MERGE NON-CONFLICTING SEQUENCES WITHIN EACH SAMPLE
-//            if (clusteredSeqs.mergeSequencesWithinSamples()) {
-////                clusterString = "MERGED";
-//            }
-//            //CALL BETWEEN SAMPLES
-//            clusteredSeqs.callSNPsBetweenAllSamples(maxIndelLength, minIndelDistFromEnds);
-////            boolean hasInter = false;
-////            if (!clusteredSeqs.getInterSnps().isEmpty()) {
-////                hasInter = true;
-////            }
-//            boolean hasInter = clusteredSeqs.hasInterSnps(minInterIdentity);
-////            ArrayList<Double> pairwiseIntraIdenities = clusteredSeqs.getPairwiseIntraIdenities();
-////            try {
-////            Double minIdentity = Collections.min(pairwiseIntraIdenities);
-////            System.out.println(minIdentity);
-////            } catch (NoSuchElementException e) {
-////                int x =0;
-////            }
-//            
-//            int intra = clusteredSeqs.getIntraSnps().size();
-//            int inter = clusteredSeqs.getInterSnps().size();
-//            //PRINT
-//            if (intra <= maxIntraSnps &&  inter <= maxInterSnps) {
-////                clusteredSeqs.printCluster((clusterNumber) + " " + clusterString, maxIndelLength);
-//                if (clustersFastaOut != null && ((hasIntra && !supressIntra) || (hasInter && !supressInter))) {
-//                    clustersFastaOut.write(clusteredSeqs.getClusterForPrint(++clusterNumber).toString());
-////                    clustersFastaOut.newLine();
-//                }
-//                if (!supressIntra) {
-//                    clusteredSeqs.printIntraSnps(clusterNumber, reverseLex, DELIMITER, "INTRA");
-//                }
-//                if (!supressInter) {
-//                    clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix, minInterIdentity);
-//                }
-//            }
-//        }
-//        return clusterNumber;
-//    }
+    private void buildSnpMerMap(OptSet optSet) {
+        map = new HashMap<>();
+        snpFilters = new ArrayList<>();
 
-//    private class SequenceLengthComparator implements Comparator<Sequence> {
-//
-//        @Override
-//        public int compare(Sequence sequence, Sequence anotherSequence) {
-//            return sequence.getLength() - anotherSequence.getLength();
+        String fastaFileName = (String) optSet.getOpt("f").getValueOrDefault();
+        String snpsFileName = (String) optSet.getOpt("s").getValueOrDefault();
+        int k = (int) optSet.getOpt("k").getValueOrDefault();
+        HashMap<String, Sequence> sequences = shared.FastaReader.hashMapOfSequencesFromFasta(fastaFileName, null);
+        BufferedReader bufferdReader = null;
+        HashMap<String, ArrayList<KmerLink>> nonUniqueLinks = new HashMap<>();
+        try {
+            String inputLine;
+            if (snpsFileName.endsWith(".gz")) {
+                InputStream gzipStream = new GZIPInputStream(new FileInputStream(snpsFileName), READER_BUFFER_SIZE);
+                bufferdReader = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
+            } else {
+                bufferdReader = new BufferedReader(new FileReader(new File(snpsFileName)), READER_BUFFER_SIZE);
+            }
+            while ((inputLine = bufferdReader.readLine()) != null) {
+                String line = inputLine.trim();
+                String[] toks = line.split(DELIMITER);
+                String clusterId = toks[0];
+                String id1 = toks[2];
+                String id2 = toks[4];
+                Sequence parent1 = sequences.get(clusterId + "_" + id1);
+                Sequence parent2 = sequences.get(clusterId + "_" + id2);
+                if (parent1 == null || parent2 == null) {
+//                    System.err.println(line);
+
+                } else if (toks.length > 9) {
+                    Reporter.report("[WARNING]", "Ignoring " + toks[0] + " (" + toks[9] + ")", TOOL_NAME);
+                } else {
+                    int snpPosition = Integer.parseInt(toks[6]) - 1;
+                    SnpFilter snpFilter = new SnpFilter(parent1, parent2, snpPosition);
+                    snpFilters.add(snpFilter);
+                    kmerizeAndAddToMap(snpFilter, k, map, nonUniqueLinks);
+                }
+            }
+        } catch (FileNotFoundException ex) {
+            Reporter.report("[ERROR]", "File not found: " + snpsFileName, TOOL_NAME);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            try {
+                if (bufferdReader != null) {
+                    bufferdReader.close();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+        Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map, purging non-unique ones", TOOL_NAME);
+        //PURGE NON-UNIQUE k-mers (these can only be non-unique due to merging of non conflicting, clustered seeds from vsearch)
+        Iterator<Map.Entry<CharSequence, KmerLink>> it = map.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<CharSequence, KmerLink> next = it.next();
+            KmerLink kmerLink = next.getValue();
+            if (kmerLink.isUnique()) {
+                kmerLink.getSnpFilter();
+            } else {
+                it.remove();
+            }
+        }
+        //INVESTIGATING CASES WHERE NON-UNIQUE k-mers HAVE BEEN OBSERVED 
+//        Iterator<Map.Entry<String, ArrayList<KmerLink>>> iterator = nonUniqueLinks.entrySet().iterator();
+//        while (iterator.hasNext()) {
+//            Map.Entry<String, ArrayList<KmerLink>> next = iterator.next();
+//            String key = next.getKey();
+//            String[] toks = key.split(",");
+//            if (!toks[0].equals(toks[1])) { //IGNORE MOST CASES FOR NOW
+//                System.err.print(key + " ");
+//                ArrayList<KmerLink> links = next.getValue();
+//                Collections.sort(links);
+//                int previous = -1;
+//                for (KmerLink link : links) {
+//                    int startPosition = link.getStartPosition();
+//                    if (startPosition != previous) { //IGNORE MOST CASES FOR NOW
+////                        System.err.print(startPosition + " ");
+//                    }
+//                    previous = startPosition;
+//                }
+//                System.err.println();
+//                
+//            }                       
 //        }
-//    }
+        Reporter.report("[INFO]", intFormat(map.size()) + " unique k-mer-links in map", TOOL_NAME);
+//        it = map.entrySet().iterator();
+//        while (iterator.hasNext()) {
+//            Map.Entry<String, ArrayList<KmerLink>> next = iterator.next();
+//            
+//        }
+
+    }
+
+//    private static void kmerizeAndAddToMap(CharSequence sequence, int k, int snpSite) {
+    private void kmerizeAndAddToMap(SnpFilter snpFilter, int k, HashMap<CharSequence, KmerLink> map,
+        HashMap<String, ArrayList<KmerLink>> nonUniqueLinks) {
+        //TWO PARENT SEQUENCES FOR EACH SNP
+        for (int parent = 1; parent < 3; parent++) {
+            Sequence parentSequence = snpFilter.getParentSequence(parent);
+            String sequence = parentSequence.getSequenceString();
+            int snpSite = snpFilter.getSnpPosition();
+            int offset = 0; //If padding shifts snpSite, store that offset here
+            int maxKmer = Math.min(sequence.length() - k + 1, snpSite + 1);
+
+            if (DEBUG) {
+                for (int i = 0; i < sequence.length(); i++) {
+                    if (i == snpSite) {
+                        System.err.print("|");
+                    } else {
+                        System.err.print("_");
+                    }
+                }
+                System.err.println();
+                System.err.println(sequence);
+            }
+
+            //CANNOT K-MERIZE GAPS INSERTED BY MSA, SO NEED TO REMOVE THEM AND ADJUST THE SNP POSITION ACCORDINGLY
+            if (sequence.contains("-")) {
+                StringBuilder unpaddedSeq = new StringBuilder();
+                int unpaddedSnpPosition = snpSite;
+                for (int i = 0; i < sequence.length(); i++) {
+                    if (sequence.charAt(i) == '-') {
+                        if (i < snpSite) {
+                            --unpaddedSnpPosition;
+                            offset++;
+                        }
+                    } else {
+                        unpaddedSeq.append(sequence.charAt(i));
+                    }
+                }
+                sequence = unpaddedSeq.toString();
+                snpSite = unpaddedSnpPosition;
+                maxKmer = Math.min(sequence.length() - k + 1, snpSite + 1);
+
+                if (DEBUG) {
+                    for (int i = 0; i < sequence.length(); i++) {
+                        if (i == snpSite) {
+                            System.err.print("|");
+                        } else {
+                            System.err.print("_");
+                        }
+                    }
+                    System.err.println();
+                    System.err.println(sequence);
+                }
+            }
+
+            int startAt = Math.max(0, snpSite - k + 1);
+            for (int i = startAt; i < maxKmer; i++) {
+                CharSequence kmer = sequence.subSequence(i, i + k);
+                CharSequence canonical = SequenceOps.getCanonical(kmer);
+
+                int pos = i + offset; //position in the original/padded MSA sequence
+                KmerLink kmerLink = new KmerLink(snpFilter, (parent == 1), pos, !kmer.equals(canonical));
+                if (map.containsKey(canonical)) {
+                    kmerLink.setUnique(false);
+                }
+                KmerLink put = map.put(canonical, kmerLink);
+                if (put != null) {
+                    String key = parentSequence.getId() + "," + put.getParentSequence().getId();
+
+                    ArrayList<KmerLink> nonUniqList = nonUniqueLinks.getOrDefault(key, new ArrayList<KmerLink>());
+                    if (!nonUniqList.contains(kmerLink)) {
+                        nonUniqList.add(kmerLink);
+                    }
+                    if (!nonUniqList.contains(put)) {
+                        nonUniqList.add(put);
+                    }
+                    nonUniqueLinks.put(key, nonUniqList);
+//                    Reporter.report("[WARNING]", "Non-unique ["+parentSequence.getId()+","+put.getParentSequence().getId()+"] k-mer overlapping a SNP will be ignored: " + canonical, TOOL_NAME);
+//                        Reporter.report("[ERROR]", "Unexpected issue of a k-mer already present in the map: " + canonical, TOOL_NAME);
+                    if (DEBUG) {
+                        System.err.println("kmer, canonical:");
+                        System.err.println(kmer + ", " + canonical);
+//                        System.err.println("Current:\n" + parentSequence.getId() + " at0=" + startPosition);
+                        System.err.println("Current:\n" + parentSequence.getId() + " at0=" + pos);
+                        System.err.println(parentSequence.getSequenceString());
+                        System.err.println("Previous:\n" + put.getParentSequence().getId() + " at0=" + put.getStartPosition());
+                        System.err.println(put.getParentSequence().getSequenceString());
+                    }
+                }
+
+                if (DEBUG) {
+                    for (int j = 0; j < i; j++) {
+                        System.err.print(" ");
+                    }
+                    System.err.println(kmer);
+                }
+            }
+            if (DEBUG) {
+                System.err.println();
+            }
+
+        }
+    }
+
+    private void threadKmersThroughMap(OptSet optSet) {
+        String kmersFileName = (String) optSet.getOpt("K").getValueOrDefault();
+        BufferedReader bufferdReader = null;
+        try {
+            String inputLine;
+            if (kmersFileName == null) {
+//                Reporter.report("[INFO]", "Input file(s) not specified, reading from stdin ", TOOL_NAME);
+                bufferdReader = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
+            } else if (kmersFileName.endsWith(".gz")) {
+                InputStream gzipStream = new GZIPInputStream(new FileInputStream(kmersFileName), READER_BUFFER_SIZE);
+                bufferdReader = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
+            } else {
+                bufferdReader = new BufferedReader(new FileReader(new File(kmersFileName)), READER_BUFFER_SIZE);
+            }
+            while ((inputLine = bufferdReader.readLine()) != null) {
+                String line = inputLine.trim();
+                String[] toks = line.split(DELIMITER);
+                KmerLink kmerLink = map.get(toks[0]);
+                if(kmerLink != null) {
+                    boolean setMer = kmerLink.setMer(Short.parseShort(toks[1]));
+                    if(!setMer) {
+                        System.err.println("mer not set");
+                    }
+//                    SnpFilter snpFilter = kmerLink.getSnpFilter();
+//                    System.err.println(kmerLink.getParentSequence().getId()+"\t"+snpFilter.getSnpPosition()+"\t"+toks[1]);
+                }
+            }
+        } catch (FileNotFoundException ex) {
+            Reporter.report("[ERROR]", "File not found: " + kmersFileName, TOOL_NAME);
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            try {
+                if (bufferdReader != null) {
+                    bufferdReader.close();
+                }
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
+        }
+        Reporter.report("[INFO]", "Finished assigning k-mer frequencies ", TOOL_NAME);
+        for (SnpFilter snpFilter : snpFilters) {
+            System.err.println(snpFilter.getSequence1().getId()+DELIMITER+snpFilter.getSequence2().getId());
+            System.err.println(Arrays.toString(snpFilter.getMers1()));
+            System.err.println(Arrays.toString(snpFilter.getMers2()));
+        }
+    }
+
+    private String intFormat(int value) {
+        return NumberFormat.getIntegerInstance().format(value);
+    }
 }
