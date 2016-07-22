@@ -118,7 +118,7 @@ public class MsaParserListVariants {
 //        optSet.addOpt(new Opt(null, "zero-reads-char", "A character denoting zero reads at a postion for a given sample", 1).setDefaultValue('.'));
 //        optSet.addOpt(new Opt(null, "ambiguous-call-char", "A character indicating uncertain call (e.g. due to low coverage or unclear zygosity at locus)", 1).setDefaultValue('?'));
         optSet.incrementLisitngGroup();
-        optSet.setListingGroupLabel("[Cluster processing settings]");
+        optSet.setListingGroupLabel("[Input clusters processing settings]");
         optSet.addOpt(new Opt(null, "min-samples-clustered", "Minimum number of samples in a cluster", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "min-seqs-clustered", "Minimum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "max-seqs-clustered", "Maximum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(1000));
@@ -189,6 +189,10 @@ public class MsaParserListVariants {
         sb.append("Base2");
         sb.append(DELIMITER);
         sb.append("Comments");
+        sb.append(DELIMITER);
+        sb.append("Seq1");
+        sb.append(DELIMITER);
+        sb.append("Seq2");
         System.out.println(sb);
 
         ClusteredSequencesMSA clusteredSeqs = new ClusteredSequencesMSA(SAMPLE_NAMES, TOOL_NAME);
@@ -309,6 +313,7 @@ public class MsaParserListVariants {
         boolean supressIntra = optSet.getOpt("supress-intra-snps").getOptFlag();
         boolean supressInter = optSet.getOpt("supress-inter-snps").getOptFlag();
 
+        boolean appendSequencesToSnpList = true;
         
         if (clusteredSeqs.size() >= minSeqsClustered && clusteredSeqs.size() <= maxSeqsClustered && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
             //CALL WITHIN EACH SAMPLE
@@ -349,10 +354,10 @@ public class MsaParserListVariants {
 //                    clustersFastaOut.newLine();
                 }
                 if (!supressIntra) {
-                    clusteredSeqs.printIntraSnps(clusterNumber, reverseLex, DELIMITER, "INTRA");
+                    clusteredSeqs.printIntraSnps(clusterNumber, reverseLex, DELIMITER, "INTRA", appendSequencesToSnpList);
                 }
                 if (!supressInter) {
-                    clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix, minInterIdentity);
+                    clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix, minInterIdentity, appendSequencesToSnpList);
                 }
             }
         }

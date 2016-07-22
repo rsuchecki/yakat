@@ -253,20 +253,32 @@ public class ClusteredSequencesMSA {
         return sb;
     }
 
-    public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix) {
+    public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER, 
+        String suffix, boolean printSequence) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : intraSnps) {
-            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix)).append(System.lineSeparator());
+            sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix));
+                if(printSequence) {
+                    sb.append(DELIMITER).append(snp.getSequence1());
+                    sb.append(DELIMITER).append(snp.getSequence2());
+                }
+                sb.append(System.lineSeparator());
         }
         System.out.print(sb);
     }
 
-    public void printInterSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, double minInterIdentity) {
+    public void printInterSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix, 
+        double minInterIdentity, boolean printSequence) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : interSnps) {
             MsaSeqPair pair = seqPairs.get(snp.getSequence1().getId() + snp.getSequence2().getId());
             if (pair.getMinIdentity() > minInterIdentity) {
-                sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix)).append(System.lineSeparator());
+                sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix));
+                if(printSequence) {
+                    sb.append(DELIMITER).append(snp.getSequence1());
+                    sb.append(DELIMITER).append(snp.getSequence2());
+                }
+                sb.append(System.lineSeparator());
             }
         }
         System.out.print(sb);
