@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.regex.Pattern;
 import shared.LabelledInputBuffer;
 import shared.Message;
@@ -51,10 +52,12 @@ public class Consumer implements Runnable {
     private final BlockingQueue<LabelledInputBuffer> inputQueue;
     private final String TOOL_NAME;
     private final ArrayList<Message> finalMessages;
+    private ConcurrentSkipListMap<CharSequence, KmerLink> map;
+
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
 
-    public Consumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<Message> finalMessages ) {//,
+    public Consumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<Message> finalMessages) {//,
 //        KeyMap keyMap, String toolName, int OUT_BUFFER_SIZE, OptSet optSet,
 //        ) {
 
@@ -62,7 +65,6 @@ public class Consumer implements Runnable {
         this.TOOL_NAME = TOOL_NAME;
 
 //        ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
-
 //        MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
         this.finalMessages = finalMessages;
 //        sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
@@ -74,9 +76,25 @@ public class Consumer implements Runnable {
         try {
             LabelledInputBuffer list;
             while (!(list = inputQueue.take()).getData().isEmpty()) {
-
+                Reporter.report("[INFO]", "Current sample: " + list.getLabel(), TOOL_NAME);
+                for (String line : list.getData()) {
+                    String toks[] = line.split("\t");
+//                    KmerLink kmerLink = map.get(toks[0]);
+//                    if (kmerLink != null) {
+//                        boolean setMer = kmerLink.setMer(Short.parseShort(toks[1]));
+//                        if (!setMer) {
+//                            System.err.println("mer not set");
+//                        }
+//                    }
+                }
             }
+
             inputQueue.put(new LabelledInputBuffer(null, new ArrayList<String>())); //inform other threads
+//            for (SnpFilter snpFilter : snpFilters) {
+//                snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor, minKmers, TOOL_NAME);
+//            }
+//            samples.add(sampleName);
+
 //            if (lines > 0) {
 //                String name = Thread.currentThread().getName();
 //                String message = "[" + name + "] " + NumberFormat.getNumberInstance().format(lines)
@@ -97,13 +115,11 @@ public class Consumer implements Runnable {
 //                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(singleUnderLength) + " single reads under length " + MIN_LENGTH_READ, TOOL_NAME));
 //                }
 //            }
-
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
-
 
 }

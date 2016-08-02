@@ -77,7 +77,7 @@ public class SnpMers {
         new StdRedirect(optSet, TOOL_NAME);
 
         buildSnpMerMap(optSet);
-        filterOutFalsePositiveSnps(optSet);
+//        filterOutFalsePositiveSnps(optSet);
         threadKmersThroughMap(optSet);
 
 //        readAndProcessMSASequencesFromFasta(fileName, optSet);
@@ -96,7 +96,7 @@ public class SnpMers {
         optSet.addOpt(new Opt('k', "k-mer-length", "It must match the size of the k-mers used to query the niks-snps", 1).setRequired(true).setMinValue(3).setMaxValue(255));
         optSet.addOpt(new Opt('s', "niks-snps", "File containing the table of SNPs called by NIKS", 1));
 //        optSet.addOpt(new Opt('f', "niks-fasta", "The (msa) FASTA file matching the SNP information", 1));
-        optSet.addOpt(new Opt('F', "filtering-k-mers", "One or more sets of k-mers, each from one homozygous cultivar. "
+        optSet.addOpt(new Opt('F', "filtering-k-mers", "[TODO] One or more sets of k-mers, each from one homozygous cultivar. "
             + "If both alleles of a putative SNP are present in such a set the SNP will be discarded as a likely false-positive").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
 
 //        optSet.incrementLisitngGroup();
@@ -421,9 +421,10 @@ public class SnpMers {
     private void threadKmersThroughMap(OptSet optSet) {
         ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
 //        String kmersFileName = (String) optSet.getOpt("K").getValueOrDefault();
-        int minTotal = 5;
-        int minMinor = 2;
-        int minKmers = 6;
+        int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
+        int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
+        int minKmers = (int) optSet.getOpt("min-overlapping-k-mers").getValueOrDefault();
+        
         Reporter.report("[INFO]", "Now threading input k-mer-s through k-mer-links-to-snps map...", TOOL_NAME);
         ArrayList<String> samples = new ArrayList<>();
         if (kmersFileNames.isEmpty()) {
