@@ -346,7 +346,7 @@ public class KmerExtender {
                 }
             }
 //            Integer kSizeFromInput = null;
-            if (inputReaderProducer.getGuessedInputFormat().equals(InputReaderProducer.GuessedInputFormat.KMERS)) {
+            if (inputReaderProducer.getGuessedInputFormat().equals(InputReaderProducer.InFormat.KMERS)) {
                 splitInputSequenceIntoKmers = false;
             }
 

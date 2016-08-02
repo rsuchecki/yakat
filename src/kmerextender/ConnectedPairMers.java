@@ -150,13 +150,18 @@ public class ConnectedPairMers {
             } else {
                 Reporter.report("[BUG?]", "Third terminal PairMerNode identified? Trying to store a terminal node again?", getClass().getSimpleName());
                 System.err.println(terminal1.getPairMer().getPairMerString(k)+" <- terminal1");
+                System.err.println(traverse(terminal1, k, true, null)+" <- traverse1");
+                
                 System.err.println(terminal2.getPairMer().getPairMerString(k)+" <- terminal2");
+                System.err.println(traverse(terminal2, k, true, null)+" <- traverse1");
                 System.err.println(pairMer.getPairMerString(k)+" <- pairMer");
                 if(previous != null)
                     System.err.println(previous.getPairMerString(k)+" <- previous");
                 if(next != null)
                     System.err.println(next.getPairMerString(k)+" <- next");
+                System.err.println(traverse(pairMerNode, k, true, null)+" <- terminal2");
                 System.err.println(" -=-=- ");
+                System.exit(1);
 
             }
         } else if (previous == null && next == null) {
