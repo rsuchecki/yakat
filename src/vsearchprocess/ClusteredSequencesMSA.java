@@ -259,8 +259,8 @@ public class ClusteredSequencesMSA {
         for (Snp snp : intraSnps) {
             sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix));
                 if(printSequence) {
-                    sb.append(DELIMITER).append(snp.getSequence1());
-                    sb.append(DELIMITER).append(snp.getSequence2());
+                    sb.append(DELIMITER).append(snp.getSequence1().getSequenceString());
+                    sb.append(DELIMITER).append(snp.getSequence2().getSequenceString());
                 }
                 sb.append(System.lineSeparator());
         }
@@ -275,8 +275,8 @@ public class ClusteredSequencesMSA {
             if (pair.getMinIdentity() > minInterIdentity) {
                 sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix));
                 if(printSequence) {
-                    sb.append(DELIMITER).append(snp.getSequence1());
-                    sb.append(DELIMITER).append(snp.getSequence2());
+                    sb.append(DELIMITER).append(snp.getSequence1().getSequenceString());
+                    sb.append(DELIMITER).append(snp.getSequence2().getSequenceString());
                 }
                 sb.append(System.lineSeparator());
             }

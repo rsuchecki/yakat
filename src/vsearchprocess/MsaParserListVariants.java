@@ -119,12 +119,13 @@ public class MsaParserListVariants {
 //        optSet.addOpt(new Opt(null, "ambiguous-call-char", "A character indicating uncertain call (e.g. due to low coverage or unclear zygosity at locus)", 1).setDefaultValue('?'));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Input clusters processing settings]");
-        optSet.addOpt(new Opt(null, "min-samples-clustered", "Minimum number of samples in a cluster", 1).setMinValue(1).setDefaultValue(2));
-        optSet.addOpt(new Opt(null, "min-seqs-clustered", "Minimum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(2));
-        optSet.addOpt(new Opt(null, "max-seqs-clustered", "Maximum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(1000));
+        optSet.addOpt(new Opt(null, "min-samples-clustered", "Minimum number of samples in an input  cluster", 1).setMinValue(1).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "min-seqs-clustered-in", "Minimum number of sequences in an input cluster", 1).setMinValue(2).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-seqs-clustered-in", "Maximum number of sequences in an input cluster", 1).setMinValue(2).setDefaultValue(1000));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Variant calling and reporting]");
 //        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-seqs-clustered-out", "Maximum number of sequences in an output cluster", 1).setMinValue(2).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "min-inter-identity", "Minimum inter sample identity ", 1).setMinValue(0.0).setDefaultValue(0.95));
         optSet.addOpt(new Opt(null, "max-inter-snps", "SNPs will be reported if at most <arg> inter-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "max-intra-snps", "SNPs will be reported if at most <arg> intra-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(1));
@@ -299,8 +300,10 @@ public class MsaParserListVariants {
     private int processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber, BufferedWriter clustersFastaOut) throws IOException {
 
         int minSamplesClustered = (int) optSet.getOpt("min-samples-clustered").getValueOrDefault();
-        int minSeqsClustered = (int) optSet.getOpt("min-seqs-clustered").getValueOrDefault();
-        int maxSeqsClustered = (int) optSet.getOpt("max-seqs-clustered").getValueOrDefault();
+        int minSeqsClusteredIn = (int) optSet.getOpt("min-seqs-clustered-in").getValueOrDefault();
+        int maxSeqsClusteredIn = (int) optSet.getOpt("max-seqs-clustered-in").getValueOrDefault();
+        
+        int maxSeqsClusteredOut = (int) optSet.getOpt("max-seqs-clustered-out").getValueOrDefault();
         int maxIntraSnps = (int) optSet.getOpt("max-intra-snps").getValueOrDefault();
         int maxInterSnps = (int) optSet.getOpt("max-inter-snps").getValueOrDefault();
 
@@ -315,7 +318,7 @@ public class MsaParserListVariants {
 
         boolean appendSequencesToSnpList = true;
         
-        if (clusteredSeqs.size() >= minSeqsClustered && clusteredSeqs.size() <= maxSeqsClustered && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
+        if (clusteredSeqs.size() >= minSeqsClusteredIn && clusteredSeqs.size() <= maxSeqsClusteredIn && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
             //CALL WITHIN EACH SAMPLE
             clusteredSeqs.callSNPsWithinEachSample(maxIndelLength, minIndelDistFromEnds);
             String suffix = null;
@@ -329,6 +332,7 @@ public class MsaParserListVariants {
             if (clusteredSeqs.mergeSequencesWithinSamples()) {
 //                clusterString = "MERGED";
             }
+            
             //CALL BETWEEN SAMPLES
             clusteredSeqs.callSNPsBetweenAllSamples(maxIndelLength, minIndelDistFromEnds);
 //            boolean hasInter = false;
@@ -346,8 +350,8 @@ public class MsaParserListVariants {
             
             int intra = clusteredSeqs.getIntraSnps().size();
             int inter = clusteredSeqs.getInterSnps().size();
-            //PRINT
-            if (intra <= maxIntraSnps &&  inter <= maxInterSnps) {
+            //PRINT            
+            if (intra <= maxIntraSnps &&  inter <= maxInterSnps && clusteredSeqs.size() <= maxSeqsClusteredOut) {
 //                clusteredSeqs.printCluster((clusterNumber) + " " + clusterString, maxIndelLength);
                 if (clustersFastaOut != null && ((hasIntra && !supressIntra) || (hasInter && !supressInter))) {
                     clustersFastaOut.write(clusteredSeqs.getClusterForPrint(++clusterNumber).toString());
