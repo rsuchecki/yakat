@@ -22,8 +22,8 @@ import java.util.ArrayList;
  * @author rad
  */
 public class LabelledInputBuffer {
-    private String label;
-    private ArrayList<String> data;
+    private final  String label;
+    private final ArrayList<String> data;
 
     public LabelledInputBuffer(String label, ArrayList<String> data) {
         this.label = label;

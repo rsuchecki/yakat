@@ -317,7 +317,7 @@ public class InputReaderProducer implements Runnable {
             if(toks.length == 1) {
                 sampleLabel = line;
                 if(!bufferList.isEmpty()) {
-                    putOnQueue(new PerSampleLines(sampleLabel, bufferList));
+                    putOnQueue(new LabelledInputBuffer(sampleLabel, bufferList));
                     kmerCount += bufferList.size();
                     bufferList = new ArrayList<>();
                 }
@@ -331,7 +331,7 @@ public class InputReaderProducer implements Runnable {
             String[] toks = line.split("\t");
             if (toks.length == 1 || bufferList.size() == KMER_BUFFER_SIZE) {
                 if (!bufferList.isEmpty()) {
-                    putOnQueue(new PerSampleLines(sampleLabel, bufferList));
+                    putOnQueue(new LabelledInputBuffer(sampleLabel, bufferList));
                     kmerCount += bufferList.size();
                     bufferList = new ArrayList<>();
                     if (kmerCount % reportThreshold == 0) {
@@ -353,7 +353,7 @@ public class InputReaderProducer implements Runnable {
         kmerCount += bufferList.size();
         Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + guessedInFormat.toString() + " read-in", TOOL_NAME);
 //                    queue.put(bufferList);
-        putOnQueue(new PerSampleLines(sampleLabel, bufferList));
+        putOnQueue(new LabelledInputBuffer(sampleLabel, bufferList));
     }
 
     private void readFastq(BufferedReader content, ArrayList<String> testLines)
