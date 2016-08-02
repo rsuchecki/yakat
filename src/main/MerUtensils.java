@@ -48,7 +48,7 @@ public class MerUtensils {
             new KmerSetMerge(args, name, "kmerge");
         } else if (args.length != 0 && args[0].matches("split(er)?")) {
             new SplitGBS(args, name, "split");
-        } else if (args.length != 0 && args[0].matches("(p)?pileup")) {
+        } else if (args.length != 0 && args[0].matches("pileupstats")) {
             new PileupStats(args, name, "pileup");
         } else if (args.length != 0 && args[0].matches("(p)?mpileup")) {
             new ProcessPileup(args, name, "mpileup counts");
@@ -86,7 +86,8 @@ public class MerUtensils {
         System.out.println("                 :");
         System.out.println("   split         : split FASTQ GBS reads by barcodes, trim barcodes and adapters");
         System.out.println("   pmpileup      : count and call bases from mpileup");
-        System.out.println("   ppileup       : extract some stats from (m)pileup");
+        System.out.println("   pileupstats   : extract some stats from (m)pileup");
+        System.out.println("   snpmers       : given parental SNPs and the corresponding FASTA sequences from NIKS, call F2s genotypes by overlapping their k-mers with parental SNP sequences ");
         System.out.println("   vclusters     : call variants from vsearch clustering msa output");
 //        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");
         System.out.println("   version       : print the version and build time then exit");

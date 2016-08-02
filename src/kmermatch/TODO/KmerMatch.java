@@ -285,7 +285,7 @@ public class KmerMatch {
                 } catch (InterruptedException ex) {
                 }
             }
-            if (inputReaderProducer.getGuessedInputFormat().equals(InputReaderProducer.GuessedInputFormat.KMERS)) {
+            if (inputReaderProducer.getGuessedInputFormat().equals(InputReaderProducer.InFormat.KMERS)) {
                 splitInputSequenceIntoKmers = false;
                 KMER_LENGTH = inputReaderProducer.getKmerLengths().get(0);
             }

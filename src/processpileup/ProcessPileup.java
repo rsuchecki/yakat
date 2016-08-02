@@ -244,6 +244,7 @@ public class ProcessPileup {
             } catch (ExecutionException ex) {
                 Reporter.report("[ERROR]", "execution exception!", TOOL_NAME);
                 ex.printStackTrace();
+                System.exit(1);
 
             } catch (TimeoutException ex) {
                 Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
