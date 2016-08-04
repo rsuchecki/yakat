@@ -35,7 +35,7 @@ import java.util.zip.GZIPInputStream;
  */
 public class InputReaderProducer implements Runnable {
 
-    private BlockingQueue queue; //Either
+    private final BlockingQueue queue; //Either
 //    private HashMap<Integer, BlockingQueue> kSizeToQueue; //or
 
     private ArrayList<Integer> kLengths;
@@ -126,6 +126,23 @@ public class InputReaderProducer implements Runnable {
 //        }
         TOOL_NAME = toolName;
     }
+    
+    /**
+     * Used by SnpMers
+     * @param queue
+     * @param inputFiles
+     * @param k
+     * @param map
+     * @param toolName
+     */
+    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, boolean useLabelledBuffers, 
+        String toolName, int KMER_BUFFER_SIZE) {
+        this.queue = queue;
+        this.inputFiles = inputFiles;
+        this.useLabelledBuffers = useLabelledBuffers;
+        this.TOOL_NAME = toolName;
+        this.KMER_BUFFER_SIZE = KMER_BUFFER_SIZE;
+    }
 
     /**
      * Used for kmer extender
@@ -168,6 +185,7 @@ public class InputReaderProducer implements Runnable {
                 inputFiles = new ArrayList<>();
                 inputFiles.add("-");
             }
+            Object empty = new ArrayList<>(0);
             for (String inputFile : inputFiles) {
                 if (inputFile.equals("-")) { //READSTDIN
                     content = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
@@ -204,6 +222,7 @@ public class InputReaderProducer implements Runnable {
                 if (guessedInFormat == InFormat.PER_SAMPLE_KMERS || (guessedInFormat == InFormat.KMERS && useLabelledBuffers)) {
                     //Package k-mers so that the consumer will know what sample/dataset they came from based on the sample label                    
                     readKmersPerSample(content, testLines, inputFile);
+                    empty = new LabelledInputBuffer("", new ArrayList()); //making sure that the type of "done reading" flag matches the input type
                 } else if (guessedInFormat == InFormat.KMERS
                     || (guessedInFormat == InFormat.FASTQ_PE_ONE_LINE && !kMerIsSet())
                     || (guessedInFormat == InFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())
@@ -232,7 +251,7 @@ public class InputReaderProducer implements Runnable {
                 }
             }
 //            queue.put(new ArrayList<String>()); //TELLS CONSUMERS, NO MORE DATA
-            putOnQueue(new ArrayList<String>(0));
+            putOnQueue(empty);
         } catch (OutOfMemoryError err) {
 //            if (map == null) {
             Reporter.report("[ERROR]", "Out of memory error!", TOOL_NAME);
@@ -308,7 +327,7 @@ public class InputReaderProducer implements Runnable {
         if (!inputFile.equals("-")) { //IF NOT STDIN
             sampleLabel = inputFile;  //Assume filename is the label
         }
-        ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
+        ArrayList<String[]> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
         long kmerCount = 0L;
         long reportThreshold = (long) KMER_BUFFER_SIZE;
         //PROCESS TESTLINES
@@ -322,7 +341,7 @@ public class InputReaderProducer implements Runnable {
                     bufferList = new ArrayList<>();
                 }
             } else {
-                bufferList.add(line);
+                bufferList.add(toks);
             }
         }
         String line;
@@ -344,10 +363,10 @@ public class InputReaderProducer implements Runnable {
                 if (toks.length == 1) {
                     sampleLabel = toks[0];
                 } else {
-                    bufferList.add(line); 
+                    bufferList.add(toks); 
                 }
             } else {
-                bufferList.add(line);            
+                bufferList.add(toks);            
             }
         }
         kmerCount += bufferList.size();
@@ -501,6 +520,9 @@ public class InputReaderProducer implements Runnable {
 //        this.KMER_LENGTH = k;
 //    }
     private synchronized void addKmerLength(int k) {
+        if(kLengths == null) {
+            kLengths = new ArrayList<>();
+        }
         //if list contains just a dummy entrance (0) - replace it
         if (kLengths.size() == 1 && kLengths.get(0) == 0) {
             kLengths.remove(0);
@@ -531,6 +553,7 @@ public class InputReaderProducer implements Runnable {
 //    private void putOnQueue(ArrayList<String> list) throws InterruptedException {
     private void putOnQueue(Object list) throws InterruptedException {
 //        if (queue != null) {
+        
         queue.put(list);
 //        } else {
 //            for (Integer k : kLengths) {

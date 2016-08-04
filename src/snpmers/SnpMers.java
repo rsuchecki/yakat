@@ -36,8 +36,21 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.zip.GZIPInputStream;
 import shared.FastaReader;
+import shared.InputReaderProducer;
+import shared.Message;
 import shared.Reporter;
 import shared.Sequence;
 import shared.SequenceOps;
@@ -78,8 +91,9 @@ public class SnpMers {
 
         buildSnpMerMap(optSet);
 //        filterOutFalsePositiveSnps(optSet);
-        threadKmersThroughMap(optSet);
-
+        ArrayList<String> sampleNames = threadKmersThroughMap(optSet);
+        reportResults(sampleNames);
+//        threadKmersThroughMap_BAK(optSet);
 //        readAndProcessMSASequencesFromFasta(fileName, optSet);
 //        readMSASequencesFromFasta(optSet.getPositionalOptsList().get(0).getValue());
     }
@@ -96,8 +110,11 @@ public class SnpMers {
         optSet.addOpt(new Opt('k', "k-mer-length", "It must match the size of the k-mers used to query the niks-snps", 1).setRequired(true).setMinValue(3).setMaxValue(255));
         optSet.addOpt(new Opt('s', "niks-snps", "File containing the table of SNPs called by NIKS", 1));
 //        optSet.addOpt(new Opt('f', "niks-fasta", "The (msa) FASTA file matching the SNP information", 1));
+        optSet.addOpt(new Opt('K', "per-sample-k-mers", "A set (or sets) of k-mers to be threaded through the map of k-mer-links to SNPs").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
         optSet.addOpt(new Opt('F', "filtering-k-mers", "[TODO] One or more sets of k-mers, each from one homozygous cultivar. "
             + "If both alleles of a putative SNP are present in such a set the SNP will be discarded as a likely false-positive").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
+        optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 32768));
+        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up", 64, 1, 256));
 
 //        optSet.incrementLisitngGroup();
 //        optSet.setListingGroupLabel("[Cluster processing settings]");
@@ -109,7 +126,7 @@ public class SnpMers {
         optSet.addOpt(new Opt(null, "min-k-mer-frequency-sum", "Minimum frequency of k-mers which overlap with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(5));
         optSet.addOpt(new Opt(null, "min-k-mer-frequency-minor", "Minimum frequency of k-mers which support the minor allele", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "min-overlapping-k-mers", "At least <arg> k-mers must overlap a locus (for each allele)", 1).setMinValue(1).setDefaultValue(1));
-        
+
 ////        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
 //        optSet.addOpt(new Opt(null, "min-inter-identity", "Minimum inter sample identity ", 1).setMinValue(0.0).setDefaultValue(0.95));
 //        optSet.addOpt(new Opt(null, "max-inter-snps", "SNPs will be reported if at most <arg> inter-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(2));
@@ -124,8 +141,6 @@ public class SnpMers {
         optSet.setListingGroupLabel("[Runtime and output settings]");
 ////        String threadsOrderNote = "Note that in multi-threaded mode the output lines order need not reflect the input order";
 ////        optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()).addFootnote(1, threadsOrderNote));
-////        optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 32768));
-////        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",64, 1, 256));
 //////        optSet.addOpt(new Opt('u', "out-buffer-size", "Size of buffers put on out-queue ", 1024, 128, 32768));
 //////        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writing-out",64, 1, 256));
 //        optSet.addOpt(new Opt(null, "out-clusters-msa", "Output clustered sequences (for which SNPs were called) to <arg> MSA/FASTA file", 1));
@@ -174,7 +189,7 @@ public class SnpMers {
                     if (toks.length > 12) {
                         Reporter.report("[WARNING]", "Ignoring " + clusterId + " (" + toks.length + " cols)", TOOL_NAME);
                     } else {
-                        if(parent1 == null) {
+                        if (parent1 == null) {
                             parent1 = toks[2].substring(0, toks[2].indexOf('_'));
                             parent2 = toks[4].substring(0, toks[4].indexOf('_'));
                         }
@@ -346,7 +361,7 @@ public class SnpMers {
     }
 
     private void filterOutFalsePositiveSnps(OptSet optSet) {
-        ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("F").getValues();        
+        ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("F").getValues();
         Reporter.report("[INFO]", "Now threading false-positive filtering k-mer-s through k-mer-links-to-snps map...", TOOL_NAME);
 //        ArrayList<String> samples = new ArrayList<>();
 //        if (kmersFileNames.isEmpty()) {
@@ -417,14 +432,115 @@ public class SnpMers {
 //        }
         Reporter.report("[INFO]", "Finished filtering -out likely fasle positives SNPs", TOOL_NAME);
     }
+
+    private ArrayList<String> threadKmersThroughMap(OptSet optSet) {
+        ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
+        ArrayList<String> samples = new ArrayList<>();
+        int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
+        int IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
+
+        BlockingQueue inputQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
+//            boolean stranded = false;
+        int ioThreads = 1 + 1;
+        ArrayList<Future<?>> ioFutures = new ArrayList<>(ioThreads);
+        final ExecutorService ioExecutorService = new ThreadPoolExecutor(ioThreads, ioThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+
+        //SPAWN INPUT READING THREAD
+        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, kmersFileNames, true, TOOL_NAME, IN_BUFFER_SIZE);
+        ioFutures.add(ioExecutorService.submit(inputReaderProducer));
+
+        long timeStart = System.currentTimeMillis();
+        int count = 0;
+        while (inputReaderProducer.getGuessedInputFormat() == null) {
+            try {
+                //IF nothing happens after 5 seconds
+                if (System.currentTimeMillis() - timeStart > 2500 && (count++ % 25 == 0)) {
+                    Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", getClass().getSimpleName());
+                }
+                Thread.sleep(100); //wait for 1/10 of a second
+            } catch (InterruptedException ex) {
+            }
+        }
+//        //ENSURING WE KNOW THE INPUT FORMAT BEFORE CONSUMER THREADS ARE SPAWNED
+//        if (!inputReaderProducer.getGuessedInputFormat().equals(InputReaderProducer.InFormat.KMERS)) {
+//            Reporter.report("[FATAL]", "Only k-mer sets accepted as input. Guessed format: " + inputReaderProducer.getGuessedInputFormat(), getClass().getSimpleName());
+//        } else {
+        //Start KmergerConsumerProducer and OutputWriterConsumer threads
+        int threads = 1;
+        final ExecutorService execService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        ArrayList<Future<?>> futures = new ArrayList<>(threads);
+//        AtomicInteger splitterThreads = new AtomicInteger(SPLITTER_THREADS);
+        ArrayList<Message> finalMessages = new ArrayList<>(threads * 5);
+        for (int i = 0; i < threads; i++) {
+            futures.add(execService.submit(new Consumer(inputQueue, TOOL_NAME, samples, map, snpFilters, optSet, finalMessages)));
+        }
+        execService.shutdown();
+        ioExecutorService.shutdown();
+        
+        try {
+
+            for (Future<?> f : futures) {
+                f.get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            }
+            execService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            for (Future<?> f : ioFutures) {
+                f.get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            }
+            ioExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+        } catch (InterruptedException e) {
+            Reporter.report("[ERROR]", "interrupted exception!", getClass().getSimpleName());
+        } catch (ExecutionException ex) {
+            Reporter.report("[ERROR]", "execution exception! " + ex.getCause().getMessage(), getClass().getSimpleName());
+            ex.printStackTrace();
+        } catch (TimeoutException ex) {
+            Reporter.report("[ERROR]", "timeout exception!", getClass().getSimpleName());
+        }
+        for (Message fm : finalMessages) {
+            Reporter.report(fm.getLevel().toString(), fm.getBody(), fm.getCaller());
+        }
+       
+        return samples;
+    }
+
+    private void reportResults(ArrayList<String> samples) {
+        
+//        String kmersFileName = (String) optSet.getOpt("K").getValueOrDefault();
+        StringBuilder header = new StringBuilder("Ref:Pos");
+        header.append(DELIMITER).append("Phenotype");
+        //TODO - risky to just take one!!!
+        header.append(DELIMITER).append(parent1);
+        header.append(DELIMITER).append(parent2);
+        for (String sample : samples) {
+            header.append(DELIMITER).append(sample);
+        }
+        System.out.println(header);
+
+        for (SnpFilter snpFilter : snpFilters) {
+            StringBuilder sb = new StringBuilder();
+            sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
+            sb.append(":").append(snpFilter.getSnpPosition() + 1).append(DELIMITER);
+            sb.append("All").append(DELIMITER);
+            sb.append(snpFilter.getBase1()).append(DELIMITER).append(snpFilter.getBase2());
+            for (String sample : samples) {
+                sb.append(DELIMITER).append(snpFilter.getSnpCall(sample));
+                //DEBUG sb.append(" ").append(snpFilter.getSnpCallDetails(sample));
+            }
+            System.out.println(sb);
+
+//            System.err.println(snpFilter.getSequence1().getId() + DELIMITER + snpFilter.getSequence2().getId()+" CALL: "+snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor));
+//            System.err.println(snpFilter.getMedian1() + " <-- "+Arrays.toString(snpFilter.getMers1()));
+//            System.err.println(snpFilter.getMedian2() + " <-- "+Arrays.toString(snpFilter.getMers2()));
+        }
+        Reporter.report("[INFO]", "Done!", TOOL_NAME);
+    }
     
-    private void threadKmersThroughMap(OptSet optSet) {
+    private void threadKmersThroughMap_BAK(OptSet optSet) {
         ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
 //        String kmersFileName = (String) optSet.getOpt("K").getValueOrDefault();
         int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
         int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
         int minKmers = (int) optSet.getOpt("min-overlapping-k-mers").getValueOrDefault();
-        
+
         Reporter.report("[INFO]", "Now threading input k-mer-s through k-mer-links-to-snps map...", TOOL_NAME);
         ArrayList<String> samples = new ArrayList<>();
         if (kmersFileNames.isEmpty()) {

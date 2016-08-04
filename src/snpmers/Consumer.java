@@ -32,6 +32,7 @@ package snpmers;
 import argparser.OptSet;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
@@ -52,18 +53,23 @@ public class Consumer implements Runnable {
     private final BlockingQueue<LabelledInputBuffer> inputQueue;
     private final String TOOL_NAME;
     private final ArrayList<Message> finalMessages;
-    private ConcurrentSkipListMap<CharSequence, KmerLink> map;
-
+    private final ArrayList<SnpFilter> snpFilters;
+//    private final ConcurrentSkipListMap<CharSequence, KmerLink> map;
+    private final HashMap<CharSequence, KmerLink> map;
+    private final OptSet optSet;
+    private final ArrayList<String> samples;
+    
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
-
-    public Consumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<Message> finalMessages) {//,
-//        KeyMap keyMap, String toolName, int OUT_BUFFER_SIZE, OptSet optSet,
-//        ) {
-
+    public Consumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
+        HashMap<CharSequence, KmerLink> map, ArrayList<SnpFilter> snpFilters,
+        OptSet optSet, ArrayList<Message> finalMessages) {
         this.inputQueue = inputQueue;
+        this.samples = samples;
+        this.map = map;
+        this.snpFilters = snpFilters;
+        this.optSet = optSet;
         this.TOOL_NAME = TOOL_NAME;
-
 //        ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
 //        MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
         this.finalMessages = finalMessages;
@@ -73,28 +79,45 @@ public class Consumer implements Runnable {
 
     @Override
     public void run() {
+        int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
+        int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
+        int minKmers = (int) optSet.getOpt("min-overlapping-k-mers").getValueOrDefault();
+//        ArrayList<String> samples = new ArrayList<>();
         try {
-            LabelledInputBuffer list;
+            LabelledInputBuffer list = null;
+            
             while (!(list = inputQueue.take()).getData().isEmpty()) {
-                Reporter.report("[INFO]", "Current sample: " + list.getLabel(), TOOL_NAME);
-                for (String line : list.getData()) {
-                    String toks[] = line.split("\t");
-//                    KmerLink kmerLink = map.get(toks[0]);
-//                    if (kmerLink != null) {
-//                        boolean setMer = kmerLink.setMer(Short.parseShort(toks[1]));
-//                        if (!setMer) {
-//                            System.err.println("mer not set");
-//                        }
-//                    }
+                if (!samples.contains(list.getLabel())) {  //FIRST OR NEW SAMPLE
+                    if (!samples.isEmpty()) { //NEW SAMPLE
+                        Reporter.report("[INFO]", "Calling bases and reseting mer-counters", TOOL_NAME);
+                        for (SnpFilter snpFilter : snpFilters) {
+                            snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minKmers, TOOL_NAME);
+                        }
+                    }
+                    Reporter.report("[INFO]", "Current sample: " + list.getLabel(), TOOL_NAME);
+                    samples.add(list.getLabel());
                 }
+                ArrayList<String[]> data = list.getData();
+                for (String[] toks : data) {
+                    KmerLink kmerLink = map.get(toks[0]);
+                    if (kmerLink != null) {
+                        boolean setMer = kmerLink.setMer(Short.parseShort(toks[1]));
+                        if (!setMer) {
+                            System.err.println("mer not set");
+                        }
+//                    SnpFilter snpFilter = kmerLink.getSnpFilter();
+//                    System.err.println(kmerLink.getParentSequence().getId()+"\t"+snpFilter.getSnpPosition()+"\t"+toks[1]);
+                    }
+                }
+
             }
-
-            inputQueue.put(new LabelledInputBuffer(null, new ArrayList<String>())); //inform other threads
-//            for (SnpFilter snpFilter : snpFilters) {
-//                snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor, minKmers, TOOL_NAME);
-//            }
-//            samples.add(sampleName);
-
+//            inputQueue.put(new LabelledInputBuffer(null, new ArrayList())); //inform other threads
+            //PROCESS LAST SAMPLE RESULTS
+            Reporter.report("[INFO]", "Calling bases and reseting mer-counters", TOOL_NAME);
+            for (SnpFilter snpFilter : snpFilters) {
+                snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minKmers, TOOL_NAME);
+            }
+            Reporter.report("[INFO]", "Finished assigning k-mer frequencies to SNPs", TOOL_NAME);
 //            if (lines > 0) {
 //                String name = Thread.currentThread().getName();
 //                String message = "[" + name + "] " + NumberFormat.getNumberInstance().format(lines)
@@ -115,11 +138,13 @@ public class Consumer implements Runnable {
 //                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(singleUnderLength) + " single reads under length " + MIN_LENGTH_READ, TOOL_NAME));
 //                }
 //            }
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (Exception e) {
             e.printStackTrace();
         }
+
     }
 
 }

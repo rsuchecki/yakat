@@ -23,9 +23,9 @@ import java.util.ArrayList;
  */
 public class LabelledInputBuffer {
     private final  String label;
-    private final ArrayList<String> data;
+    private final ArrayList data;
 
-    public LabelledInputBuffer(String label, ArrayList<String> data) {
+    public LabelledInputBuffer(String label, ArrayList data) {
         this.label = label;
         this.data = data;
     }
@@ -34,10 +34,9 @@ public class LabelledInputBuffer {
         return label;
     }
 
-    public ArrayList<String> getData() {
+    public ArrayList getData() {
         return data;
     }
-    
     
     
 }
