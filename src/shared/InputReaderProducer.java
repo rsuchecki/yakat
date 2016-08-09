@@ -188,12 +188,12 @@ public class InputReaderProducer implements Runnable {
             Object empty = new ArrayList<>(0);
             for (String inputFile : inputFiles) {
                 if (inputFile.equals("-")) { //READSTDIN
-                    content = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
+                    content = new BufferedReader(new InputStreamReader(System.in, "UTF-8"), READER_BUFFER_SIZE);
                 } else if (inputFile.endsWith(".gz")) {// reading kmers from a compressed file
                     InputStream gzipStream = new GZIPInputStream(new FileInputStream(inputFile), READER_BUFFER_SIZE);
                     content = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
                 } else {
-                    content = new BufferedReader(new FileReader(new File(inputFile)), READER_BUFFER_SIZE);//reading kmers from a text file
+                    content = new BufferedReader(new FileReader(new File(inputFile)), READER_BUFFER_SIZE);//reading from a text file
                 }
                 String line1;
                 //TAKE UP TO 4 FIRST LINES AND TRY TO GUESS THE INPUT FORMAT
@@ -361,6 +361,9 @@ public class InputReaderProducer implements Runnable {
                     }
                 }
                 if (toks.length == 1) {
+                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + guessedInFormat.toString() + " read-in for sample "+sampleLabel, TOOL_NAME);
+                    kmerCount = 0;
+                    reportThreshold = (long) KMER_BUFFER_SIZE;
                     sampleLabel = toks[0];
                 } else {
                     bufferList.add(toks); 
@@ -370,7 +373,7 @@ public class InputReaderProducer implements Runnable {
             }
         }
         kmerCount += bufferList.size();
-        Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + guessedInFormat.toString() + " read-in", TOOL_NAME);
+        Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(kmerCount) + " " + guessedInFormat.toString() + " read-in for sample "+sampleLabel, TOOL_NAME);
 //                    queue.put(bufferList);
         putOnQueue(new LabelledInputBuffer(sampleLabel, bufferList));
     }
