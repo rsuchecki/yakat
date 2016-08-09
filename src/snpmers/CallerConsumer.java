@@ -48,7 +48,7 @@ import shared.SequenceOps;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class Consumer implements Runnable {
+public class CallerConsumer implements Runnable {
 
     private final BlockingQueue<LabelledInputBuffer> inputQueue;
     private final String TOOL_NAME;
@@ -56,45 +56,51 @@ public class Consumer implements Runnable {
     private final ArrayList<SnpFilter> snpFilters;
 //    private final ConcurrentSkipListMap<CharSequence, KmerLink> map;
     private final HashMap<CharSequence, KmerLink> map;
-    private final OptSet optSet;
+//    private final OptSet optSet;
     private final ArrayList<String> samples;
+    private final int minTotal;
+    private final int minMinor;
+    private final int minKmers;
     
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
-    public Consumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
+    public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
         HashMap<CharSequence, KmerLink> map, ArrayList<SnpFilter> snpFilters,
+        int minTotal, int minMinor, int minKmers,
         OptSet optSet, ArrayList<Message> finalMessages) {
         this.inputQueue = inputQueue;
         this.samples = samples;
         this.map = map;
         this.snpFilters = snpFilters;
-        this.optSet = optSet;
+//        this.optSet = optSet;
         this.TOOL_NAME = TOOL_NAME;
 //        ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
 //        MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
         this.finalMessages = finalMessages;
 //        sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
 //        sampleToQueueMap = keyMap.getSampleToQueueMap();
+        this.minTotal = minTotal;
+        this.minMinor  = minMinor;
+        this.minKmers = minKmers;
     }
 
     @Override
     public void run() {
-        int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
-        int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
-        int minKmers = (int) optSet.getOpt("min-overlapping-k-mers").getValueOrDefault();
+
 //        ArrayList<String> samples = new ArrayList<>();
         try {
             LabelledInputBuffer list = null;
-            
+            String previous = null;
             while (!(list = inputQueue.take()).getData().isEmpty()) {
                 if (!samples.contains(list.getLabel())) {  //FIRST OR NEW SAMPLE
                     if (!samples.isEmpty()) { //NEW SAMPLE
-                        Reporter.report("[INFO]", "Calling bases and reseting mer-counters", TOOL_NAME);
+                        Reporter.report("[INFO]", "Calling bases for "+previous+" and reseting mer-counters", TOOL_NAME);
                         for (SnpFilter snpFilter : snpFilters) {
                             snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minKmers, TOOL_NAME);
                         }
                     }
-                    Reporter.report("[INFO]", "Current sample: " + list.getLabel(), TOOL_NAME);
+//                    Reporter.report("[INFO]", "Current sample: " + list.getLabel(), TOOL_NAME);
+                    previous = list.getLabel();
                     samples.add(list.getLabel());
                 }
                 ArrayList<String[]> data = list.getData();
@@ -113,7 +119,7 @@ public class Consumer implements Runnable {
             }
 //            inputQueue.put(new LabelledInputBuffer(null, new ArrayList())); //inform other threads
             //PROCESS LAST SAMPLE RESULTS
-            Reporter.report("[INFO]", "Calling bases and reseting mer-counters", TOOL_NAME);
+            Reporter.report("[INFO]", "Calling bases for "+previous+" and reseting mer-counters", TOOL_NAME);
             for (SnpFilter snpFilter : snpFilters) {
                 snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minKmers, TOOL_NAME);
             }

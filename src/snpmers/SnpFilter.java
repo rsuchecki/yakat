@@ -35,6 +35,7 @@ public class SnpFilter {
     private short[] mers2; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
     private HashMap<String, Character> snpCalls;
     private HashMap<String, String> callDetails;
+    private boolean valid = true; 
 
     /**
      *
@@ -185,6 +186,9 @@ public class SnpFilter {
         if (put != null) {
             Reporter.report("[WARNING]", "Call " + put + " previously made for " + sampleName + ", current call: " + call, this.getClass().getSimpleName());
         }
+        if(this.sequence1.getId().equals("2545_156383")) {
+            int x = 0;
+        }
         mers1 = new short[mers1.length];
         mers2 = new short[mers2.length];
         return call;
@@ -250,4 +254,14 @@ public class SnpFilter {
             return '0';
         }
     }
+
+    public boolean isValid() {
+        return valid;
+    }
+
+    public void setInvalid() {
+        valid = false;
+    }
+    
+    
 }
