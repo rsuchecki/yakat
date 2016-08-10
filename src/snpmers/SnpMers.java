@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +49,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 import shared.FastaReader;
 import shared.InputReaderProducer;
 import shared.Message;
@@ -104,7 +106,7 @@ public class SnpMers {
         int minKmers = (int) optSet.getOpt("min-overlapping-k-mers").getValueOrDefault();
         ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
         ArrayList<String> sampleNames = threadKmersThroughMap(optSet, kmersFileNames, minTotal, minMinor, minKmers);
-        reportResults(sampleNames);
+        reportResults(sampleNames, optSet);
 //        threadKmersThroughMap_BAK(optSet);
     }
 
@@ -163,6 +165,7 @@ public class SnpMers {
 //        optSet.addOpt(new Opt(null, "out-unclustered-min-len", "Minimum length required to output an unclustered sequence", 1).setMinValue(1).setDefaultValue(100));
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
+        optSet.addOpt(new Opt(null, "out-fasta", "Output relevant sequences to this file (in FASTA format)", 1));
 ////        String headerNote = "Can be useful for external parallization (print header once)";
 ////        optSet.addOpt(new Opt('H', "header-only", "Print header and exit").addFootnote(1, TOOL_NAME));
 //        optSet.incrementLisitngGroup();
@@ -458,8 +461,8 @@ public class SnpMers {
 //                    it.remove();                    
                     snpFilter.setInvalid();
                     invalid++;
-                    Reporter.report("[INFO]", "SNP filtered-out "+snpFilter.getClusterId()+" " 
-                        +snpFilter.getSequence1().getId()+" "+snpFilter.getSequence2().getId()+" at "+snpFilter.getSnpPosition(), TOOL_NAME);
+                    Reporter.report("[INFO]", "SNP filtered-out " + snpFilter.getClusterId() + " "
+                        + snpFilter.getSequence1().getId() + " " + snpFilter.getSequence2().getId() + " at " + snpFilter.getSnpPosition(), TOOL_NAME);
 //                    System.err.println("Call: " + snpFilter.getSnpCall(sample));
                     break; //ensures we only invalidate a snp once
                 }
@@ -468,8 +471,7 @@ public class SnpMers {
         Reporter.report("[INFO]", "Filtered-out " + invalid + " likely fasle positives SNPs", TOOL_NAME);
     }
 
-    private void reportResults(ArrayList<String> samples) {
-//        String kmersFileName = (String) optSet.getOpt("K").getValueOrDefault();
+    private void reportResults(ArrayList<String> samples, OptSet optSet) {
         StringBuilder header = new StringBuilder("Ref:Pos");
         header.append(DELIMITER).append("Phenotype");
         //TODO - risky to just take one!!!
@@ -497,115 +499,41 @@ public class SnpMers {
                 }
                 System.out.println(sb);
             }
-            
+
 //            System.err.println(snpFilter.getSequence1().getId() + DELIMITER + snpFilter.getSequence2().getId()+" CALL: "+snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor));
 //            System.err.println(snpFilter.getMedian1() + " <-- "+Arrays.toString(snpFilter.getMers1()));
 //            System.err.println(snpFilter.getMedian2() + " <-- "+Arrays.toString(snpFilter.getMers2()));
         }
-        Reporter.report("[INFO]", "Done!", TOOL_NAME);
-    }
 
-    private void threadKmersThroughMap_BAK(OptSet optSet) {
-        ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
-//        String kmersFileName = (String) optSet.getOpt("K").getValueOrDefault();
-        int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
-        int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
-        int minKmers = (int) optSet.getOpt("min-overlapping-k-mers").getValueOrDefault();
+        String outputFasta = (String) optSet.getOpt("out-fasta").getValueOrDefault();
+        if (outputFasta != null) {
 
-        Reporter.report("[INFO]", "Now threading input k-mer-s through k-mer-links-to-snps map...", TOOL_NAME);
-        ArrayList<String> samples = new ArrayList<>();
-        if (kmersFileNames.isEmpty()) {
-            kmersFileNames.add(null);
-        }
-
-        for (String kmersFileName : kmersFileNames) {
-            String sampleName = null;
-            BufferedReader bufferdReader = null;
             try {
-                String inputLine;
-                if (kmersFileName == null) {
-//                Reporter.report("[INFO]", "Input file(s) not specified, reading from stdin ", TOOL_NAME);
-                    bufferdReader = new BufferedReader(new InputStreamReader(System.in), READER_BUFFER_SIZE);
-                    if ((inputLine = bufferdReader.readLine()) != null) {
-                        sampleName = inputLine; //if stding first line is expected to be sample name
-                    }
-                } else if (kmersFileName.endsWith(".gz")) {
-                    InputStream gzipStream = new GZIPInputStream(new FileInputStream(kmersFileName), READER_BUFFER_SIZE);
-                    bufferdReader = new BufferedReader(new InputStreamReader(gzipStream, "UTF-8"), READER_BUFFER_SIZE);
-                    sampleName = kmersFileName;
+                BufferedWriter out;
+                if (outputFasta.endsWith(".gz")) {
+                    out = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFasta)), "UTF-8"), WRITER_BUFFER_SIZE);
                 } else {
-                    bufferdReader = new BufferedReader(new FileReader(new File(kmersFileName)), READER_BUFFER_SIZE);
-                    sampleName = kmersFileName;
-                }
-                Reporter.report("[INFO]", "Current sample: " + sampleName, TOOL_NAME);
-                while ((inputLine = bufferdReader.readLine()) != null) {
-                    String line = inputLine.trim();
-                    String[] toks = line.split(DELIMITER);
-                    if (toks.length == 1) {
-                        for (SnpFilter snpFilter : snpFilters) {
-                            snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor, minKmers, TOOL_NAME);
-                        }
-                        samples.add(sampleName);
-                        sampleName = line;
-                        Reporter.report("[INFO]", "Current sample: " + sampleName, TOOL_NAME);
-                    } else if (toks.length != 2) {
-                        Reporter.report("[ERROR]", "Unexpected input line: " + line, TOOL_NAME);
-                        System.exit(1);
-                    }
-                    KmerLink kmerLink = map.get(toks[0]);
-                    if (kmerLink != null) {
-                        boolean setMer = kmerLink.setMer(Short.parseShort(toks[1]));
-                        if (!setMer) {
-                            System.err.println("mer not set");
-                        }
-//                    SnpFilter snpFilter = kmerLink.getSnpFilter();
-//                    System.err.println(kmerLink.getParentSequence().getId()+"\t"+snpFilter.getSnpPosition()+"\t"+toks[1]);
-                    }
+                    out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFasta), "UTF-8"), WRITER_BUFFER_SIZE);
                 }
                 for (SnpFilter snpFilter : snpFilters) {
-                    snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor, minKmers, TOOL_NAME);
-                }
-                samples.add(sampleName);
-            } catch (FileNotFoundException ex) {
-                Reporter.report("[ERROR]", "File not found: " + kmersFileName, TOOL_NAME);
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            } finally {
-                try {
-                    if (bufferdReader != null) {
-                        bufferdReader.close();
+                    if (snpFilter.isValid()) {
+                        StringBuilder sb = new StringBuilder(">");
+                        sb.append(snpFilter.getClusterId()).append("_").append(snpFilter.getSequence1().getId());
+                        sb.append(System.lineSeparator()).append(snpFilter.getSequence1().getUnpaddedSequenceString());
+                        sb.append(System.lineSeparator()).append(">");
+                        sb.append(snpFilter.getClusterId()).append("_").append(snpFilter.getSequence2().getId());
+                        sb.append(System.lineSeparator()).append(snpFilter.getSequence2().getUnpaddedSequenceString());                        
+                        out.write(sb.toString());
+                        out.newLine();
                     }
-                } catch (IOException ex) {
-                    ex.printStackTrace();
                 }
+                out.flush();
+            } catch (UnsupportedEncodingException e) {
+                Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
+            } catch (IOException e) {
+                Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
             }
-        }
-        Reporter.report("[INFO]", "Finished assigning k-mer frequencies to SNPs", TOOL_NAME);
-        StringBuilder header = new StringBuilder("Ref:Pos");
-        header.append(DELIMITER).append("Phenotype");
-        //TODO - risky to just take one!!!
-        header.append(DELIMITER).append(parent1);
-        header.append(DELIMITER).append(parent2);
-        for (String sample : samples) {
-            header.append(DELIMITER).append(sample);
-        }
-        System.out.println(header);
-
-        for (SnpFilter snpFilter : snpFilters) {
-            StringBuilder sb = new StringBuilder();
-            sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
-            sb.append(":").append(snpFilter.getSnpPosition() + 1).append(DELIMITER);
-            sb.append("All").append(DELIMITER);
-            sb.append(snpFilter.getBase1()).append(DELIMITER).append(snpFilter.getBase2());
-            for (String sample : samples) {
-                sb.append(DELIMITER).append(snpFilter.getSnpCall(sample));
-                //DEBUG sb.append(" ").append(snpFilter.getSnpCallDetails(sample));
-            }
-            System.out.println(sb);
-
-//            System.err.println(snpFilter.getSequence1().getId() + DELIMITER + snpFilter.getSequence2().getId()+" CALL: "+snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor));
-//            System.err.println(snpFilter.getMedian1() + " <-- "+Arrays.toString(snpFilter.getMers1()));
-//            System.err.println(snpFilter.getMedian2() + " <-- "+Arrays.toString(snpFilter.getMers2()));
+            Reporter.report("[INFO]", "FASTA output sent to "+outputFasta, TOOL_NAME);
         }
         Reporter.report("[INFO]", "Done!", TOOL_NAME);
     }

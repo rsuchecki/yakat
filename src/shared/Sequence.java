@@ -40,6 +40,9 @@ public class Sequence {
     public String getSequenceString() {
         return sequenceString;
     }
+    public String getUnpaddedSequenceString() {
+        return sequenceString.replaceAll("-", "");
+    }
 
     public void setSequenceString(String sequenceString) {
         this.sequenceString = sequenceString;
