@@ -83,13 +83,13 @@ public class SnpMers {
         OptSet optSet = populateOptSet();
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
+        new StdRedirect(optSet, TOOL_NAME);
         if (optSet.getOpt("P").isUsed()) {
             optSet.printUserSettings(TOOL_NAME);
         }
         if (optSet.getOpt("D").isUsed()) {
             DEBUG = true;
         }
-        new StdRedirect(optSet, TOOL_NAME);
 
         buildSnpMerMap(optSet);
 
@@ -471,7 +471,7 @@ public class SnpMers {
         Reporter.report("[INFO]", "Filtered-out " + invalid + " likely fasle positives SNPs", TOOL_NAME);
     }
 
-    private void reportResults(ArrayList<String> samples, OptSet optSet) {
+    private void reportResults(ArrayList<String> samples, OptSet optSet) {        
         StringBuilder header = new StringBuilder("Ref:Pos");
         header.append(DELIMITER).append("Phenotype");
         //TODO - risky to just take one!!!
@@ -481,11 +481,13 @@ public class SnpMers {
             header.append(DELIMITER).append(sample);
         }
         System.out.println(header);
-
+        int validSnps = 0;
         for (SnpFilter snpFilter : snpFilters) {
             if (snpFilter.isValid()) {
+                validSnps++;
                 StringBuilder sb = new StringBuilder();
-                sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
+                sb.append(snpFilter.getClusterId());
+//                sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
                 sb.append(":").append(snpFilter.getSnpPosition() + 1).append(DELIMITER);
 //            if (!snpFilter.isValid()) {
 //                sb.append("INVALID").append(DELIMITER);
@@ -535,7 +537,7 @@ public class SnpMers {
             }
             Reporter.report("[INFO]", "FASTA output sent to "+outputFasta, TOOL_NAME);
         }
-        Reporter.report("[INFO]", "Done!", TOOL_NAME);
+        Reporter.report("[INFO]", "Done! "+validSnps+" out of "+snpFilters.size()+" input SNPs genotyped", TOOL_NAME);
     }
 
     private String intFormat(int value) {
