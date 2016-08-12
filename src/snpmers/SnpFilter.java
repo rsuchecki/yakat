@@ -84,8 +84,28 @@ public class SnpFilter {
      * Zero-indexed
      * @return 
      */
-    public int getSnpPosition() {
+    public int getSnpPosition0() {
         return snpPosition;
+    }
+    /**
+     * Zero-indexed
+     * @return 
+     */
+    public int getSnpPosition0UnpaddedSeq1() {
+        String prefix = getSequence1().getSequenceString().substring(0, getSnpPosition0());
+        String unpaddedPrefix = prefix.replaceAll("-", "");
+        int diff = prefix.length() - unpaddedPrefix.length();
+        return snpPosition-diff;
+    }
+    /**
+     * Zero-indexed
+     * @return 
+     */
+    public int getSnpPosition0UnpaddedSeq2() {
+        String prefix = getSequence2().getSequenceString().substring(0, getSnpPosition0());
+        String unpaddedPrefix = prefix.replaceAll("-", "");
+        int diff = prefix.length() - unpaddedPrefix.length();
+        return snpPosition-diff;
     }
 
     public boolean setMer1(int position, short value) {
@@ -166,14 +186,14 @@ public class SnpFilter {
         if (median1 > 0 || median2 > 0) {
             StringBuilder callDetail = new StringBuilder("[");
             if (median1 > 0) {
-                callDetail.append(getSequence1().getSequenceString().charAt(getSnpPosition())).append(":").append((int) Math.ceil(median1));
+                callDetail.append(getSequence1().getSequenceString().charAt(getSnpPosition0())).append(":").append((int) Math.ceil(median1));
                 callDetail.append("*").append(nonZeroKmerFreqs1.size());
             }
             if (median2 > 0) {
                 if (median1 > 0) {
                     callDetail.append("/");
                 }
-                callDetail.append(getSequence2().getSequenceString().charAt(getSnpPosition())).append(":").append((int) Math.ceil(median2));
+                callDetail.append(getSequence2().getSequenceString().charAt(getSnpPosition0())).append(":").append((int) Math.ceil(median2));
                 callDetail.append("*").append(nonZeroKmerFreqs2.size());
             }
             callDetail.append("]");
@@ -186,7 +206,7 @@ public class SnpFilter {
         if (put != null) {
             Reporter.report("[WARNING]", "Call " + put + " previously made for " + sampleName + ", current call: " + call, this.getClass().getSimpleName());
         }
-        if(this.sequence1.getId().equals("2545_156383")) {
+        if(this.clusterId.equals("Cluster_172")) {
             int x = 0;
         }
         mers1 = new short[mers1.length];
@@ -205,9 +225,9 @@ public class SnpFilter {
         if (median1 + median2 < minTotal || (nonZeroKmerFreqs1.size() < minKmers && nonZeroKmerFreqs2.size() < minKmers)) {
             return 'N';
         } else if (median1 == 0 && nonZeroKmerFreqs2.size() >= minKmers) { //homozygous
-            return getSequence2().getSequenceString().charAt(getSnpPosition());
+            return getSequence2().getSequenceString().charAt(getSnpPosition0());
         } else if (median2 == 0 && nonZeroKmerFreqs1.size() >= minKmers) { //homozygous
-            return getSequence1().getSequenceString().charAt(getSnpPosition());
+            return getSequence1().getSequenceString().charAt(getSnpPosition0());
         } else {
             if (median1 >= minMinor && median2 >= minMinor && nonZeroKmerFreqs1.size() >= minKmers && nonZeroKmerFreqs2.size() >= minKmers) {
                 char base1 = getBase1();
@@ -224,11 +244,11 @@ public class SnpFilter {
     }
 
     public char getBase1() {
-        return getSequence1().getSequenceString().charAt(getSnpPosition());
+        return getSequence1().getSequenceString().charAt(getSnpPosition0());
     }
 
     public char getBase2() {
-        return getSequence2().getSequenceString().charAt(getSnpPosition());
+        return getSequence2().getSequenceString().charAt(getSnpPosition0());
     }
 
     private char getIupacCode(char c1, char c2) {

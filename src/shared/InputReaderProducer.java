@@ -322,7 +322,7 @@ public class InputReaderProducer implements Runnable {
      */
     private void readKmersPerSample(BufferedReader content, ArrayList<String> testLines, String inputFile)
         throws InterruptedException, IOException {
-        Reporter.report("[WARNING]", "readKmersPerSample() needs to be tested, particularily with multiple input files and or multiple samples per file", TOOL_NAME);
+//        Reporter.report("[WARNING]", "readKmersPerSample() needs to be tested, particularily with multiple input files and or multiple samples per file", TOOL_NAME);
         String sampleLabel = null;
         if (!inputFile.equals("-")) { //IF NOT STDIN
             sampleLabel = inputFile;  //Assume filename is the label

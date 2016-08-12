@@ -282,7 +282,7 @@ public class SnpMers {
         for (int parent = 1; parent < 3; parent++) {
             Sequence parentSequence = snpFilter.getParentSequence(parent);
             String sequence = parentSequence.getSequenceString();
-            int snpSite = snpFilter.getSnpPosition();
+            int snpSite = snpFilter.getSnpPosition0();
             int offset = 0; //If padding shifts snpSite, store that offset here
             int maxKmer = Math.min(sequence.length() - k + 1, snpSite + 1);
 
@@ -417,8 +417,7 @@ public class SnpMers {
 //        AtomicInteger splitterThreads = new AtomicInteger(SPLITTER_THREADS);
         ArrayList<Message> finalMessages = new ArrayList<>(threads * 5);
 //        for (int i = 0; i < threads; i++) {
-        futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, snpFilters, minTotal, minMinor, minKmers,
-            optSet, finalMessages)));
+        futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, snpFilters, minTotal, minMinor, minKmers)));
 //        }
         execService.shutdown();
         ioExecutorService.shutdown();
@@ -462,7 +461,7 @@ public class SnpMers {
                     snpFilter.setInvalid();
                     invalid++;
                     Reporter.report("[INFO]", "SNP filtered-out " + snpFilter.getClusterId() + " "
-                        + snpFilter.getSequence1().getId() + " " + snpFilter.getSequence2().getId() + " at " + snpFilter.getSnpPosition(), TOOL_NAME);
+                        + snpFilter.getSequence1().getId() + " " + snpFilter.getSequence2().getId() + " at " + snpFilter.getSnpPosition0(), TOOL_NAME);
 //                    System.err.println("Call: " + snpFilter.getSnpCall(sample));
                     break; //ensures we only invalidate a snp once
                 }
@@ -488,7 +487,7 @@ public class SnpMers {
                 StringBuilder sb = new StringBuilder();
                 sb.append(snpFilter.getClusterId());
 //                sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
-                sb.append(":").append(snpFilter.getSnpPosition() + 1).append(DELIMITER);
+                sb.append(":").append(snpFilter.getSnpPosition0() + 1).append(DELIMITER);
 //            if (!snpFilter.isValid()) {
 //                sb.append("INVALID").append(DELIMITER);
 //            } else {
@@ -521,9 +520,11 @@ public class SnpMers {
                     if (snpFilter.isValid()) {
                         StringBuilder sb = new StringBuilder(">");
                         sb.append(snpFilter.getClusterId()).append("_").append(snpFilter.getSequence1().getId());
+                        sb.append(":").append(snpFilter.getSnpPosition0UnpaddedSeq1()+1);
                         sb.append(System.lineSeparator()).append(snpFilter.getSequence1().getUnpaddedSequenceString());
                         sb.append(System.lineSeparator()).append(">");
                         sb.append(snpFilter.getClusterId()).append("_").append(snpFilter.getSequence2().getId());
+                        sb.append(":").append(snpFilter.getSnpPosition0UnpaddedSeq2()+1);
                         sb.append(System.lineSeparator()).append(snpFilter.getSequence2().getUnpaddedSequenceString());                        
                         out.write(sb.toString());
                         out.newLine();

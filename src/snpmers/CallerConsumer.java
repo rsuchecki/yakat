@@ -52,7 +52,6 @@ public class CallerConsumer implements Runnable {
 
     private final BlockingQueue<LabelledInputBuffer> inputQueue;
     private final String TOOL_NAME;
-    private final ArrayList<Message> finalMessages;
     private final ArrayList<SnpFilter> snpFilters;
 //    private final ConcurrentSkipListMap<CharSequence, KmerLink> map;
     private final HashMap<CharSequence, KmerLink> map;
@@ -66,8 +65,7 @@ public class CallerConsumer implements Runnable {
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
         HashMap<CharSequence, KmerLink> map, ArrayList<SnpFilter> snpFilters,
-        int minTotal, int minMinor, int minKmers,
-        OptSet optSet, ArrayList<Message> finalMessages) {
+        int minTotal, int minMinor, int minKmers) {
         this.inputQueue = inputQueue;
         this.samples = samples;
         this.map = map;
@@ -76,7 +74,6 @@ public class CallerConsumer implements Runnable {
         this.TOOL_NAME = TOOL_NAME;
 //        ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
 //        MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
-        this.finalMessages = finalMessages;
 //        sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
 //        sampleToQueueMap = keyMap.getSampleToQueueMap();
         this.minTotal = minTotal;
@@ -112,7 +109,7 @@ public class CallerConsumer implements Runnable {
                             System.err.println("mer not set");
                         }
 //                    SnpFilter snpFilter = kmerLink.getSnpFilter();
-//                    System.err.println(kmerLink.getParentSequence().getId()+"\t"+snpFilter.getSnpPosition()+"\t"+toks[1]);
+//                    System.err.println(kmerLink.getParentSequence().getId()+"\t"+snpFilter.getSnpPosition0()+"\t"+toks[1]);
                     }
                 }
 
