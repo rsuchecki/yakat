@@ -137,7 +137,8 @@ public class ConnectedPairMers {
     private void add(PairMer pairMer, PairMer previous, boolean previousRc, PairMer next, boolean nextRc, int k) {
         PairMerNode pairMerNode = new PairMerNode(pairMer, previous, previousRc, next, nextRc);
 //        connectedPairMers.add(pairMerNode);
-        if (previous == null ^ next == null) {
+//        if (previous == null ^ next == null) {
+        if ((previous == null && next != null) || (previous != null && next == null)) {
             if (terminal1 == null) {
                 terminal1 = pairMerNode;
             } else if (terminal2 == null) {
