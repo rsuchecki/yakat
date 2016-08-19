@@ -33,7 +33,7 @@ public class SnpFilter {
     private final String clusterId;
     private short[] mers1; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
     private short[] mers2; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
-    private HashMap<String, Character> snpCalls;
+    private HashMap<String, BaseCall> snpCalls;
     private HashMap<String, String> callDetails;
     private boolean valid = true; 
 
@@ -61,7 +61,9 @@ public class SnpFilter {
         return clusterId;
     }
 
-    
+    public boolean isIndel() {
+        return getBase1() == '-' || getBase2() == '-';
+    }
     
     public Sequence getParentSequence(int i) {
         if (i == 1) {
@@ -162,7 +164,7 @@ public class SnpFilter {
     }
 
 
-    public Character getSnpCall(String id) {
+    public BaseCall getBaseCall(String id) {
         return snpCalls.get(id);
     }
 
@@ -170,13 +172,13 @@ public class SnpFilter {
         return callDetails.get(id);
     }
 
-    public char callBaseAndResetMers(String sampleName, int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
+    public void callBaseAndResetMers(String sampleName, int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
         if (snpCalls == null) {
             snpCalls = new HashMap<>();
             callDetails = new HashMap<>();
         }
-        char call = call(minTotal, minMinor, minKmers, TOOL_NAME);
-        Character put = snpCalls.put(sampleName, call);
+        BaseCall call = call(minTotal, minMinor, minKmers, TOOL_NAME);
+        BaseCall put = snpCalls.put(sampleName, call);
 
         //DEBUGGING ONLY
         ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
@@ -206,15 +208,14 @@ public class SnpFilter {
         if (put != null) {
             Reporter.report("[WARNING]", "Call " + put + " previously made for " + sampleName + ", current call: " + call, this.getClass().getSimpleName());
         }
-        if(this.clusterId.equals("Cluster_172")) {
-            int x = 0;
-        }
+//        if(this.clusterId.equals("Cluster_172")) {
+//            int x = 0;
+//        }
         mers1 = new short[mers1.length];
         mers2 = new short[mers2.length];
-        return call;
     }
 
-    private char call(int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
+    private BaseCall call(int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
         ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
         ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
         double median1 = getMedian(nonZeroKmerFreqs1);
@@ -223,23 +224,29 @@ public class SnpFilter {
 //            int x = 0;
 //        }
         if (median1 + median2 < minTotal || (nonZeroKmerFreqs1.size() < minKmers && nonZeroKmerFreqs2.size() < minKmers)) {
-            return 'N';
+            return new BaseCall(null, null);
         } else if (median1 == 0 && nonZeroKmerFreqs2.size() >= minKmers) { //homozygous
-            return getSequence2().getSequenceString().charAt(getSnpPosition0());
+            return new BaseCall(getSequence2().getSequenceString().charAt(getSnpPosition0()),null);
         } else if (median2 == 0 && nonZeroKmerFreqs1.size() >= minKmers) { //homozygous
-            return getSequence1().getSequenceString().charAt(getSnpPosition0());
+            return new BaseCall(getSequence1().getSequenceString().charAt(getSnpPosition0()),null);
         } else {
             if (median1 >= minMinor && median2 >= minMinor && nonZeroKmerFreqs1.size() >= minKmers && nonZeroKmerFreqs2.size() >= minKmers) {
-                char base1 = getBase1();
-                char base2 = getBase2();
-                if (base1 == '-' || base2 == '-') {
-//                    Reporter.report("[WARNING]", "Unable to call IUPAC code for: " 
-//                        + getSequence1().getId() + ":" + base1 + ", " + getSequence2().getId() + ":" + base2, TOOL_NAME);
-                    return 'N';
+//                char base1 = getBase1();
+//                char base2 = getBase2();
+//                if (base1 == '-' || base2 == '-') {
+////                    Reporter.report("[WARNING]", "Unable to call IUPAC code for: " 
+////                        + getSequence1().getId() + ":" + base1 + ", " + getSequence2().getId() + ":" + base2, TOOL_NAME);
+////                    return base1+""+base2;//'N';
+//                }
+                if(getBase1() == getBase2()){
+                    System.err.println(getBase1()+"/"+getBase2());
+                    int x = 0;
                 }
-                return getIupacCode(base1, base2);
+                return new BaseCall(getBase1(), getBase2());
+//                return getBase1()+"/"+getBase2();//'N';
+//                return getIupacCode(base1, base2);
             }
-            return 'N';
+            return new BaseCall(null, null);
         }
     }
 
@@ -251,29 +258,8 @@ public class SnpFilter {
         return getSequence2().getSequenceString().charAt(getSnpPosition0());
     }
 
-    private char getIupacCode(char c1, char c2) {
-        if (c1 > c2) {
-            char tmp = c1;
-            c1 = c2;
-            c2 = tmp;
-        }
-        if (c1 == 'A' && c2 == 'T') {
-            return 'W';
-        } else if (c1 == 'C' && c2 == 'G') {
-            return 'S';
-        } else if (c1 == 'A' && c2 == 'C') {
-            return 'M';
-        } else if (c1 == 'G' && c2 == 'T') {
-            return 'K';
-        } else if (c1 == 'A' && c2 == 'G') {
-            return 'R';
-        } else if (c1 == 'C' && c2 == 'T') {
-            return 'Y';
-        } else {
-            Reporter.report("[FATAL] ", "Error calling IUPAC code for: " + c1 + "," + c2, this.getClass().getSimpleName());
-            return '0';
-        }
-    }
+    
+ 
 
     public boolean isValid() {
         return valid;

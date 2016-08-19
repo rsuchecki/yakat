@@ -76,6 +76,10 @@ public class SnpMers {
 
     private boolean DEBUG = false;
 
+    private enum OutFmt {
+        IUPAC, AB, SLASH;
+    }
+
 //    }
     public SnpMers(String[] args, String callerName, String toolName) {
         TOOL_NAME = callerName + " " + toolName;
@@ -106,14 +110,18 @@ public class SnpMers {
         int minKmers = (int) optSet.getOpt("min-overlapping-k-mers").getValueOrDefault();
         ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
         ArrayList<String> sampleNames = threadKmersThroughMap(optSet, kmersFileNames, minTotal, minMinor, minKmers);
-        reportResults(sampleNames, optSet);
+        outputFasta((String) optSet.getOpt("out-fasta").getValueOrDefault());
+        reportResults(sampleNames, (String) optSet.getOpt("out-calls").getValueOrDefault(), OutFmt.SLASH);
+        reportResults(sampleNames, (String) optSet.getOpt("out-calls-AB").getValueOrDefault(), OutFmt.AB);
+        reportResults(sampleNames, (String) optSet.getOpt("out-calls-IUPAC").getValueOrDefault(), OutFmt.IUPAC);
 //        threadKmersThroughMap_BAK(optSet);
+        Reporter.report("[INFO]", "Done!", TOOL_NAME);
     }
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet("Given a list of NIKS-derived inter-parent SNPs and the corresponding "
-            + "MSA FASTA, read k-mers from offspring samples and record frequencies of k-mers overlapping with "
-            + "the input SNPs. These can then be used to call offsping base for a given parental SNP.");
+            + "MSA FASTA, read k-mers from each offspring sample and record frequencies of k-mers overlapping with "
+            + "the input SNPs. These are used to call offsping base for a given parental SNP.");
 
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
@@ -166,6 +174,10 @@ public class SnpMers {
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
         optSet.addOpt(new Opt(null, "out-fasta", "Output relevant sequences to this file (in FASTA format)", 1));
+        optSet.addOpt(new Opt(null, "out-calls", "Output calls to this file ", 1).setDefaultValue("/dev/stdout"));
+        optSet.addOpt(new Opt(null, "out-calls-AB", "Output calls to this file (in AB format)", 1));
+        optSet.addOpt(new Opt(null, "out-calls-IUPAC", "Output calls to this file (in IUPAC format) - due to the limitations "
+            + "of this format indels will be lost", 1));
 ////        String headerNote = "Can be useful for external parallization (print header once)";
 ////        optSet.addOpt(new Opt('H', "header-only", "Print header and exit").addFootnote(1, TOOL_NAME));
 //        optSet.incrementLisitngGroup();
@@ -454,61 +466,120 @@ public class SnpMers {
         while (it.hasNext()) {
             SnpFilter snpFilter = it.next();
             for (String sample : filters) {
-                //sb.append(DELIMITER).append(snpFilter.getSnpCall(sample));
+                //sb.append(DELIMITER).append(snpFilter.getBaseCall(sample));
                 //IF A  HET WAS CALLED
-                if (!snpFilter.getSnpCall(sample).toString().matches("[ACGTNacgtn-]")) {
+
+                if (!snpFilter.getBaseCall(sample).getCallString().matches("[ACGTNacgtn-]")) {
 //                    it.remove();                    
                     snpFilter.setInvalid();
                     invalid++;
-                    Reporter.report("[INFO]", "SNP filtered-out " + snpFilter.getClusterId() + " "
+                    Reporter.report("[INFO]", "SNV filtered-out " + snpFilter.getClusterId() + " "
                         + snpFilter.getSequence1().getId() + " " + snpFilter.getSequence2().getId() + " at " + snpFilter.getSnpPosition0(), TOOL_NAME);
-//                    System.err.println("Call: " + snpFilter.getSnpCall(sample));
+//                    System.err.println("Call: " + snpFilter.getBaseCall(sample));
                     break; //ensures we only invalidate a snp once
                 }
             }
         }
-        Reporter.report("[INFO]", "Filtered-out " + invalid + " likely fasle positives SNPs", TOOL_NAME);
+        Iterator<SnpFilter> it2 = snpFilters.iterator();
+        SnpFilter previous = null; 
+        int invalidAdjacent = 0;
+        while (it2.hasNext()) {
+            SnpFilter snpFilter = it2.next();
+            if(previous != null && snpFilter.getClusterId().equals(previous.getClusterId())) {
+                if(!previous.isValid() && snpFilter.isValid() || previous.isValid() && !snpFilter.isValid() ) {
+//                    System.err.println("Only one of two SNVs filtered out");
+                    previous.setInvalid();
+                    snpFilter.setInvalid();
+                    invalidAdjacent++;
+                    invalid++;
+                }
+            }
+            previous = snpFilter;
+        }
+        Reporter.report("[INFO]", "Filtered-out " + invalid + " likely fasle positives SNPs, including "+invalidAdjacent+" due to adjacent SNP being filtered out", TOOL_NAME);
     }
 
-    private void reportResults(ArrayList<String> samples, OptSet optSet) {        
-        StringBuilder header = new StringBuilder("Ref:Pos");
-        header.append(DELIMITER).append("Phenotype");
-        //TODO - risky to just take one!!!
-        header.append(DELIMITER).append(parent1);
-        header.append(DELIMITER).append(parent2);
-        for (String sample : samples) {
-            header.append(DELIMITER).append(sample);
-        }
-        System.out.println(header);
-        int validSnps = 0;
-        for (SnpFilter snpFilter : snpFilters) {
-            if (snpFilter.isValid()) {
-                validSnps++;
-                StringBuilder sb = new StringBuilder();
-                sb.append(snpFilter.getClusterId());
-//                sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
-                sb.append(":").append(snpFilter.getSnpPosition0() + 1).append(DELIMITER);
-//            if (!snpFilter.isValid()) {
-//                sb.append("INVALID").append(DELIMITER);
-//            } else {
-                sb.append("All").append(DELIMITER);
-//            }
-                sb.append(snpFilter.getBase1()).append(DELIMITER).append(snpFilter.getBase2());
-                for (String sample : samples) {
-                    sb.append(DELIMITER).append(snpFilter.getSnpCall(sample));
-                    //DEBUG sb.append(" ").append(snpFilter.getSnpCallDetails(sample));
+    private void reportResults(ArrayList<String> samples, String outFile, OutFmt fmt) {
+        if (outFile != null) {
+            int snpsGenotyped = 0;
+            int indelsLost = 0;
+            try {
+                BufferedWriter out;
+                if (outFile.endsWith(".gz")) {
+                    out = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outFile)), "UTF-8"), WRITER_BUFFER_SIZE);
+                } else {
+                    out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile), "UTF-8"), WRITER_BUFFER_SIZE);
                 }
-                System.out.println(sb);
-            }
 
+                StringBuilder header = new StringBuilder("Ref:Pos");
+                header.append(DELIMITER).append("Phenotype");
+                header.append(DELIMITER).append(parent1);
+                header.append(DELIMITER).append(parent2);
+                for (String sample : samples) {
+                    header.append(DELIMITER).append(sample);
+                }
+//            System.out.println(header);
+                out.write(header.toString());
+                out.newLine();
+
+                for (SnpFilter snpFilter : snpFilters) {
+                    if (snpFilter.isValid()) {
+                        snpsGenotyped++;
+                        StringBuilder sb = new StringBuilder();
+                        sb.append(snpFilter.getClusterId());
+//                sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
+                        sb.append(":").append(snpFilter.getSnpPosition0() + 1).append(DELIMITER);
+                        sb.append("All").append(DELIMITER);
+
+                        if (fmt == OutFmt.AB) {
+                            sb.append("AA").append(DELIMITER).append("BB");
+                        } else {
+                            if (fmt == OutFmt.IUPAC && snpFilter.isIndel()) {
+                                --snpsGenotyped;
+                                indelsLost++;
+                                continue;
+                            }
+                            sb.append(snpFilter.getBase1()).append(DELIMITER).append(snpFilter.getBase2());
+                        }
+                        for (String sample : samples) {
+                            sb.append(DELIMITER);
+                            switch (fmt) {
+                                case AB:
+                                    sb.append(snpFilter.getBaseCall(sample).getCallAB(snpFilter.getBase1(), snpFilter.getBase2()));
+                                    break;
+                                case IUPAC:
+                                    sb.append(snpFilter.getBaseCall(sample).getCallIUPAC());
+                                    break;
+                                case SLASH:
+                                    sb.append(snpFilter.getBaseCall(sample).getCallString());
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+//                    System.out.println(sb);
+                        out.write(sb.toString());
+                        out.newLine();
+                    }
+                }
+                out.flush();
 //            System.err.println(snpFilter.getSequence1().getId() + DELIMITER + snpFilter.getSequence2().getId()+" CALL: "+snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor));
 //            System.err.println(snpFilter.getMedian1() + " <-- "+Arrays.toString(snpFilter.getMers1()));
 //            System.err.println(snpFilter.getMedian2() + " <-- "+Arrays.toString(snpFilter.getMers2()));
+            } catch (UnsupportedEncodingException e) {
+                Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
+            } catch (IOException e) {
+                Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
+            }
+            if (indelsLost != 0) {
+                Reporter.report("[INFO]", indelsLost + " indels lost in the IUPAC output: " + outFile, TOOL_NAME);
+            }
+            Reporter.report("[INFO]", snpsGenotyped + " out of " + snpFilters.size() + " input SNVs genotyped and printed to " + outFile, TOOL_NAME);
         }
+    }
 
-        String outputFasta = (String) optSet.getOpt("out-fasta").getValueOrDefault();
+    private void outputFasta(String outputFasta) {
         if (outputFasta != null) {
-
             try {
                 BufferedWriter out;
                 if (outputFasta.endsWith(".gz")) {
@@ -520,12 +591,12 @@ public class SnpMers {
                     if (snpFilter.isValid()) {
                         StringBuilder sb = new StringBuilder(">");
                         sb.append(snpFilter.getClusterId()).append("_").append(snpFilter.getSequence1().getId());
-                        sb.append(":").append(snpFilter.getSnpPosition0UnpaddedSeq1()+1);
+                        sb.append(":").append(snpFilter.getSnpPosition0UnpaddedSeq1() + 1);
                         sb.append(System.lineSeparator()).append(snpFilter.getSequence1().getUnpaddedSequenceString());
                         sb.append(System.lineSeparator()).append(">");
                         sb.append(snpFilter.getClusterId()).append("_").append(snpFilter.getSequence2().getId());
-                        sb.append(":").append(snpFilter.getSnpPosition0UnpaddedSeq2()+1);
-                        sb.append(System.lineSeparator()).append(snpFilter.getSequence2().getUnpaddedSequenceString());                        
+                        sb.append(":").append(snpFilter.getSnpPosition0UnpaddedSeq2() + 1);
+                        sb.append(System.lineSeparator()).append(snpFilter.getSequence2().getUnpaddedSequenceString());
                         out.write(sb.toString());
                         out.newLine();
                     }
@@ -536,9 +607,8 @@ public class SnpMers {
             } catch (IOException e) {
                 Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
             }
-            Reporter.report("[INFO]", "FASTA output sent to "+outputFasta, TOOL_NAME);
+            Reporter.report("[INFO]", "FASTA output sent to " + outputFasta, TOOL_NAME);
         }
-        Reporter.report("[INFO]", "Done! "+validSnps+" out of "+snpFilters.size()+" input SNPs genotyped", TOOL_NAME);
     }
 
     private String intFormat(int value) {
