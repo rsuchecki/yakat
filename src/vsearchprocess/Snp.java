@@ -87,6 +87,8 @@ public class Snp {
         sb.append(DELIMITER);
         if(suffix != null) {
             sb.append(suffix);
+        } else {
+            sb.append("N/A");            
         }
         return sb;
     }
