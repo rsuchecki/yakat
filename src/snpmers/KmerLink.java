@@ -55,6 +55,11 @@ public class KmerLink implements Comparable<KmerLink>{
         }        
     }
 
+    public boolean isParentOne() {
+        return parentOne;
+    }
+
+    
     public boolean isReverseComplement() {
         return reverseComplement;
     }

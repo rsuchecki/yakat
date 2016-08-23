@@ -101,15 +101,15 @@ public class SnpMers {
             ArrayList<String> filteringKmersFileNames = (ArrayList<String>) optSet.getOpt("F").getValues();
             int minTotal = (int) optSet.getOpt("filter-min-k-mer-frequency-sum").getValueOrDefault();
             int minMinor = (int) optSet.getOpt("filter-min-k-mer-frequency-minor").getValueOrDefault();
-            int minKmers = (int) optSet.getOpt("filter-min-overlapping-k-mers").getValueOrDefault();
-            ArrayList<String> filteringNames = threadKmersThroughMap(optSet, filteringKmersFileNames, minTotal, minMinor, minKmers);
+            double minCoverage = (double) optSet.getOpt("filter-min-snp-coverage").getValueOrDefault();
+            ArrayList<String> filteringNames = threadKmersThroughMap(optSet, filteringKmersFileNames, minTotal, minMinor, minCoverage);
             removeFalsePositives(filteringNames);
         }
         int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
         int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
-        int minKmers = (int) optSet.getOpt("min-overlapping-k-mers").getValueOrDefault();
+        double minCoverage = (double) optSet.getOpt("min-snp-coverage").getValueOrDefault();
         ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
-        ArrayList<String> sampleNames = threadKmersThroughMap(optSet, kmersFileNames, minTotal, minMinor, minKmers);
+        ArrayList<String> sampleNames = threadKmersThroughMap(optSet, kmersFileNames, minTotal, minMinor, minCoverage);
         outputFasta((String) optSet.getOpt("out-fasta").getValueOrDefault());
         reportResults(sampleNames, (String) optSet.getOpt("out-calls").getValueOrDefault(), OutFmt.SLASH);
         reportResults(sampleNames, (String) optSet.getOpt("out-calls-AB").getValueOrDefault(), OutFmt.AB);
@@ -145,12 +145,15 @@ public class SnpMers {
         optSet.setListingGroupLabel("[Filtering-out false-positive input SNPs]");
         optSet.addOpt(new Opt(null, "filter-min-k-mer-frequency-sum", "Minimum frequency of filtering k-mers which overlap with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "filter-min-k-mer-frequency-minor", "Minimum frequency of filtering k-mers which support the minor allele", 1).setMinValue(1).setDefaultValue(1));
-        optSet.addOpt(new Opt(null, "filter-min-overlapping-k-mers", "At least <arg> filtering k-mers must overlap a locus (for each allele)", 1).setMinValue(1).setDefaultValue(1));
+//        optSet.addOpt(new Opt(null, "filter-min-overlapping-k-mers", "At least <arg> filtering k-mers must overlap a locus (for each allele)", 1).setMinValue(1).setDefaultValue(1));
+        optSet.addOpt(new Opt(null, "filter-min-snp-coverage", "At least <arg> fraction of unique snp-covering k-mers must be present in a filtering dataset (for each allele)", 1).setMinValue(0.01).setDefaultValue(0.75));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Variant calling and reporting]");
         optSet.addOpt(new Opt(null, "min-k-mer-frequency-sum", "Minimum frequency of k-mers which overlap with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(5));
         optSet.addOpt(new Opt(null, "min-k-mer-frequency-minor", "Minimum frequency of k-mers which support the minor allele", 1).setMinValue(1).setDefaultValue(2));
-        optSet.addOpt(new Opt(null, "min-overlapping-k-mers", "At least <arg> k-mers must overlap a locus (for each allele)", 1).setMinValue(1).setDefaultValue(1));
+//        optSet.addOpt(new Opt(null, "min-overlapping-k-mers", "At least <arg> k-mers must overlap a locus (for each allele)", 1).setMinValue(1).setDefaultValue(1));
+        optSet.addOpt(new Opt(null, "min-snp-coverage", "At least <arg> fraction of unique snp-covering k-mers must be present in a genotyped dataset (for each allele)", 1).setMinValue(0.01).setDefaultValue(0.9));
+//        optSet.addOpt(new Opt(null, "min-snp-coverage", "fraction per allele: (k-mers present in genotyped sample) / total unique k-mers that can overlap a SNP", 1).setMinValue(0.01).setDefaultValue(0.9));
 
 ////        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
 //        optSet.addOpt(new Opt(null, "min-inter-identity", "Minimum inter sample identity ", 1).setMinValue(0.0).setDefaultValue(0.95));
@@ -254,6 +257,9 @@ public class SnpMers {
                 it.remove();
 //            } else {
 //                kmerLink.getSnpFilter();                
+            } else {
+                //keep a tally of unique k-mers overlapping each SNP so that in genotyping this can be an upper bound required for a call 
+                kmerLink.getSnpFilter().incrementUniqMerCount(kmerLink.isParentOne());
             }
         }
         //INVESTIGATING CASES WHERE NON-UNIQUE k-mers HAVE BEEN OBSERVED 
@@ -391,7 +397,7 @@ public class SnpMers {
     }
 
     private ArrayList<String> threadKmersThroughMap(OptSet optSet, ArrayList<String> kmersFileNames,
-        int minTotal, int minMinor, int minKmers) {
+        int minTotal, int minMinor, double minCoverage) {
         ArrayList<String> samples = new ArrayList<>();
         int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
         int IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
@@ -429,7 +435,7 @@ public class SnpMers {
 //        AtomicInteger splitterThreads = new AtomicInteger(SPLITTER_THREADS);
         ArrayList<Message> finalMessages = new ArrayList<>(threads * 5);
 //        for (int i = 0; i < threads; i++) {
-        futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, snpFilters, minTotal, minMinor, minKmers)));
+        futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, snpFilters, minTotal, minMinor, minCoverage)));
 //        }
         execService.shutdown();
         ioExecutorService.shutdown();

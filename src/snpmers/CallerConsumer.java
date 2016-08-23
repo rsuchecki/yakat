@@ -59,13 +59,13 @@ public class CallerConsumer implements Runnable {
     private final ArrayList<String> samples;
     private final int minTotal;
     private final int minMinor;
-    private final int minKmers;
+    private final double minCoverage;
     
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
         HashMap<CharSequence, KmerLink> map, ArrayList<SnpFilter> snpFilters,
-        int minTotal, int minMinor, int minKmers) {
+        int minTotal, int minMinor, double minKmers) {
         this.inputQueue = inputQueue;
         this.samples = samples;
         this.map = map;
@@ -78,7 +78,7 @@ public class CallerConsumer implements Runnable {
 //        sampleToQueueMap = keyMap.getSampleToQueueMap();
         this.minTotal = minTotal;
         this.minMinor  = minMinor;
-        this.minKmers = minKmers;
+        this.minCoverage = minKmers;
     }
 
     @Override
@@ -86,27 +86,27 @@ public class CallerConsumer implements Runnable {
 
 //        ArrayList<String> samples = new ArrayList<>();
         try {
-            LabelledInputBuffer list = null;
+            LabelledInputBuffer laeblledBuffer = null;
             String previous = null;
-            while (!(list = inputQueue.take()).getData().isEmpty()) {
-                if (!samples.contains(list.getLabel())) {  //FIRST OR NEW SAMPLE
+            while (!(laeblledBuffer = inputQueue.take()).getData().isEmpty()) {
+                if (!samples.contains(laeblledBuffer.getLabel())) {  //FIRST OR NEW SAMPLE
                     if (!samples.isEmpty()) { //NEW SAMPLE
                         Reporter.report("[INFO]", "Calling bases for "+previous+" and reseting mer-counters", TOOL_NAME);
                         for (SnpFilter snpFilter : snpFilters) {
-                            snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minKmers, TOOL_NAME);
+                            snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minCoverage, TOOL_NAME);
                         }
                     }
 //                    Reporter.report("[INFO]", "Current sample: " + list.getLabel(), TOOL_NAME);
-                    previous = list.getLabel();
-                    samples.add(list.getLabel());
+                    previous = laeblledBuffer.getLabel();
+                    samples.add(laeblledBuffer.getLabel());
                 }
-                ArrayList<String[]> data = list.getData();
+                ArrayList<String[]> data = laeblledBuffer.getData();
                 for (String[] toks : data) {
                     KmerLink kmerLink = map.get(toks[0]);
-                    if (kmerLink != null) {
+                    if (kmerLink != null) {                        
                         boolean setMer = kmerLink.setMer(Short.parseShort(toks[1]));
                         if (!setMer) {
-                            System.err.println("mer not set");
+                            Reporter.report("[ERROR]", "Unable to set k-mer link to SNP, possible reason: duplicate k-mer in an input set, k-mer: "+toks[0], TOOL_NAME);                           
                         }
 //                    SnpFilter snpFilter = kmerLink.getSnpFilter();
 //                    System.err.println(kmerLink.getParentSequence().getId()+"\t"+snpFilter.getSnpPosition0()+"\t"+toks[1]);
@@ -118,29 +118,9 @@ public class CallerConsumer implements Runnable {
             //PROCESS LAST SAMPLE RESULTS
             Reporter.report("[INFO]", "Calling bases for "+previous+" and reseting mer-counters", TOOL_NAME);
             for (SnpFilter snpFilter : snpFilters) {
-                snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minKmers, TOOL_NAME);
+                snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minCoverage, TOOL_NAME);
             }
             Reporter.report("[INFO]", "Finished assigning k-mer frequencies to SNPs", TOOL_NAME);
-//            if (lines > 0) {
-//                String name = Thread.currentThread().getName();
-//                String message = "[" + name + "] " + NumberFormat.getNumberInstance().format(lines)
-//                    + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch);
-//                if (OUTPUT_PSTI_STARTING_ONLY) {
-//                    message += ", non-PstI start detected in " + NumberFormat.getNumberInstance().format(notPstIStart);
-//                }
-//                finalMessages.add(new Message(Message.Level.INFO, message, TOOL_NAME));
-//                if (TRIM_ADAPTERS) {
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed total " + NumberFormat.getNumberInstance().format(trimmedMspIcount + trimmedBothCutSitesInPair + trimmedPstIcount) + " fragments", TOOL_NAME));
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Read-through detection with barcode and adapter trimming: ", TOOL_NAME));
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified MspI+3' Adapter in R1 and PstI+barcode in R2 in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified PstI+barcode in " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " R2 reads", TOOL_NAME));
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified MspI+3' Adapter in " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " R1 reads", TOOL_NAME));
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Length filtering breakdown: ", TOOL_NAME));
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(pairUnderLenSum) + " pairs under combined length " + MIN_LENGTH_PAIR_SUM, TOOL_NAME));
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(pairedReadUnderLen) + " paired reads under length " + MIN_LENGTH_PAIR_EACH, TOOL_NAME));
-//                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(singleUnderLength) + " single reads under length " + MIN_LENGTH_READ, TOOL_NAME));
-//                }
-//            }
 
         } catch (InterruptedException e) {
             e.printStackTrace();

@@ -16,6 +16,7 @@
 package snpmers;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import shared.Reporter;
@@ -34,8 +35,11 @@ public class SnpFilter {
     private short[] mers1; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
     private short[] mers2; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
     private HashMap<String, BaseCall> snpCalls;
-    private HashMap<String, String> callDetails;
-    private boolean valid = true; 
+//    private HashMap<String, String> callDetails;
+    private boolean valid = true;
+
+    private int uniqeMersParent1;
+    private int uniqeMersParent2;
 
     /**
      *
@@ -64,7 +68,7 @@ public class SnpFilter {
     public boolean isIndel() {
         return getBase1() == '-' || getBase2() == '-';
     }
-    
+
     public Sequence getParentSequence(int i) {
         if (i == 1) {
             return sequence1;
@@ -84,30 +88,35 @@ public class SnpFilter {
 
     /**
      * Zero-indexed
-     * @return 
+     *
+     * @return
      */
     public int getSnpPosition0() {
         return snpPosition;
     }
+
     /**
      * Zero-indexed
-     * @return 
+     *
+     * @return
      */
     public int getSnpPosition0UnpaddedSeq1() {
         String prefix = getSequence1().getSequenceString().substring(0, getSnpPosition0());
         String unpaddedPrefix = prefix.replaceAll("-", "");
         int diff = prefix.length() - unpaddedPrefix.length();
-        return snpPosition-diff;
+        return snpPosition - diff;
     }
+
     /**
      * Zero-indexed
-     * @return 
+     *
+     * @return
      */
     public int getSnpPosition0UnpaddedSeq2() {
         String prefix = getSequence2().getSequenceString().substring(0, getSnpPosition0());
         String unpaddedPrefix = prefix.replaceAll("-", "");
         int diff = prefix.length() - unpaddedPrefix.length();
-        return snpPosition-diff;
+        return snpPosition - diff;
     }
 
     public boolean setMer1(int position, short value) {
@@ -163,47 +172,73 @@ public class SnpFilter {
         }
     }
 
-
     public BaseCall getBaseCall(String id) {
         return snpCalls.get(id);
     }
 
-    public String getSnpCallDetails(String id) {
-        return callDetails.get(id);
-    }
-
-    public void callBaseAndResetMers(String sampleName, int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
+//    public String getSnpCallDetails(String id) {
+//        return callDetails.get(id);
+//    }
+    public void callBaseAndResetMers(String sampleName, int minTotal, int minMinor, double minCoverage, String TOOL_NAME) {
         if (snpCalls == null) {
             snpCalls = new HashMap<>();
-            callDetails = new HashMap<>();
+//            callDetails = new HashMap<>();
         }
-        BaseCall call = call(minTotal, minMinor, minKmers, TOOL_NAME);
+
+        BaseCall call = call(minTotal, minMinor, minCoverage, TOOL_NAME);
         BaseCall put = snpCalls.put(sampleName, call);
 
         //DEBUGGING ONLY
         ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
         ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
-        double median1 = getMedian(nonZeroKmerFreqs1);
-        double median2 = getMedian(nonZeroKmerFreqs2);
-        if (median1 > 0 || median2 > 0) {
-            StringBuilder callDetail = new StringBuilder("[");
-            if (median1 > 0) {
-                callDetail.append(getSequence1().getSequenceString().charAt(getSnpPosition0())).append(":").append((int) Math.ceil(median1));
-                callDetail.append("*").append(nonZeroKmerFreqs1.size());
-            }
-            if (median2 > 0) {
-                if (median1 > 0) {
-                    callDetail.append("/");
-                }
-                callDetail.append(getSequence2().getSequenceString().charAt(getSnpPosition0())).append(":").append((int) Math.ceil(median2));
-                callDetail.append("*").append(nonZeroKmerFreqs2.size());
-            }
-            callDetail.append("]");
-            callDetails.put(sampleName, callDetail.toString());
-        } else {
-            callDetails.put(sampleName, "");
+
+        if (clusterId.equals("Cluster_548")) {
+            int size1 = nonZeroKmerFreqs1.size();
+            int size2 = nonZeroKmerFreqs2.size();
+//        if (uniqeMersParent1 != size1 && uniqeMersParent2 != size2 && (size1 > 0 || size2 >0)) {
+            System.err.print("Calling "+sampleName+" "+clusterId);
+            System.err.printf(" %.2f\t%.2f", (double) size1 / uniqeMersParent1, (double) size2 / uniqeMersParent2);
+            System.err.println(", uniqmers counts max, obs: " + uniqeMersParent1 + " / " + uniqeMersParent2 + ", " + size1 + " / " + size2);
+//                        
+////            System.err.println(sequence1.getSequenceString());
+////            System.err.println(Arrays.toString(mers1));            
+//////            for(int i=0; i<mers1.length; i++) {
+//////                if(mers1[i] > 0) {
+//////                    System.err.println("["+i+"] "+sequence1.getSequenceString().substring(i, i+45));
+//////                }
+//////            }            
+////            System.err.println(sequence2.getSequenceString());
+////            System.err.println(Arrays.toString(mers2));
+//////            for(int i=0; i<mers2.length; i++) {
+//////                if(mers2[i] > 0) {
+//////                    System.err.println("["+i+"] "+sequence2.getSequenceString().substring(i, i+45));
+//////                }
+//////            }      
+//            int x=0;
+////        }   
+//        }
         }
 
+//        double median1 = getMedian(nonZeroKmerFreqs1);
+//        double median2 = getMedian(nonZeroKmerFreqs2);
+//        if (median1 > 0 || median2 > 0) {
+//            StringBuilder callDetail = new StringBuilder("[");
+//            if (median1 > 0) {
+//                callDetail.append(getSequence1().getSequenceString().charAt(getSnpPosition0())).append(":").append((int) Math.ceil(median1));
+//                callDetail.append("*").append(nonZeroKmerFreqs1.size());
+//            }
+//            if (median2 > 0) {
+//                if (median1 > 0) {
+//                    callDetail.append("/");
+//                }
+//                callDetail.append(getSequence2().getSequenceString().charAt(getSnpPosition0())).append(":").append((int) Math.ceil(median2));
+//                callDetail.append("*").append(nonZeroKmerFreqs2.size());
+//            }
+//            callDetail.append("]");
+//            callDetails.put(sampleName, callDetail.toString());
+//        } else {
+//            callDetails.put(sampleName, "");
+//        }
         //DEBUGGING ONLY
         if (put != null) {
             Reporter.report("[WARNING]", "Call " + put + " previously made for " + sampleName + ", current call: " + call, this.getClass().getSimpleName());
@@ -215,7 +250,8 @@ public class SnpFilter {
         mers2 = new short[mers2.length];
     }
 
-    private BaseCall call(int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
+//    private BaseCall call(int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
+    private BaseCall call(int minTotal, int minMinor, double minCoverage, String TOOL_NAME) {
         ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
         ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
         double median1 = getMedian(nonZeroKmerFreqs1);
@@ -223,14 +259,19 @@ public class SnpFilter {
 //        if(median1 == 6 && median2 == 2) {
 //            int x = 0;
 //        }
-        if (median1 + median2 < minTotal || (nonZeroKmerFreqs1.size() < minKmers && nonZeroKmerFreqs2.size() < minKmers)) {
+//        if (clusterId.equals("Cluster_2431")) {
+//            System.err.println("Calling ");
+//        }
+
+//        if (median1 + median2 < minTotal || (nonZeroKmerFreqs1.size() < minCoverage && nonZeroKmerFreqs2.size() < minCoverage)) {
+        if (median1 + median2 < minTotal || (nonZeroKmerFreqs1.size() / getUniqeMersParent1() < minCoverage && nonZeroKmerFreqs2.size() / getUniqeMersParent2() < minCoverage)) {
             return new BaseCall(null, null);
-        } else if (median1 == 0 && nonZeroKmerFreqs2.size() >= minKmers) { //homozygous
-            return new BaseCall(getSequence2().getSequenceString().charAt(getSnpPosition0()),null);
-        } else if (median2 == 0 && nonZeroKmerFreqs1.size() >= minKmers) { //homozygous
-            return new BaseCall(getSequence1().getSequenceString().charAt(getSnpPosition0()),null);
+        } else if (median1 == 0 && nonZeroKmerFreqs2.size() / getUniqeMersParent2() >= minCoverage) { //homozygous
+            return new BaseCall(getSequence2().getSequenceString().charAt(getSnpPosition0()), null);
+        } else if (median2 == 0 && nonZeroKmerFreqs1.size() / getUniqeMersParent1() >= minCoverage) { //homozygous
+            return new BaseCall(getSequence1().getSequenceString().charAt(getSnpPosition0()), null);
         } else {
-            if (median1 >= minMinor && median2 >= minMinor && nonZeroKmerFreqs1.size() >= minKmers && nonZeroKmerFreqs2.size() >= minKmers) {
+            if (median1 >= minMinor && median2 >= minMinor && nonZeroKmerFreqs1.size() / getUniqeMersParent1() >= minCoverage && nonZeroKmerFreqs2.size() / getUniqeMersParent2() >= minCoverage) {
 //                char base1 = getBase1();
 //                char base2 = getBase2();
 //                if (base1 == '-' || base2 == '-') {
@@ -238,9 +279,9 @@ public class SnpFilter {
 ////                        + getSequence1().getId() + ":" + base1 + ", " + getSequence2().getId() + ":" + base2, TOOL_NAME);
 ////                    return base1+""+base2;//'N';
 //                }
-                if(getBase1() == getBase2()){
-                    System.err.println(getBase1()+"/"+getBase2());
-                    int x = 0;
+                if (getBase1() == getBase2()) {
+                    System.err.println(getBase1() + "/" + getBase2());
+//                    int x = 0;
                 }
                 return new BaseCall(getBase1(), getBase2());
 //                return getBase1()+"/"+getBase2();//'N';
@@ -258,9 +299,6 @@ public class SnpFilter {
         return getSequence2().getSequenceString().charAt(getSnpPosition0());
     }
 
-    
- 
-
     public boolean isValid() {
         return valid;
     }
@@ -268,6 +306,21 @@ public class SnpFilter {
     public void setInvalid() {
         valid = false;
     }
-    
-    
+
+    public void incrementUniqMerCount(boolean parentOne) {
+        if (parentOne) {
+            uniqeMersParent1++;
+        } else {
+            uniqeMersParent2++;
+        }
+    }
+
+    public int getUniqeMersParent1() {
+        return uniqeMersParent1;
+    }
+
+    public int getUniqeMersParent2() {
+        return uniqeMersParent2;
+    }
+
 }
