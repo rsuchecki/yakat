@@ -60,12 +60,13 @@ public class CallerConsumer implements Runnable {
     private final int minTotal;
     private final int minMinor;
     private final double minCoverage;
-    
+    private final double maxError;
+
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
         HashMap<CharSequence, KmerLink> map, ArrayList<SnpFilter> snpFilters,
-        int minTotal, int minMinor, double minKmers) {
+        int minTotal, int minMinor, double minKmers, double maxError) {
         this.inputQueue = inputQueue;
         this.samples = samples;
         this.map = map;
@@ -77,8 +78,9 @@ public class CallerConsumer implements Runnable {
 //        sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
 //        sampleToQueueMap = keyMap.getSampleToQueueMap();
         this.minTotal = minTotal;
-        this.minMinor  = minMinor;
+        this.minMinor = minMinor;
         this.minCoverage = minKmers;
+        this.maxError = maxError;
     }
 
     @Override
@@ -91,9 +93,10 @@ public class CallerConsumer implements Runnable {
             while (!(laeblledBuffer = inputQueue.take()).getData().isEmpty()) {
                 if (!samples.contains(laeblledBuffer.getLabel())) {  //FIRST OR NEW SAMPLE
                     if (!samples.isEmpty()) { //NEW SAMPLE
-                        Reporter.report("[INFO]", "Calling bases for "+previous+" and reseting mer-counters", TOOL_NAME);
+                        Reporter.report("[INFO]", "Calling bases for " + previous + " and reseting mer-counters", TOOL_NAME);
                         for (SnpFilter snpFilter : snpFilters) {
-                            snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minCoverage, TOOL_NAME);
+                            snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), 
+                                minTotal, minMinor, minCoverage, maxError, TOOL_NAME);
                         }
                     }
 //                    Reporter.report("[INFO]", "Current sample: " + list.getLabel(), TOOL_NAME);
@@ -103,10 +106,10 @@ public class CallerConsumer implements Runnable {
                 ArrayList<String[]> data = laeblledBuffer.getData();
                 for (String[] toks : data) {
                     KmerLink kmerLink = map.get(toks[0]);
-                    if (kmerLink != null) {                        
+                    if (kmerLink != null) {
                         boolean setMer = kmerLink.setMer(Short.parseShort(toks[1]));
                         if (!setMer) {
-                            Reporter.report("[ERROR]", "Unable to set k-mer link to SNP, possible reason: duplicate k-mer in an input set, k-mer: "+toks[0], TOOL_NAME);                           
+                            Reporter.report("[ERROR]", "Unable to set k-mer link to SNP, possible reason: duplicate k-mer in an input set, k-mer: " + toks[0], TOOL_NAME);
                         }
 //                    SnpFilter snpFilter = kmerLink.getSnpFilter();
 //                    System.err.println(kmerLink.getParentSequence().getId()+"\t"+snpFilter.getSnpPosition0()+"\t"+toks[1]);
@@ -116,9 +119,9 @@ public class CallerConsumer implements Runnable {
             }
 //            inputQueue.put(new LabelledInputBuffer(null, new ArrayList())); //inform other threads
             //PROCESS LAST SAMPLE RESULTS
-            Reporter.report("[INFO]", "Calling bases for "+previous+" and reseting mer-counters", TOOL_NAME);
+            Reporter.report("[INFO]", "Calling bases for " + previous + " and reseting mer-counters", TOOL_NAME);
             for (SnpFilter snpFilter : snpFilters) {
-                snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minCoverage, TOOL_NAME);
+                snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minCoverage, maxError, TOOL_NAME);
             }
             Reporter.report("[INFO]", "Finished assigning k-mer frequencies to SNPs", TOOL_NAME);
 

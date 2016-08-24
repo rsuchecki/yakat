@@ -30,7 +30,7 @@ public class SnpFilter {
 
     private final Sequence sequence1;
     private final Sequence sequence2;
-    private final int snpPosition;
+    private final int snpPosition0;
     private final String clusterId;
     private short[] mers1; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
     private short[] mers2; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
@@ -43,22 +43,28 @@ public class SnpFilter {
 
     /**
      *
+     * @param clusterId
      * @param sequence1
      * @param sequence2
-     * @param snpPosition zero-indexed!
+     * @param snpPosition0 zero-indexed!
+     * @param TOOL_NAME
      */
-    public SnpFilter(String clusterId, Sequence sequence1, Sequence sequence2, int snpPosition) {
+    public SnpFilter(String clusterId, Sequence sequence1, Sequence sequence2, int snpPosition0, String TOOL_NAME) {
         this.clusterId = clusterId;
         this.sequence1 = sequence1;
         this.sequence2 = sequence2;
-        this.snpPosition = snpPosition;
-        mers1 = new short[snpPosition + 1]; //
-        mers2 = new short[snpPosition + 1];
+        this.snpPosition0 = snpPosition0;
+        if(getBase1() == getBase2()) {
+            Reporter.report("[ERROR]", "Input sequences in "+clusterId+" homozygous at reported SNP position: "+snpPosition0, TOOL_NAME);
+            System.exit(1);
+        }
+        mers1 = new short[snpPosition0 + 1]; //
+        mers2 = new short[snpPosition0 + 1];
     }
 
     public void clearMers(String sample) {
-        mers1 = new short[snpPosition + 1]; //
-        mers2 = new short[snpPosition + 1];
+        mers1 = new short[snpPosition0 + 1]; //
+        mers2 = new short[snpPosition0 + 1];
     }
 
     public String getClusterId() {
@@ -92,7 +98,7 @@ public class SnpFilter {
      * @return
      */
     public int getSnpPosition0() {
-        return snpPosition;
+        return snpPosition0;
     }
 
     /**
@@ -104,7 +110,7 @@ public class SnpFilter {
         String prefix = getSequence1().getSequenceString().substring(0, getSnpPosition0());
         String unpaddedPrefix = prefix.replaceAll("-", "");
         int diff = prefix.length() - unpaddedPrefix.length();
-        return snpPosition - diff;
+        return snpPosition0 - diff;
     }
 
     /**
@@ -116,7 +122,7 @@ public class SnpFilter {
         String prefix = getSequence2().getSequenceString().substring(0, getSnpPosition0());
         String unpaddedPrefix = prefix.replaceAll("-", "");
         int diff = prefix.length() - unpaddedPrefix.length();
-        return snpPosition - diff;
+        return snpPosition0 - diff;
     }
 
     public boolean setMer1(int position, short value) {
@@ -179,27 +185,28 @@ public class SnpFilter {
 //    public String getSnpCallDetails(String id) {
 //        return callDetails.get(id);
 //    }
-    public void callBaseAndResetMers(String sampleName, int minTotal, int minMinor, double minCoverage, String TOOL_NAME) {
+    public void callBaseAndResetMers(String sampleName, int minTotal, int minMinor, double minCoverage, double maxError, String TOOL_NAME) {
         if (snpCalls == null) {
             snpCalls = new HashMap<>();
 //            callDetails = new HashMap<>();
         }
 
-        BaseCall call = call(minTotal, minMinor, minCoverage, TOOL_NAME);
+        BaseCall call = call(minTotal, minMinor, minCoverage, maxError);
         BaseCall put = snpCalls.put(sampleName, call);
 
-        //DEBUGGING ONLY
-        ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
-        ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
-
-        if (clusterId.equals("Cluster_548")) {
-            int size1 = nonZeroKmerFreqs1.size();
-            int size2 = nonZeroKmerFreqs2.size();
-//        if (uniqeMersParent1 != size1 && uniqeMersParent2 != size2 && (size1 > 0 || size2 >0)) {
-            System.err.print("Calling "+sampleName+" "+clusterId);
-            System.err.printf(" %.2f\t%.2f", (double) size1 / uniqeMersParent1, (double) size2 / uniqeMersParent2);
-            System.err.println(", uniqmers counts max, obs: " + uniqeMersParent1 + " / " + uniqeMersParent2 + ", " + size1 + " / " + size2);
-//                        
+//        //DEBUGGING ONLY
+//        ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
+//        ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
+//
+////        if (clusterId.equals("Cluster_548")) {
+//        int size1 = nonZeroKmerFreqs1.size();
+//        int size2 = nonZeroKmerFreqs2.size();
+////        if (uniqeMersParent1 != size1 && uniqeMersParent2 != size2 && (size1 > 0 || size2 >0)) {
+////            System.err.print("Calling "+sampleName+" "+clusterId);
+////            System.err.printf(" %.2f\t%.2f", (double) size1 / uniqeMersParent1, (double) size2 / uniqeMersParent2);
+////            System.err.println(", uniqmers counts max, obs: " + uniqeMersParent1 + " / " + uniqeMersParent2 + ", " + size1 + " / " + size2);
+//        System.out.println(uniqeMersParent1 + "\t" + uniqeMersParent2);
+////                        
 ////            System.err.println(sequence1.getSequenceString());
 ////            System.err.println(Arrays.toString(mers1));            
 //////            for(int i=0; i<mers1.length; i++) {
@@ -217,7 +224,7 @@ public class SnpFilter {
 //            int x=0;
 ////        }   
 //        }
-        }
+//        }
 
 //        double median1 = getMedian(nonZeroKmerFreqs1);
 //        double median2 = getMedian(nonZeroKmerFreqs2);
@@ -251,44 +258,41 @@ public class SnpFilter {
     }
 
 //    private BaseCall call(int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
-    private BaseCall call(int minTotal, int minMinor, double minCoverage, String TOOL_NAME) {
+    private BaseCall call(int minTotal, int minMinor, double minCoverageRatio, double maxError) {        
         ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
         ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
         double median1 = getMedian(nonZeroKmerFreqs1);
         double median2 = getMedian(nonZeroKmerFreqs2);
-//        if(median1 == 6 && median2 == 2) {
-//            int x = 0;
-//        }
-//        if (clusterId.equals("Cluster_2431")) {
-//            System.err.println("Calling ");
-//        }
-
-//        if (median1 + median2 < minTotal || (nonZeroKmerFreqs1.size() < minCoverage && nonZeroKmerFreqs2.size() < minCoverage)) {
-        if (median1 + median2 < minTotal || (nonZeroKmerFreqs1.size() / getUniqeMersParent1() < minCoverage && nonZeroKmerFreqs2.size() / getUniqeMersParent2() < minCoverage)) {
-            return new BaseCall(null, null);
-        } else if (median1 == 0 && nonZeroKmerFreqs2.size() / getUniqeMersParent2() >= minCoverage) { //homozygous
-            return new BaseCall(getSequence2().getSequenceString().charAt(getSnpPosition0()), null);
-        } else if (median2 == 0 && nonZeroKmerFreqs1.size() / getUniqeMersParent1() >= minCoverage) { //homozygous
-            return new BaseCall(getSequence1().getSequenceString().charAt(getSnpPosition0()), null);
-        } else {
-            if (median1 >= minMinor && median2 >= minMinor && nonZeroKmerFreqs1.size() / getUniqeMersParent1() >= minCoverage && nonZeroKmerFreqs2.size() / getUniqeMersParent2() >= minCoverage) {
-//                char base1 = getBase1();
-//                char base2 = getBase2();
-//                if (base1 == '-' || base2 == '-') {
-////                    Reporter.report("[WARNING]", "Unable to call IUPAC code for: " 
-////                        + getSequence1().getId() + ":" + base1 + ", " + getSequence2().getId() + ":" + base2, TOOL_NAME);
-////                    return base1+""+base2;//'N';
-//                }
-                if (getBase1() == getBase2()) {
-                    System.err.println(getBase1() + "/" + getBase2());
-//                    int x = 0;
-                }
-                return new BaseCall(getBase1(), getBase2());
-//                return getBase1()+"/"+getBase2();//'N';
-//                return getIupacCode(base1, base2);
-            }
+        double coverageRatio1 = nonZeroKmerFreqs1.size() / getUniqeMersParent1();
+        double coverageRatio2 = nonZeroKmerFreqs2.size() / getUniqeMersParent2();
+        //QUICKLY DISCARD IF LOW FREQUENCY/LOW COVERAGE 
+        if (median1 + median2 < minTotal || (coverageRatio1 < minCoverageRatio && coverageRatio2 < minCoverageRatio)) {
             return new BaseCall(null, null);
         }
+        Character base1 = getBase1();
+        Character base2 = getBase2();
+        //ALLOW FOR CERTAIN AMOUNT OF ERROR 
+        //e.g. a few k-mers from elswhere in the genome could be ignored rather than leading to an ambigous call.
+        if (coverageRatio1 <= maxError) {
+            coverageRatio1 = 0;
+            base1 = null;
+        }
+        if (coverageRatio2 <= maxError) {
+            coverageRatio2 = 0;
+            base2 = null;
+        }
+        //CLEAR-CUT HOMOZYGOUS CASES
+        if (median1 == 0 && coverageRatio2 >= minCoverageRatio) { //homozygous
+            return new BaseCall(base2, null);
+        } else if (median2 == 0 && coverageRatio1 >= minCoverageRatio) { //homozygous
+            return new BaseCall(base1, null);
+        }
+        
+        if (median1 >= minMinor && median2 >= minMinor && coverageRatio1 >= minCoverageRatio && coverageRatio2 >= minCoverageRatio) {
+            return new BaseCall(getBase1(), getBase2());
+        }
+        return new BaseCall(null, null);
+
     }
 
     public char getBase1() {
@@ -322,5 +326,6 @@ public class SnpFilter {
     public int getUniqeMersParent2() {
         return uniqeMersParent2;
     }
+    
 
 }
