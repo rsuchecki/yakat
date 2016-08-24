@@ -2,3 +2,4 @@ testfiles
 dist
 build
 out_split
+/tmp.out.fa
