@@ -507,13 +507,13 @@ public class SnpMers {
         while (iterator.hasNext()) {
             SnpFilter snpFilter = iterator.next();
             int uniqeMersParent1 = snpFilter.getUniqeMersParent1();
-            if (snpFilter.getBase1() == '-') {
-                uniqeMersParent1++;
-            }
+//            if (snpFilter.getBase1() == '-') {
+//                uniqeMersParent1++;
+//            }
             int uniqeMersParent2 = snpFilter.getUniqeMersParent1();
-            if (snpFilter.getBase2() == '-') {
-                uniqeMersParent2++;
-            }
+//            if (snpFilter.getBase2() == '-') {
+//                uniqeMersParent2++;
+//            }
             double uniqCov1 = (double) uniqeMersParent1 / k;
             double uniqCov2 = (double) uniqeMersParent2 / k;
             if (uniqCov1 < minUniq || uniqCov2 < minUniq) {
