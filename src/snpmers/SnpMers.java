@@ -510,8 +510,8 @@ public class SnpMers {
 //            if (snpFilter.getBase1() == '-') {
 //                uniqeMersParent1++;
 //            }
-            int uniqeMersParent2 = snpFilter.getUniqeMersParent1();
-//            if (snpFilter.getBase2() == '-') {
+            int uniqeMersParent2 = snpFilter.getUniqeMersParent2();
+//            if (snpFilter.getBase2() == '-') {6
 //                uniqeMersParent2++;
 //            }
             double uniqCov1 = (double) uniqeMersParent1 / k;
