@@ -82,7 +82,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     /**
-     * Constructor gives access to most fields, all but one of (shortKey, longKey, helpString) may be null
+     * Constructor gives access to most fields, all but one of (shortKey,
+     * longKey, helpString) may be null
      *
      * @param shortKey [REQUIRED]
      * @param longKey [REQUIRED]
@@ -117,7 +118,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     /**
-     * Constructor gives access to 3 required fields as well as the default and min and max accepted values
+     * Constructor gives access to 3 required fields as well as the default and
+     * min and max accepted values
      *
      * @param shortKey [REQUIRED]
      * @param longKey [REQUIRED]
@@ -138,8 +140,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     }
 
     /**
-     * Constructor gives access to 3 required fields as well as the default and min and max accepted values plus the min
-     * max args
+     * Constructor gives access to 3 required fields as well as the default and
+     * min and max accepted values plus the min max args
      *
      * @param shortKey [REQUIRED]
      * @param longKey [REQUIRED]
@@ -226,8 +228,8 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
                 Character valueChar = inputValueString.charAt(0);
                 value = (T) valueChar;
             } else {
-                Reporter.reportNoMem("[FATAL]", "A single char expected, offending value: '" + inputValueString+"'", getClass().getSimpleName());
-                
+                Reporter.reportNoMem("[FATAL]", "A single char expected, offending value: '" + inputValueString + "'", getClass().getSimpleName());
+
             }
         }
         return value;
@@ -442,6 +444,16 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         return null;
     }
 
+    /**
+     * Return parsed value elseifnull default value elseifnull param value 
+     * @param ifNull
+     * @return 
+     */
+    public T getValueOrDefault(T ifNull) {
+        T valueOrDefault = getValueOrDefault();
+        return valueOrDefault == null ? ifNull : valueOrDefault;
+    }
+
     public T getValueOrDefault() {
         if (isUsed()) {
             if (values.size() == 1) {
@@ -465,6 +477,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
 
     /**
      * True if has been set by user
+     *
      * @return boolean
      */
     public boolean getOptFlag() {
