@@ -19,12 +19,16 @@ import argparser.ArgParser;
 import argparser.Opt;
 import argparser.OptSet;
 import argparser.PositionalOpt;
+import java.io.BufferedWriter;
 import shared.Reporter;
 import shared.InputReaderProducer;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.io.PrintStream;
+import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -43,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.zip.GZIPOutputStream;
 import shared.StdRedirect;
 
 /**
@@ -72,6 +77,7 @@ public class KmerExtender {
 
     private final String TOOL_NAME;
     private final int HELP_WIDTH = 170;
+    private int WRITER_BUFFER_SIZE = 8192;
 
     private enum InputType {
 
@@ -95,10 +101,9 @@ public class KmerExtender {
         if (optSet.getOpt("P").isUsed()) {
             optSet.printUserSettings(TOOL_NAME);
         }
-        
+
         INPUT_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
         INPUT_QUEUE = (int) optSet.getOpt("Q").getValueOrDefault();
-        
 
         if (optSet.getOpt("k").isUsed()) {
             setKmerLength((int) optSet.getOpt("k").getValueOrDefault());
@@ -142,7 +147,7 @@ public class KmerExtender {
         if (optSet.getOpt("p").getValueOrDefault() != null) {
             NAME_PREFIX = (String) optSet.getOpt("p").getValueOrDefault();
         }
-        
+
         new StdRedirect(optSet, TOOL_NAME, StdRedirect.RedirectType.REDIRECT_ERR);
 //        String outRedirect;
 //        String errRedirect;
@@ -180,7 +185,7 @@ public class KmerExtender {
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet();
-        
+
         //INPUT
         optSet.setListingGroupLabel("[Input settings - general extender]");
         optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));
@@ -232,7 +237,7 @@ public class KmerExtender {
                 kSizes.add(k);
             }
         }
-        Collections.sort(kSizes, Collections.reverseOrder()); 
+        Collections.sort(kSizes, Collections.reverseOrder());
 
         //READ k-mers AND POPULATE A MAP FOR EACH SIZE OF k
         PairMerMaps pairMerMaps = new PairMerMaps(kSizes, TOOL_NAME);
@@ -254,17 +259,17 @@ public class KmerExtender {
             Reporter.report("[INFO]", "Now populate seedMersMap", TOOL_NAME);
             kToSeedMers = populateSeedMersMaps(kSizes);
         }
-        
+
+        String outFile = (String) optSet.getOpt("out-file").getValueOrDefault();
         Reporter.report("[INFO]", "Now try extending for each k", TOOL_NAME);
         //EXTEND - CAN BE PARALLELIZED IF NO INTENTION TO GENERATE CROSS-k-EXTENSIONS 
         if (seedSequences == null) {
             for (Integer k : kSizes) {
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-                PairMersExtender pairMersExtender = new PairMersExtender((String) optSet.getOpt("stats-file").getValueOrDefault(), 
+                PairMersExtender pairMersExtender = new PairMersExtender((String) optSet.getOpt("stats-file").getValueOrDefault(),
                     (String) optSet.getOpt("debug-file").getValueOrDefault(), TOOL_NAME);
-                String outFile = (String) optSet.getOpt("out-file").getValueOrDefault();
-                Integer minLen = (int) optSet.getOpt("min-length").getValueOrDefault(k+1);
-                pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, 
+                Integer minLen = (int) optSet.getOpt("min-length").getValueOrDefault(k + 1);
+                pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX,
                     outFile, minLen);
                 Reporter.report("[INFO]", "Finished extending for k=" + k, TOOL_NAME);
 
@@ -277,16 +282,23 @@ public class KmerExtender {
 
         //SELECT LONGEST EXTENSION
         if (seedSequences != null) {
-            for (SeedSequence seed : seedSequences.getSeedSequences()) {
+            try {
+                BufferedWriter out;
+                if (outFile.endsWith(".gz")) {
+                    out = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outFile)), "UTF-8"), WRITER_BUFFER_SIZE);
+                } else {
+                    out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile), "UTF-8"), WRITER_BUFFER_SIZE);
+                }
+                for (SeedSequence seed : seedSequences.getSeedSequences()) {
 //            Reporter.report("[INFO]", "Longest extension of the provided seed is from " + seed.getSequenceString().length() + " to " + longestSeedAfterExtension + " at k = " + kBest, TOOL_NAME);
 //                Map.Entry<Integer, String> longest = seed.getLongestExtended();
-                Map.Entry<Integer, SeedExtensionsPair> longestExtensionLeft = seed.getLongestExtensionLeft(TOOL_NAME);
-                Map.Entry<Integer, SeedExtensionsPair> longestExtensionRight = seed.getLongestExtensionRight(TOOL_NAME);
+                    Map.Entry<Integer, SeedExtensionsPair> longestExtensionLeft = seed.getLongestExtensionLeft(TOOL_NAME);
+                    Map.Entry<Integer, SeedExtensionsPair> longestExtensionRight = seed.getLongestExtensionRight(TOOL_NAME);
 //                StringBuilder output = new StringBuilder();
-                StringBuilder outputLR = new StringBuilder();
-                String extensionLeft = longestExtensionLeft.getValue().getExtensionLeft();
-                String extensionRight = longestExtensionRight.getValue().getExtensionRight();
-                if (OUTPUT_FASTA) {
+                    StringBuilder outputLR = new StringBuilder();
+                    String extensionLeft = longestExtensionLeft.getValue().getExtensionLeft();
+                    String extensionRight = longestExtensionRight.getValue().getExtensionRight();
+                    if (OUTPUT_FASTA) {
 //                    if (!NAME_PREFIX.isEmpty()) {
 //                        output.append(">").append(NAME_PREFIX).append(" ");
 //                        output.append(longest.getValue().length()).append(System.lineSeparator());
@@ -301,32 +313,41 @@ public class KmerExtender {
 //                        output.append(System.lineSeparator());
 //                    }
 
-                    if (!NAME_PREFIX.isEmpty()) {
-                        outputLR.append(">").append(NAME_PREFIX);
-                    } else {
-                        outputLR.append(">").append(seed.getId());
-                    }
-                    outputLR.append(" L=").append(extensionLeft.length()).append(" at k=").append(longestExtensionLeft.getKey());
-                    outputLR.append(" R=").append(extensionRight.length()).append(" at k=").append(longestExtensionRight.getKey());
-                    outputLR.append(" extended=");
-                    outputLR.append(extensionLeft.length() + seed.getSequenceString().length() + extensionRight.length());
-                    outputLR.append(System.lineSeparator());
-
-                }
+                        if (!NAME_PREFIX.isEmpty()) {
+                            outputLR.append(">").append(NAME_PREFIX);
+                        } else {
+                            outputLR.append(">").append(seed.getId());
+                        }
+                        outputLR.append(" L=").append(extensionLeft.length()).append(" at k=").append(longestExtensionLeft.getKey());
+                        outputLR.append(" R=").append(extensionRight.length()).append(" at k=").append(longestExtensionRight.getKey());
+                        outputLR.append(" extended=");
+                        outputLR.append(extensionLeft.length() + seed.getSequenceString().length() + extensionRight.length());
+                        outputLR.append(System.lineSeparator());
+                        out.write(outputLR.toString());                        
+                    }   
 //                output.append(longest.getValue());
 //                System.out.println(output);
+                      out.write(extensionLeft);
+                      out.write(seed.getSequenceString());
+                      out.write(extensionRight);
+                      out.newLine();
+//                    outputLR.append(extensionLeft).append(seed.getSequenceString()).append(extensionRight);
+//                    System.out.println(outputLR);
 
-                outputLR.append(extensionLeft).append(seed.getSequenceString()).append(extensionRight);
-                System.out.println(outputLR);
-
+                }
+                out.flush();
+            } catch (UnsupportedEncodingException e) {
+                Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
+            } catch (IOException e) {
+                Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
             }
         }
         Reporter.report("[INFO]", "Finished extending k-mers", TOOL_NAME);
     }
 
     /**
-     * Producer-consumer multi-threading to: - read the input (k-mers, FASTA, etc) - generate PairMer objects - populate
-     * Map(s)
+     * Producer-consumer multi-threading to: - read the input (k-mers, FASTA,
+     * etc) - generate PairMer objects - populate Map(s)
      */
     private void readKmersAndPopulatePairMersMaps(PairMerMaps pairMerMaps) {
         BlockingQueue inputQueue = new ArrayBlockingQueue(INPUT_QUEUE);
@@ -336,7 +357,7 @@ public class KmerExtender {
             int threads = MAX_THREADS;
             Reporter.report("[INFO]", "Allocated " + threads + " thread(s) to map populating", TOOL_NAME);
             ArrayList<Future<?>> futures = new ArrayList<>(threads + 1);
-            final ExecutorService readAndPopulateExecutor = new ThreadPoolExecutor(threads+1, threads+1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+            final ExecutorService readAndPopulateExecutor = new ThreadPoolExecutor(threads + 1, threads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
             //SPAWN INPUT READING THREAD
             ArrayList<Integer> kSizes = pairMerMaps.getkSizes();
@@ -480,7 +501,7 @@ public class KmerExtender {
         //PREPARE EXECUTOR SERVICE        
         int threads = MAX_THREADS;
         ArrayList<Future<?>> futures = new ArrayList<>(threads);
-        final ExecutorService seedMerPopulatorExecutorService = new ThreadPoolExecutor(threads+1, threads+1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        final ExecutorService seedMerPopulatorExecutorService = new ThreadPoolExecutor(threads + 1, threads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         //INIT EMPTY SEED-PAIRMER-MAPS AND WRAP INPUT IN QUEUE
         PairMerMaps trimmedSeedPairMerMaps = new PairMerMaps(kSizes, TOOL_NAME);
@@ -488,7 +509,7 @@ public class KmerExtender {
         ArrayList<String> seedSequenceStrings = seedSequences.getSeedSequenceStrings();
 
         int size = seedSequenceStrings.size();
-        int chunk = Math.max(1, (int)Math.ceil((double)size / threads));
+        int chunk = Math.max(1, (int) Math.ceil((double) size / threads));
 //        System.err.println("Chunk="+chunk);
         try {
             for (int i = 0; i < size - chunk + 1; i += chunk) {
@@ -599,7 +620,7 @@ public class KmerExtender {
 //        }
     }
 
-    private void extendSeedsParallel(ArrayList<Integer> kSizes, PairMerMaps pairMerMaps, 
+    private void extendSeedsParallel(ArrayList<Integer> kSizes, PairMerMaps pairMerMaps,
         ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers, OptSet optSet) {
         //PREPARE EXECUTOR SERVICE        
         int threads = MAX_THREADS;
@@ -617,7 +638,7 @@ public class KmerExtender {
         //INIT THREADS
         for (int i = 0; i < threads; i++) {
 //            PairMersSeedExtenderConsumer = new PairMersSeedExtenderConsumer
-            PairMersSeedExtenderConsumer extenderConsumer = new PairMersSeedExtenderConsumer(queue, kToSeedMers, 
+            PairMersSeedExtenderConsumer extenderConsumer = new PairMersSeedExtenderConsumer(queue, kToSeedMers,
                 (String) optSet.getOpt("debug-file").getValueOrDefault(), TOOL_NAME);
             futures.add(seedExtenderExecutorService.submit(extenderConsumer));
         }
