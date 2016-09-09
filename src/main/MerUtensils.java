@@ -17,6 +17,7 @@ package main;
 
 import argparser.ParserTest;
 import gbssplit.SplitGBS;
+import kexpression.KeXpression;
 import kmerextender.KmerExtender;
 import kmermatch.TODO.KmerMatch;
 import kmerger.KmerSetMerge;
@@ -64,6 +65,8 @@ public class MerUtensils {
         } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {
 //            new (args, name, "vclustersvars");
             new MsaParserListVariants(args, name, "vclust");
+        } else if (args.length != 0 && args[0].matches("(k)?express(ion)?")) {
+            new KeXpression(args, name, "kexpress");
         } else if (args.length != 0 && args[0].matches("(v|ver)(sion)?")) {
             Package aPackage = this.getClass().getPackage();
             String version = aPackage.getImplementationVersion();
