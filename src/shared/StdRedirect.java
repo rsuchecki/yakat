@@ -27,13 +27,26 @@ import java.io.PrintStream;
  */
 public class StdRedirect {
 
+    public enum RedirectType {REDIRECT_OUT, REDIRECT_ERR, REDIRECT_BOTH};
+    
     public StdRedirect(OptSet optSet, String TOOL_NAME) {
-        stdRedirect(optSet, TOOL_NAME);
+        stdOutRedirect(optSet, TOOL_NAME);
+        stdErrRedirect(optSet, TOOL_NAME);
+    }
+
+    public StdRedirect(OptSet optSet, String TOOL_NAME, RedirectType redirectType) {
+        if(redirectType == RedirectType.REDIRECT_BOTH || redirectType == RedirectType.REDIRECT_OUT) {
+            stdOutRedirect(optSet, TOOL_NAME);
+        }
+        if(redirectType == RedirectType.REDIRECT_BOTH || redirectType == RedirectType.REDIRECT_ERR) {
+            stdErrRedirect(optSet, TOOL_NAME);
+        }
     }
     
-    private void stdRedirect(OptSet optSet, String TOOL_NAME) {
+    
+    
+    private void stdOutRedirect(OptSet optSet, String TOOL_NAME) {
         String outRedirect;
-        String errRedirect;
         if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
             try {
                 File file = new File(outRedirect);
@@ -44,6 +57,9 @@ public class StdRedirect {
                 Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, TOOL_NAME);
             }
         }
+    }
+    private void stdErrRedirect(OptSet optSet, String TOOL_NAME) {
+        String errRedirect;
         if ((errRedirect = (String) optSet.getOpt("e").getValueOrDefault()) != null) {
             try {
                 File file = new File(errRedirect);
