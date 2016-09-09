@@ -147,15 +147,13 @@ public class SnpMers {
 //        optSet.addOpt(new Opt(null, "min-seqs-clustered", "Minimum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(2));
 //        optSet.addOpt(new Opt(null, "max-seqs-clustered", "Maximum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(1000));
         int footId = 1;
-        optSet.incrementLisitngGroup();
-        optSet.setListingGroupLabel("[Filtering-out input SNPs supported by few unique k-mers]");
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(),"[Filtering-out input SNPs supported by few unique k-mers]");
         optSet.addOpt(new Opt(null, "filter-min-uniqmers-ratio", "Remove parental SNPs if at least one allele is supported by fewer than <arg> ratio of unique"
-            + "k-mers to k", 1).setMinValue(0.01).setDefaultValue(0.5).addFootnote(footId, "There can be up to k unique k-mers overlapping a SNP."));
+            + "k-mers to k", 1).setMinValue(0.01).setDefaultValue(0.25).addFootnote(footId, "There can be up to k unique k-mers overlapping a SNP."));
 
-        optSet.incrementLisitngGroup();
         footId++;
         String footText = "k-mer frequency corresponding to a SNP allele is obtained by taking a median of frequencies of all k-mers overlapping the underlying SNP";
-        optSet.setListingGroupLabel("[Filtering-out potential false-positive input SNPs]");
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(),"[Filtering-out potential false-positive input SNPs]");
         optSet.addOpt(new Opt(null, "filter-min-k-mer-frequency-sum", "Minimum frequency of filtering k-mers "
             + "which overlap with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, footText));
         optSet.addOpt(new Opt(null, "filter-min-k-mer-frequency-minor", "Minimum frequency of filtering k-mers "
@@ -173,8 +171,7 @@ public class SnpMers {
         optSet.addOpt(new Opt(null, "min-snp-coverage", "At least <arg> fraction of unique snp-covering k-mers must be present in a genotyped dataset (for each allele)", 1).setDefaultValue(0.9));
         optSet.addOpt(new Opt(null, "max-coverage-error", "Maximum fraction of unique snp-covering k-mers that will be ignored as errorneous assignment and not considered for genotyping", 1).setMinValue(0.00).setDefaultValue(0.05));
 //
-        optSet.incrementLisitngGroup();
-        optSet.setListingGroupLabel("[Runtime and output settings]");
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(),"[Runtime and output settings]");
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
         optSet.addOpt(new Opt(null, "out-fasta", "Output relevant sequences to this file (in FASTA format)", 1));
@@ -517,7 +514,7 @@ public class SnpMers {
             double uniqCov1 = (double) uniqeMersParent1 / k;
             double uniqCov2 = (double) uniqeMersParent2 / k;
             if (uniqCov1 < minUniq || uniqCov2 < minUniq) {
-//                System.out.println(uniqeMersParent1 + "\t" + uniqeMersParent2);
+                System.out.println(uniqeMersParent1 + "\t" + uniqeMersParent2+ "\t"+snpFilter.getClusterId()+"\t"+(snpFilter.getSnpPosition0()+1));
                 snpFilter.setInvalid();
                 invalid++;
             }
