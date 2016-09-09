@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import shared.StdRedirect;
 
 /**
  *
@@ -64,8 +65,8 @@ public class KmerExtender {
 
     private boolean OUTPUT_FASTA = false;
     private String NAME_PREFIX = "";
-    private String DEBUG_FILE;
-    private String STATS_FILE;
+//    private String DEBUG_FILE;
+//    private String STATS_FILE;
 //    private Integer HASH_ARRAY_SIZE = Integer.MAX_VALUE - 3;
 //    private Integer MULTIPASS_COMPRESS = null;
 
@@ -86,13 +87,18 @@ public class KmerExtender {
 //        if (RUN_SOME_WILD_AND_WONDERFUL_STUFF) {
 //            new kmerextender.ideas.Alternative(MAX_THREADS, inputFileNamesList, KMER_LENGTH);
 //        } else {
-        runKmerExtender();
+        runKmerExtender(optSet);
 //        }
     }
 
     private void readArgValues(OptSet optSet) {
+        if (optSet.getOpt("P").isUsed()) {
+            optSet.printUserSettings(TOOL_NAME);
+        }
+        
         INPUT_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
         INPUT_QUEUE = (int) optSet.getOpt("Q").getValueOrDefault();
+        
 
         if (optSet.getOpt("k").isUsed()) {
             setKmerLength((int) optSet.getOpt("k").getValueOrDefault());
@@ -136,28 +142,30 @@ public class KmerExtender {
         if (optSet.getOpt("p").getValueOrDefault() != null) {
             NAME_PREFIX = (String) optSet.getOpt("p").getValueOrDefault();
         }
-        String outRedirect;
-        String errRedirect;
-        if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
-            try {
-                File file = new File(outRedirect);
-                PrintStream printStream;
-                printStream = new PrintStream(new FileOutputStream(file));
-                System.setOut(printStream);
-            } catch (FileNotFoundException ex) {
-                Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, TOOL_NAME);
-            }
-        }
-        if ((errRedirect = (String) optSet.getOpt("e").getValueOrDefault()) != null) {
-            try {
-                File file = new File(errRedirect);
-                PrintStream printStream;
-                printStream = new PrintStream(new FileOutputStream(file));
-                System.setErr(printStream);
-            } catch (FileNotFoundException ex) {
-                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, TOOL_NAME);
-            }
-        }
+        
+        new StdRedirect(optSet, TOOL_NAME, StdRedirect.RedirectType.REDIRECT_ERR);
+//        String outRedirect;
+//        String errRedirect;
+//        if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
+//            try {
+//                File file = new File(outRedirect);
+//                PrintStream printStream;
+//                printStream = new PrintStream(new FileOutputStream(file));
+//                System.setOut(printStream);
+//            } catch (FileNotFoundException ex) {
+//                Reporter.report("[ERROR]", "Failed redirecting stdout to " + outRedirect, TOOL_NAME);
+//            }
+//        }
+//        if ((errRedirect = (String) optSet.getOpt("e").getValueOrDefault()) != null) {
+//            try {
+//                File file = new File(errRedirect);
+//                PrintStream printStream;
+//                printStream = new PrintStream(new FileOutputStream(file));
+//                System.setErr(printStream);
+//            } catch (FileNotFoundException ex) {
+//                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, TOOL_NAME);
+//            }
+//        }
 
 //        for(Opt o: optSet.getOptsList()) {
 //            Reporter.report("[INFO]", o.getOptLabelString()+" "+o.getValueOrDefault(), toolName);
@@ -198,12 +206,14 @@ public class KmerExtender {
 
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
+        optSet.addOpt(new Opt('m', "min-length", "Do not output extended sequnces shorter than <arg>, defaults to k+1", 1).setMinValue(5));
         optSet.addOpt(new Opt('f', "fasta-out", "Output each k-mer as a separate FASTA record instead of just listing extended nucleotide sequences"));
         optSet.addOpt(new Opt('p', "fasta-id-prefix", "Prefix each FASTA identifier with <arg> ", 1));
-        optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
+        optSet.addOpt(new Opt('o', "out-file", "Print extended sequences to <arg> file", 1).setDefaultValue("/dev/stdout"));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
         optSet.addOpt(new Opt('s', "stats-file", "Write extension stats to this file", 1));
         optSet.addOpt(new Opt('d', "debug-file", "Write unkosher extensions details to this file", 1));
+        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
 
         //POSITIONAL
         optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
@@ -213,7 +223,7 @@ public class KmerExtender {
     /**
      * Wrapper method executing individual steps
      */
-    private void runKmerExtender() {
+    private void runKmerExtender(OptSet optSet) {
         Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", TOOL_NAME);
 
         ArrayList<Integer> kSizes = new ArrayList<>();
@@ -250,14 +260,18 @@ public class KmerExtender {
         if (seedSequences == null) {
             for (Integer k : kSizes) {
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-                PairMersExtender pairMersExtender = new PairMersExtender(DEBUG_FILE, STATS_FILE, TOOL_NAME);
-                pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX);
+                PairMersExtender pairMersExtender = new PairMersExtender((String) optSet.getOpt("stats-file").getValueOrDefault(), 
+                    (String) optSet.getOpt("debug-file").getValueOrDefault(), TOOL_NAME);
+                String outFile = (String) optSet.getOpt("out-file").getValueOrDefault();
+                Integer minLen = (int) optSet.getOpt("min-length").getValueOrDefault(k+1);
+                pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX, 
+                    outFile, minLen);
                 Reporter.report("[INFO]", "Finished extending for k=" + k, TOOL_NAME);
 
             }
 //            pairMersExtender.matchAndExtendSeeds(k, pairMersMap, kToSeedMers.get(k));
         } else {
-            extendSeedsParallel(kSizes, pairMerMaps, kToSeedMers);
+            extendSeedsParallel(kSizes, pairMerMaps, kToSeedMers, optSet);
 
         }
 
@@ -585,7 +599,8 @@ public class KmerExtender {
 //        }
     }
 
-    private void extendSeedsParallel(ArrayList<Integer> kSizes, PairMerMaps pairMerMaps, ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers) {
+    private void extendSeedsParallel(ArrayList<Integer> kSizes, PairMerMaps pairMerMaps, 
+        ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers, OptSet optSet) {
         //PREPARE EXECUTOR SERVICE        
         int threads = MAX_THREADS;
         ArrayList<Future<?>> futures = new ArrayList<>(threads);
@@ -602,7 +617,8 @@ public class KmerExtender {
         //INIT THREADS
         for (int i = 0; i < threads; i++) {
 //            PairMersSeedExtenderConsumer = new PairMersSeedExtenderConsumer
-            PairMersSeedExtenderConsumer extenderConsumer = new PairMersSeedExtenderConsumer(queue, kToSeedMers, DEBUG_FILE, TOOL_NAME);
+            PairMersSeedExtenderConsumer extenderConsumer = new PairMersSeedExtenderConsumer(queue, kToSeedMers, 
+                (String) optSet.getOpt("debug-file").getValueOrDefault(), TOOL_NAME);
             futures.add(seedExtenderExecutorService.submit(extenderConsumer));
         }
 
