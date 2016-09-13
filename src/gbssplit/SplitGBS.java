@@ -240,6 +240,7 @@ public class SplitGBS {
         if (!optSet.getOpt("only-count").getOptFlag()) {
             for (Map.Entry<String, BlockingQueue<PerSampleBuffer>> entrySet : keyMap.getSampleToQueueMap().entrySet()) {
                 String sample = entrySet.getKey();
+//                System.err.println("Starting writer thread for sample "+sample);
                 BlockingQueue<PerSampleBuffer> queue = entrySet.getValue();
 //            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, SPLITTER_THREADS)));
                 ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(queue, TOOL_NAME, OUT_DIR, sample, SPLITTER_THREADS, R1_SUFFIX, R2_SUFFIX, SE_SUFFIX, OVERWRITE, APPEND)));

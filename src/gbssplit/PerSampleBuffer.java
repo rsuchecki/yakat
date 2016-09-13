@@ -47,9 +47,9 @@ public class PerSampleBuffer {
 //        return this;
 //    }
     
-//    public String getSampleId() {
-//        return sampleId;
-//    }
+    public String getSampleId() {
+        return sampleId;
+    }
 //
 //    public String getOutFileName() {
 //        return outFileName;
