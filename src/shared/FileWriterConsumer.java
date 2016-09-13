@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.text.NumberFormat;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -42,10 +43,12 @@ public class FileWriterConsumer implements Runnable {
     private final String R1_SUFFIX;
     private final String R2_SUFFIX;
     private final String SE_SUFFIX;
+    private final boolean append;
+    private final boolean overwrite;
 
 
     public FileWriterConsumer(BlockingQueue<PerSampleBuffer> outputQueue, String TOOL_NAME, String DIR_NAME, String FILE_NAME, 
-        int PRODUCER_THREADS, String R1_SUFFIX, String R2_SUFFIX, String SE_SUFFIX) {
+        int PRODUCER_THREADS, String R1_SUFFIX, String R2_SUFFIX, String SE_SUFFIX, boolean overwrite, boolean append) {
         this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
         this.DIR_NAME = DIR_NAME;
@@ -54,38 +57,14 @@ public class FileWriterConsumer implements Runnable {
         this.R1_SUFFIX = R1_SUFFIX;
         this.R2_SUFFIX = R2_SUFFIX;
         this.SE_SUFFIX = SE_SUFFIX;
+        this.append = append;
+        this.overwrite = overwrite;        
     }
     
     
-
-//    public FileWriterConsumer(String fileName, BlockingQueue<ArrayList<String>> outputQueue, String recordName, String toolName) {
-//        this.outputQueue = outputQueue;
-//        this.RECORD_NAME = recordName;
-//        TOOL_NAME = toolName;
-//        FILE_NAME = fileName;
-//    }
+    
     @Override
     public void run() {
-//        try {
-////            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(java.io.FileDescriptor.out), "ASCII"), 512);
-//            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(FILE_NAME))), BUFFER_SIZE);
-//            ArrayList<String> list;
-//            long outputCount = 0L;
-//            while (!(list = outputQueue.take()).isEmpty()) {
-//                outputCount += list.size();
-//                for (String line : list) {
-//                    out.write(line);
-//                    out.newLine();
-//                }
-//            }
-//            out.flush();
-//            //output remianing stored records
-//            Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out to "+FILE_NAME,TOOL_NAME);
-//        } catch (InterruptedException | UnsupportedEncodingException e) {
-//            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
-//        } catch (IOException e) {
-//            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
-//        }
 
         String newline = System.lineSeparator(); //.getProperty("line.separator");
         BufferedWriter writer1 = null;
@@ -95,8 +74,8 @@ public class FileWriterConsumer implements Runnable {
             PerSampleBuffer list;
             long outputCountPaired = 0L;
             long outputCountSingle = 0L;
-            boolean appendPE = true;
-            boolean appendSE = true;
+            boolean appendPE = append;
+            boolean appendSE = append;
             while (!(list = outputQueue.take()).isEmpty() || --PRODUCER_THREADS > 0) {
                 while (!list.isEmpty()) {
                     String line = list.remove(list.size() - 1);
@@ -109,16 +88,35 @@ public class FileWriterConsumer implements Runnable {
                             sbOrphans.append(splits[i]).append(newline);
                         }
                         if (writerOrphans == null) {
-                            writerOrphans = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+SE_SUFFIX, appendSE)), "UTF-8"), BUFFER_SIZE);
+                            File file = new File(DIR_NAME+File.separator+FILE_NAME+SE_SUFFIX);
+                            if(file.exists() && !overwrite && !append) {
+                                Reporter.report("[FATAL]", file.getName()+" already exists, use --force-overwrite or --append", TOOL_NAME);
+                                System.exit(1);
+
+//                                throw new IOException(file.getName()+" already exists, use --force-overwrite or --append");                                
+                            }
+                            writerOrphans = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file, appendSE)), "UTF-8"), BUFFER_SIZE);
                             appendSE = true;
                         }
                         writerOrphans.write(sbOrphans.toString());
                         outputCountSingle++;
                     } else if (splits.length == 8) {
                         if (writer1 == null || writer2 == null) {
-                            //create 2 writers                    
-                            writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R1_SUFFIX, appendPE)), "UTF-8"), BUFFER_SIZE);
-                            writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(DIR_NAME+ File.separator +FILE_NAME+R2_SUFFIX, appendPE)), "UTF-8"), BUFFER_SIZE);
+                            //create 2 writers                   
+                            File file1 = new File(DIR_NAME+ File.separator +FILE_NAME+R1_SUFFIX);
+                            File file2 = new File(DIR_NAME+ File.separator +FILE_NAME+R2_SUFFIX);
+                            if(file1.exists() && !overwrite && !append) {
+                                Reporter.report("[FATAL]", file1.getName()+" already exists, use --force-overwrite or --append", TOOL_NAME);
+                                System.exit(1);
+//                                throw new IOException(file1.getName()+" already exists, use --force-overwrite or --append");
+                            }
+                            if(file2.exists() && !overwrite && !append) {
+                                Reporter.report("[FATAL]", file2.getName()+" already exists, use --force-overwrite or --append", TOOL_NAME);
+                                System.exit(1);
+//                                throw new IOException(file1.getName()+" already exists, use --force-overwrite or --append");
+                            }                            
+                            writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file1, appendPE)), "UTF-8"), BUFFER_SIZE);
+                            writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file2, appendPE)), "UTF-8"), BUFFER_SIZE);
                             appendPE = true;
                         }
                         for (int i = 0; i < 4; i++) {

@@ -10,6 +10,7 @@ import argparser.Opt;
 import argparser.OptSet;
 import argparser.PositionalOpt;
 import java.io.File;
+import java.io.IOException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
@@ -54,6 +55,8 @@ public class SplitGBS {
     private  String MATCHLESS_OUT = null;
     private final int OUT_BUFFER_SIZE;
     private final int OUT_Q_CAPACITY;
+    private boolean OVERWRITE = false;
+    private boolean APPEND = false;
 
     private final int HELP_WIDTH = 180;
 
@@ -64,6 +67,17 @@ public class SplitGBS {
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
         TOOL_NAME = callerName + " " + toolName;
         //PARSE OPTS
+        if (optSet.getOpt("append").isUsed()) {
+            APPEND = true;
+        }
+        if (optSet.getOpt("force").isUsed()) {
+            OVERWRITE = true;
+        }
+        
+        if(OVERWRITE && APPEND) {
+            Reporter.report("[FATAL]", "Flags --force and --append are mutually exclusive, you can either force-overwrite existing files OR append to them", TOOL_NAME);
+            System.exit(1);
+        }
         IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
         IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
 
@@ -86,7 +100,8 @@ public class SplitGBS {
         }
         if (optSet.getOpt("P").isUsed()) {
             optSet.printUserSettings(TOOL_NAME);
-        }
+        }        
+        
 //        for(Opt o: optSet.getOptsList()) {
 //            Reporter.report("[INFO]", o.getOptLabelString()+" "+o.getValueOrDefault(), toolName);
 //        }
@@ -135,8 +150,9 @@ public class SplitGBS {
         optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
         optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
         optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
-        optSet.addOpt(new Opt('M', "matchless-output", "Output reads with unmatched barcodes to R1/R2/SE file(s) prefixed with <arg>. If not set, these reads will be discarded", 1));
-        optSet.addOpt(new Opt(null, "append", "[TODO] If output file(s) exist(s) for a given sample append rather than overwrite"));
+        optSet.addOpt(new Opt(null, "append", "If output file(s) exist(s) for a given sample, append"));
+        optSet.addOpt(new Opt(null, "force", "If output file(s) exist(s) for a given sample, force overwrite"));
+        optSet.addOpt(new Opt('M', "[TODO] matchless-output", "Output reads with unmatched barcodes to R1/R2/SE file(s) prefixed with <arg>. If not set, these reads will be discarded", 1));
         footId++;
         String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if encountering 'out of memory' errors.";
         optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
@@ -226,7 +242,7 @@ public class SplitGBS {
                 String sample = entrySet.getKey();
                 BlockingQueue<PerSampleBuffer> queue = entrySet.getValue();
 //            ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(OUT_DIR + "/" + sample, queue, TOOL_NAME, SPLITTER_THREADS)));
-                ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(queue, TOOL_NAME, OUT_DIR, sample, SPLITTER_THREADS, R1_SUFFIX, R2_SUFFIX, SE_SUFFIX)));
+                ioFutures.add(ioExecutorService.submit(new FileWriterConsumer(queue, TOOL_NAME, OUT_DIR, sample, SPLITTER_THREADS, R1_SUFFIX, R2_SUFFIX, SE_SUFFIX, OVERWRITE, APPEND)));
             }
         }
         splitterExecutorService.shutdown();
