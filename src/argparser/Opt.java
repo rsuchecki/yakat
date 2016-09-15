@@ -32,6 +32,7 @@ import shared.Reporter;
  */
 public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
 
+    private String defaultValueDescription;
     private T defaultValue;
     private T minValue;
     private T maxValue;
@@ -529,6 +530,22 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         this.defaultValue = defaultValue;
         return this;
     }
+    
+    /**
+     * In cases where the desired default value is computed e.g. based on input or other opts
+     * @param defaultValueDescription
+     * @return 
+     */
+    public Opt setDefaultValueDescription(String defaultValueDescription) {
+        this.defaultValueDescription = defaultValueDescription;
+        return this;
+    }
+
+    public String getDefaultValueDescription() {
+        return defaultValueDescription;
+    }
+    
+    
 
     public boolean isRequired() {
         return required;

@@ -327,11 +327,11 @@ public class OptSet {
                 }
                 helpLine.append("max=").append(opt.getFormattedValue(opt.getMaxValue()));
             }
-            if (opt.hasDefaultValue()) {
+            if (opt.hasDefaultValue() || opt.getDefaultValueDescription() != null) {
                 if (helpLine.length() > 0) {
                     helpLine.append("; ");
                 }
-                helpLine.append("default=").append(opt.getFormattedValue(opt.getDefaultValue()));
+                helpLine.append("default=").append(opt.hasDefaultValue()  ? opt.getFormattedValue(opt.getDefaultValue()) : opt.getDefaultValueDescription());
             } else if (opt.getMaxValueArgs() > 0 && !opt.isRequired()) {
                 if (helpLine.length() > 0) {
                     helpLine.append("; ");
@@ -463,7 +463,7 @@ public class OptSet {
                 currentListingGroup = o.getListingGroup();
                 String groupLabel = getListingGroupLabel(currentListingGroup);
                 if (!groupLabel.isEmpty()) {
-                    Reporter.reportNoMem("[OPTS]",groupLabel, TOOL_NAME);
+                    Reporter.reportNoMem("[OPTS]", groupLabel, TOOL_NAME);
                 }
             }
             StringBuilder sb = new StringBuilder();
@@ -476,12 +476,10 @@ public class OptSet {
                     for (Object ob : values) {
                         sb.append(" ").append(ob.toString());
                     }
+                } else if (o.getValueOrDefault() == null) {
+                    sb.append("N/A");
                 } else {
-                    if(o.getValueOrDefault() == null) {
-                        sb.append("N/A");                        
-                    } else {
-                        sb.append(o.getValueOrDefault());
-                    }
+                    sb.append(o.getValueOrDefault());
                 }
             } else if (o.isUsed()) {
                 sb.append(o.getKeysString());
