@@ -211,7 +211,7 @@ public class KmerExtender {
 
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
-        optSet.addOpt(new Opt('m', "min-length", "Do not output extended sequnces shorter than <arg>, defaults to k+1", 1).setMinValue(5));
+        optSet.addOpt(new Opt('m', "min-length", "Do not output extended sequnces shorter than <arg>", 1).setMinValue(5).setDefaultValueDescription("k+1"));
         optSet.addOpt(new Opt('f', "fasta-out", "Output each k-mer as a separate FASTA record instead of just listing extended nucleotide sequences"));
         optSet.addOpt(new Opt('p', "fasta-id-prefix", "Prefix each FASTA identifier with <arg> ", 1));
         optSet.addOpt(new Opt('o', "out-file", "Print extended sequences to <arg> file", 1).setDefaultValue("/dev/stdout"));
@@ -266,8 +266,8 @@ public class KmerExtender {
         if (seedSequences == null) {
             for (Integer k : kSizes) {
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-                PairMersExtender pairMersExtender = new PairMersExtender((String) optSet.getOpt("stats-file").getValueOrDefault(),
-                    (String) optSet.getOpt("debug-file").getValueOrDefault(), TOOL_NAME);
+                PairMersExtender pairMersExtender = new PairMersExtender((String) optSet.getOpt("debug-file").getValueOrDefault(), 
+                    (String) optSet.getOpt("stats-file").getValueOrDefault(), TOOL_NAME);
                 Integer minLen = (int) optSet.getOpt("min-length").getValueOrDefault(k + 1);
                 pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX,
                     outFile, minLen);
