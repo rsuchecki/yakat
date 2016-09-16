@@ -66,7 +66,7 @@ public class KmerExtender {
     private Integer MIN_KMER_FREQUENCY;
     private int MAX_THREADS;
     private int INPUT_BUFFER_SIZE;
-    private int INPUT_QUEUE;
+    private int INPUT_QUEUE_SIZE;
 
     private boolean OUTPUT_FASTA = false;
     private String NAME_PREFIX = "";
@@ -103,7 +103,7 @@ public class KmerExtender {
         }
 
         INPUT_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
-        INPUT_QUEUE = (int) optSet.getOpt("Q").getValueOrDefault();
+        INPUT_QUEUE_SIZE = (int) optSet.getOpt("Q").getValueOrDefault();
 
         if (optSet.getOpt("k").isUsed()) {
             setKmerLength((int) optSet.getOpt("k").getValueOrDefault());
@@ -279,6 +279,8 @@ public class KmerExtender {
             extendSeedsParallel(kSizes, pairMerMaps, kToSeedMers, optSet);
 
         }
+        
+        
 
         //SELECT LONGEST EXTENSION
         if (seedSequences != null) {
@@ -299,25 +301,11 @@ public class KmerExtender {
                     String extensionLeft = longestExtensionLeft.getValue().getExtensionLeft();
                     String extensionRight = longestExtensionRight.getValue().getExtensionRight();
                     if (OUTPUT_FASTA) {
-//                    if (!NAME_PREFIX.isEmpty()) {
-//                        output.append(">").append(NAME_PREFIX).append(" ");
-//                        output.append(longest.getValue().length()).append(System.lineSeparator());
-//                    } else if (longest.getKey() == 0) { //NOEXTENSION BEYOND INPUT                        
-//                        output.append(">").append(seed.getId());
-//                        output.append(" not_extended=").append(longest.getValue().length());
-//                        output.append(System.lineSeparator());
-//                    } else {
-//                        output.append(">").append(seed.getId());
-//                        output.append(" extended from=").append(seed.getSequenceString().length());
-//                        output.append(" to=").append(longest.getValue().length()).append(" at k=").append(longest.getKey());
-//                        output.append(System.lineSeparator());
-//                    }
-
+                        outputLR.append(">");
                         if (!NAME_PREFIX.isEmpty()) {
-                            outputLR.append(">").append(NAME_PREFIX);
-                        } else {
-                            outputLR.append(">").append(seed.getId());
+                            outputLR.append(NAME_PREFIX).append("_");                        
                         }
+                        outputLR.append(seed.getId());                        
                         outputLR.append(" L=").append(extensionLeft.length()).append(" at k=").append(longestExtensionLeft.getKey());
                         outputLR.append(" R=").append(extensionRight.length()).append(" at k=").append(longestExtensionRight.getKey());
                         outputLR.append(" extended=");
@@ -350,7 +338,7 @@ public class KmerExtender {
      * etc) - generate PairMer objects - populate Map(s)
      */
     private void readKmersAndPopulatePairMersMaps(PairMerMaps pairMerMaps) {
-        BlockingQueue inputQueue = new ArrayBlockingQueue(INPUT_QUEUE);
+        BlockingQueue inputQueue = new ArrayBlockingQueue(INPUT_QUEUE_SIZE);
 
         try {
             //READ INPUT AND POPULATE PairMers MAP
@@ -559,65 +547,6 @@ public class KmerExtender {
             }
             Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount), TOOL_NAME);
         }
-
-//            PairMersMap pairMersMap = kToMap.get(k);
-//            PairMerToSeedMap pairMerToSeedMap = new PairMerToSeedMap(seedSequences, k);
-//            kToSeeds.put(actualK, pairMerToSeedMap);
-//            BlockingQueue<ArrayList<String>> seedsDummyQueue = new ArrayBlockingQueue<>(2);
-//            PairMersMap trimmedSeedPairMersMap = new PairMersMap();
-//            try {
-//                seedsDummyQueue.put(seedSequences.getSeedSequenceStrings());
-//                seedsDummyQueue.put(new ArrayList<String>());
-//            } catch (InterruptedException ex) {
-//            }
-//            PairMerMapPopulatorConsumer seedsPairMerMapPopulatorConsumer = new PairMerMapPopulatorConsumer(seedsDummyQueue,
-//                trimmedSeedPairMersMap, true, k, MIN_KMER_FREQUENCY, true);
-//            seedsPairMerMapPopulatorConsumer.run(); //TODO move to a background thread earlier  if needed
-//            Reporter.report("[INFO]", "Seed-mers map populated, k=" + actualK, TOOL_NAME);
-//            Iterator<PairMer> it = trimmedSeedPairMersMap.getPairMersSkipListMap().keySet().iterator();
-//            long removedCount = 0L;
-//            while (it.hasNext()) {
-//                if (pairMersMap.getPairMersSkipListMap().remove(it.next()) != null) {
-//                    removedCount++;
-//                }
-//            }
-//            Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount), TOOL_NAME);
-//        }
-//        //PREPARE QUEUE OF MAPS TO BE PICKED-UP BY THREADS
-//        ArrayBlockingQueue<PairMersMap> mapsQueue = new ArrayBlockingQueue(kToMap.size()+1);
-//        Iterator<PairMersMap> it = kToMap.values().iterator();
-//        try {
-//            while (it.hasNext()) {
-//                mapsQueue.put(it.next());
-//            }
-//            mapsQueue.put(new PairMersMap());
-//        } catch (InterruptedException ex) {
-//            System.err.println(ex.getMessage());
-//        }
-//        //PREPARE EXECUTOR SERVICE
-//        int threads = MAX_THREADS;
-//        ArrayList<Future<?>> futures = new ArrayList<>(threads);
-//        final ExecutorService purgeMapsExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
-//        //INIT THREADS
-//        for (int i = 0; i < threads; i++) {
-//            futures.add(purgeMapsExecutorService.submit(new PairMerMapPurger(mapsQueue)));
-//        }
-//        //WAIT UNTIL DONE
-//        purgeMapsExecutorService.shutdown();
-//        try {
-//            for (Future<?> f : futures) {
-//                f.get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-//            }
-//            purgeMapsExecutorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-//        } catch (InterruptedException e) {
-//            Reporter.report("[ERROR]", "PairMerSet purger interrupted exception!", TOOL_NAME);
-//        } catch (ExecutionException ex) {
-//            Reporter.report("[ERROR]", "PairMerSet purger execution exception!", TOOL_NAME);
-////            ex.printStackTrace();
-//        } catch (TimeoutException ex) {
-//            Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
-//            Reporter.report("[ERROR]", "PairMerSet purger timeout exception!", TOOL_NAME);
-//        }
     }
 
     private void extendSeedsParallel(ArrayList<Integer> kSizes, PairMerMaps pairMerMaps,

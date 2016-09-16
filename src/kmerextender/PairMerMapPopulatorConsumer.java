@@ -58,12 +58,22 @@ public class PairMerMapPopulatorConsumer implements Runnable {
                         kmerizeAndAddToMaps(read);
                     }
                 }
-            } else { //SIMPLY LOADING A BUNCH OF KMERS 
+            } else if (MIN_KMER_FREQUENCY == null) {
                 while (!(list = queue.take()).isEmpty()) {
                     for (String read : list) {
                         tokenizer = new StringTokenizer(read);
                         read = tokenizer.nextToken().toUpperCase();
-                        if (MIN_KMER_FREQUENCY != null && (tokenizer.hasMoreTokens())) {
+                        if (!addKmerToMap(read)) {
+                            break;
+                        }
+                    }
+                }
+            } else {
+                while (!(list = queue.take()).isEmpty()) {
+                    for (String read : list) {
+                        tokenizer = new StringTokenizer(read);
+                        read = tokenizer.nextToken().toUpperCase();
+                        if (tokenizer.hasMoreTokens()) {
                             int frequency = Integer.parseInt(tokenizer.nextToken());
                             if (frequency < MIN_KMER_FREQUENCY) {
                                 continue;
@@ -76,7 +86,6 @@ public class PairMerMapPopulatorConsumer implements Runnable {
                 }
             }
             queue.put(new ArrayList<String>()); //inform other threads
-
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -86,8 +95,6 @@ public class PairMerMapPopulatorConsumer implements Runnable {
         try {
 //            System.err.println("");
 //            System.err.println(" "+kmerString+" <-Generating from");
-//            pairMersMap.addToPairMersMap(kmerString, true, overlapLength, !SPLIT_INPUT_INTO_KMERS);
-//            pairMersMap.addToPairMersMap(kmerString, false, overlapLength, !SPLIT_INPUT_INTO_KMERS);
             pairMersMaps.getPairMersMap(kmerString.length()).addToPairMersMap(kmerString, 0, kmerString.length() - 1, true, !SPLIT_INPUT_INTO_KMERS);
             pairMersMaps.getPairMersMap(kmerString.length()).addToPairMersMap(kmerString, 0, kmerString.length() - 1, false, !SPLIT_INPUT_INTO_KMERS);
 
@@ -131,22 +138,4 @@ public class PairMerMapPopulatorConsumer implements Runnable {
             }
         }
     }
-
-//    private ArrayList<String> getKmers(String sequence) {
-//        int maxKmer = sequence.length() - KMER_LENGTH + 1;
-//        int startAt = 0;
-//        if (SKIP_TERMINAL_BASES) { //to exclude terminal k-mers
-//            --maxKmer;
-//            startAt++;
-//        }
-//        if (maxKmer < 0) { //in case of short sequences
-//            return new ArrayList<>(0);
-//        }
-//        ArrayList<String> kmers = new ArrayList<>(maxKmer);
-//        for (int i = startAt; i < maxKmer; i++) {
-//            String s = sequence.substring(i, i + KMER_LENGTH);
-//            kmers.add(s);
-//        }
-//        return kmers;
-//    }
 }
