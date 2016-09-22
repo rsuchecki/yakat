@@ -25,6 +25,7 @@ import java.io.OutputStreamWriter;
 import java.text.NumberFormat;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPOutputStream;
 
 /**
@@ -46,8 +47,7 @@ public class FileWriterConsumer implements Runnable {
     private final boolean append;
     private final boolean overwrite;
 
-
-    public FileWriterConsumer(BlockingQueue<PerSampleBuffer> outputQueue, String TOOL_NAME, String DIR_NAME, String FILE_NAME, 
+    public FileWriterConsumer(BlockingQueue<PerSampleBuffer> outputQueue, String TOOL_NAME, String DIR_NAME, String FILE_NAME,
         int PRODUCER_THREADS, String R1_SUFFIX, String R2_SUFFIX, String SE_SUFFIX, boolean overwrite, boolean append) {
         this.outputQueue = outputQueue;
         this.TOOL_NAME = TOOL_NAME;
@@ -58,11 +58,9 @@ public class FileWriterConsumer implements Runnable {
         this.R2_SUFFIX = R2_SUFFIX;
         this.SE_SUFFIX = SE_SUFFIX;
         this.append = append;
-        this.overwrite = overwrite;        
+        this.overwrite = overwrite;
     }
-    
-    
-    
+
     @Override
     public void run() {
 
@@ -78,21 +76,25 @@ public class FileWriterConsumer implements Runnable {
 //            boolean appendSE = append;
             int s = 0;
             int p = 0;
+            Pattern spliPattern = Pattern.compile("\t");
+
             while (!(list = outputQueue.take()).isEmpty() || --PRODUCER_THREADS > 0) {
                 while (!list.isEmpty()) {
                     String line = list.remove(list.size() - 1);
                     StringBuilder sb1 = new StringBuilder();
                     StringBuilder sb2 = new StringBuilder();
                     StringBuilder sbOrphans = new StringBuilder();
-                    String[] splits = line.split("\t");
+
+                    String[] splits = spliPattern.split(line);
+//                    String[] splits = line.split("\t");
                     if (splits.length == 4) {
                         for (int i = 0; i < 4; i++) {
                             sbOrphans.append(splits[i]).append(newline);
                         }
                         if (writerOrphans == null) {
-                            File file = new File(DIR_NAME+File.separator+FILE_NAME+SE_SUFFIX);
-                            if(file.exists() && !overwrite && !append) {
-                                Reporter.report("[FATAL]", file.getName()+" already exists, use --force or --append", TOOL_NAME);
+                            File file = new File(DIR_NAME + File.separator + FILE_NAME + SE_SUFFIX);
+                            if (file.exists() && !overwrite && !append) {
+                                Reporter.report("[FATAL]", file.getName() + " already exists, use --force or --append", TOOL_NAME);
                                 System.exit(1);
 
 //                                throw new IOException(file.getName()+" already exists, use --force-overwrite or --append");                                
@@ -106,18 +108,18 @@ public class FileWriterConsumer implements Runnable {
                     } else if (splits.length == 8) {
                         if (writer1 == null || writer2 == null) {
                             //create 2 writers                   
-                            File file1 = new File(DIR_NAME+ File.separator +FILE_NAME+R1_SUFFIX);
-                            File file2 = new File(DIR_NAME+ File.separator +FILE_NAME+R2_SUFFIX);
-                            if(file1.exists() && !overwrite && !append) {
-                                Reporter.report("[FATAL]", file1.getName()+" already exists, use --force or --append", TOOL_NAME);
+                            File file1 = new File(DIR_NAME + File.separator + FILE_NAME + R1_SUFFIX);
+                            File file2 = new File(DIR_NAME + File.separator + FILE_NAME + R2_SUFFIX);
+                            if (file1.exists() && !overwrite && !append) {
+                                Reporter.report("[FATAL]", file1.getName() + " already exists, use --force or --append", TOOL_NAME);
                                 System.exit(1);
 //                                throw new IOException(file1.getName()+" already exists, use --force-overwrite or --append");
                             }
-                            if(file2.exists() && !overwrite && !append) {
-                                Reporter.report("[FATAL]", file2.getName()+" already exists, use --force or --append", TOOL_NAME);
+                            if (file2.exists() && !overwrite && !append) {
+                                Reporter.report("[FATAL]", file2.getName() + " already exists, use --force or --append", TOOL_NAME);
                                 System.exit(1);
 //                                throw new IOException(file1.getName()+" already exists, use --force-overwrite or --append");
-                            }                            
+                            }
                             writer1 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file1, append)), "UTF-8"), BUFFER_SIZE);
                             writer2 = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(file2, append)), "UTF-8"), BUFFER_SIZE);
 //                            System.err.println("Init writer PE "+(++p)+" "+list.getSampleId());                            
@@ -139,7 +141,7 @@ public class FileWriterConsumer implements Runnable {
             }
             if (outputCountPaired > 0 || outputCountSingle > 0) {
                 Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(outputCountPaired) + " (PE) and "
-                        + NumberFormat.getNumberInstance().format(outputCountSingle)+" (SE) "+ RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
+                    + NumberFormat.getNumberInstance().format(outputCountSingle) + " (SE) " + RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
 //                Reporter.report("[INFO]", "[Thread " + Thread.currentThread().getId()+"] "+NumberFormat.getNumberInstance().format(outputCount) + " " + RECORD_NAME + " written-out to " + FILE_NAME, TOOL_NAME);
             }
         } catch (FileNotFoundException ex) {

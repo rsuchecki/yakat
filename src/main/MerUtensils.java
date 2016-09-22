@@ -21,7 +21,6 @@ import kexpression.KeXpression;
 import kmerextender.KmerExtender;
 import kmermatch.TODO.KmerMatch;
 import kmerger.KmerSetMerge;
-import multimers.Multimers;
 import processpileup.ProcessPileup;
 import processpileup.PileupStats;
 import processpileup.adhoc.PileupStatsMerge;
@@ -58,8 +57,6 @@ public class MerUtensils {
         } else if (args.length != 0 && args[0].matches("test")) {
             args[0] = "";
             new ParserTest(this.getClass().getSimpleName(), "test", args);
-        } else if (args.length != 0 && args[0].matches("m(ulti)?mers")) {
-            new Multimers(args, name, "mmers");
         } else if (args.length != 0 && args[0].matches("sn(i)?pmers")) {
             new SnpMers(args, name, "snpmers");
         } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {

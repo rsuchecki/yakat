@@ -48,6 +48,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 import shared.FastaReader;
@@ -203,10 +204,13 @@ public class SnpMers {
             } else {
                 bufferdReader = new BufferedReader(new FileReader(new File(snpsFileName)), READER_BUFFER_SIZE);
             }
+            Pattern spliPattern = Pattern.compile("\t");
+
             while ((inputLine = bufferdReader.readLine()) != null) {
                 if (!inputLine.startsWith("ClusterId")) {
                     String line = inputLine.trim();
-                    String[] toks = line.split(DELIMITER);
+                    String[] toks = spliPattern.split(line);
+//                    String[] toks = line.split(DELIMITER);
                     String clusterId = toks[0];
                     String id1 = toks[2];
                     String id2 = toks[4];

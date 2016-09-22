@@ -19,6 +19,7 @@ import argparser.OptSet;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
+import java.util.regex.Pattern;
 import shared.Reporter;
 
 /**
@@ -105,9 +106,11 @@ public class MpileupConsumer implements Runnable {
         try {
 //            ArrayList<String> bufferList = new ArrayList<>(OUT_BUFFER_SIZE);
             ArrayList<String> list;
+            Pattern spliPattern = Pattern.compile("\t");
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
-                    String[] toks = line.split("\t");
+                    String[] toks = spliPattern.split(line);
+//                    String[] toks = line.split("\t");
                     //toks 0,1,2 are ref, position, refbase
                     char refBase = toks[2].charAt(0);
                     char refBaseUpper = Character.toUpperCase(refBase);

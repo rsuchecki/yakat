@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import shared.Reporter;
 
@@ -74,6 +75,7 @@ public class KeyMap {
         keyMap = new ConcurrentHashMap<>(1000);
         sampleToQueueMap = new ConcurrentHashMap<>(1000);
         sampleToCountMap = new ConcurrentHashMap<>(1000);
+        Pattern spliPattern = Pattern.compile("\t");
         BufferedReader content = null;
         try {
             if (inputFile.endsWith(".gz")) {
@@ -84,7 +86,8 @@ public class KeyMap {
             }
             String line;
             while ((line = content.readLine()) != null && !line.isEmpty()) {
-                String[] toks = line.split("\t");
+//                String[] toks = line.split("\t");
+                String[] toks = spliPattern.split(line);
                 String flowcell = toks[0];
                 String barcode = toks[2];
                 String sample = toks[3];
