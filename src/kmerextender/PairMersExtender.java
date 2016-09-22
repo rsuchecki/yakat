@@ -79,7 +79,9 @@ public class PairMersExtender {
         Iterator<PairMer> it = pairMers.iterator();
         long clusterNumber = 0; //Connected-component in the de-bruijn graph
         long extendedNumber = 0;
+        long extendedLength = 0;
         long longEnough = 0;
+        long longEnoughBp = 0;
         int[] extendedLengths = null;
         int longest = 0;
         int MAX_LENGTH_STATS = 2000;
@@ -106,6 +108,7 @@ public class PairMersExtender {
 //                        System.err.println(connectedPairMers.getKeys().size() + " pairMers == " + connectedMers.length() + " bp");
                             String connectedMers = connectedPairMers.toString(k);
                             int len = connectedMers.length();
+                            extendedLength += len;
                             if (len > longest) {
                                 longest = len;
                             }
@@ -118,6 +121,7 @@ public class PairMersExtender {
                             }
                             if (len >= minLen) {
                                 longEnough++;
+                                longEnoughBp += len;
                                 if (outputFasta) {
                                     out.write(">" + namePrefix + clusterNumber + " " + len);
                                     out.newLine();
@@ -151,10 +155,13 @@ public class PairMersExtender {
         } catch (IOException e) {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         }
-        String longestExtMessage = "Longest extended sequence:" + NumberFormat.getNumberInstance().format(longest) + "bp";
-        String totalExtendedMessage = "Total extended sequences: " + NumberFormat.getNumberInstance().format(extendedNumber);
-        String longEnoughMessage = "Reported sequences longer than " + NumberFormat.getNumberInstance().format(minLen) + "bp: "
+        String longestExtMessage = "Longest extended sequence = " + NumberFormat.getNumberInstance().format(longest) + "bp";
+        String totalExtendedMessage = "Number of extended sequences = " + NumberFormat.getNumberInstance().format(extendedNumber);
+        String totalExtendedMessage2 = "Total length of extended sequences = " + NumberFormat.getNumberInstance().format(extendedLength) + " bp";
+        String longEnoughMessage = "Number of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + "bp and longer = "
             + NumberFormat.getNumberInstance().format(longEnough);
+        String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + "bp and longer = "
+            + NumberFormat.getNumberInstance().format(longEnoughBp)+ " bp";
         if (STATS_FILE != null) {
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", longestExtMessage, TOOL_NAME), true);
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", totalExtendedMessage, TOOL_NAME), true);
@@ -163,7 +170,9 @@ public class PairMersExtender {
         }
         Reporter.report("[INFO]", longestExtMessage, TOOL_NAME);
         Reporter.report("[INFO]", totalExtendedMessage, TOOL_NAME);
+        Reporter.report("[INFO]", totalExtendedMessage2, TOOL_NAME);
         Reporter.report("[INFO]", longEnoughMessage, TOOL_NAME);
+        Reporter.report("[INFO]", longEnoughMessage2, TOOL_NAME);
     }
 
 //    public void matchAndExtendSeeds(int k, PairMersMap pairMersMap, PairMerToSeedMap pairMerToSeedMap) {
