@@ -62,7 +62,7 @@ public class PairMerToSeedMap {
         PairMer pairMer = null;
         boolean failed = false;
         try {
-            pairMer = PairMerGenerator.generatePairMer(charSequence, kmerFrom, kmerTo, frontClip);
+            pairMer = PairMerGenerator.generatePairMer(charSequence, kmerFrom, kmerTo, frontClip, (byte)1);
         } catch (NonACGTException ex) {
 //            Reporter.report("[WARNING]", ex.getMessage(), getClass().getCanonicalName());
             failed = true;

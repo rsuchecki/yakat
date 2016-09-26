@@ -48,43 +48,43 @@ public class PairMer {//implements Comparable<PairMer> {
      *
      * @param another : newly generated PairMer holding a single k-mer
      * @param inputKmersUnique : set true if no duplicate k-mers expected
+     * @param freq : k-mer frequency (known if input is pre-computed k-mers,
+     * otherwise counting is done here)
      */
-    public synchronized void addKmerSynchronized(PairMer another, boolean inputKmersUnique) {
-        if (isInvalid() || (inputKmersUnique && getStoredCount() > 1) ) {//|| (!inputKmersUnique && getStoredCount() > 2)) { //if already invalid PairMer  or more than second kmer being added
+    public synchronized void addKmerSynchronized(PairMer another, boolean inputKmersUnique, int freq) {
+        if (isInvalid() || (inputKmersUnique && (getStoredCountLeft() > 0 && getStoredCountRigth() > 0))) {//|| (!inputKmersUnique && getStoredCount() > 2)) { //if already invalid PairMer  or more than second kmer being added
             setIsInvalid();
-        } else //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to ensure that we ignore it            
-        {
-            if (!inputKmersUnique) { //i.e. k-merizing FAST[A|Q] 
-                if ((hasLeftClip() && getClipLeft() == another.getClipLeft()) || (hasRightClip() && getClipRight() == another.getClipRight())) {
-                    //fine, new k-mer is identical to a k-mer already stored
+        } else if (!inputKmersUnique) { //i.e. k-merizing FAST[A|Q] 
+            //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to take this into account       
+            if ((hasLeftClip() && getClipLeft() == another.getClipLeft()) || (hasRightClip() && getClipRight() == another.getClipRight())) {
+                //fine, new k-mer is identical to a k-mer already stored
 //                    System.err.println("Adding same kmer again");
-                } else { //it is a different k-mer
-                    if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                        setIsInvalid(); //has clip at the same end but not identical (as implied by unmet if above )
-                    } else if (!hasLeftClip() && another.hasLeftClip()) {
-                        setClipLeft(another.getClipLeft());
-                    } else if (!hasRightClip() && another.hasRightClip()) {
-                        setClipRight(another.getClipRight());
-                    } else {
-                        Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
-                    }
-                }
-                incrementStoredCount(another.hasLeftClip());
-            } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
-                if (hasBothClips()) {
-                    setIsInvalid(); //because already two different k-mers represented in this PairMer
-                } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                    setIsInvalid();
+            } else //it is a different k-mer
+             if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
+                    setIsInvalid(); //has clip at the same end but not identical (as implied by unmet if above )
                 } else if (!hasLeftClip() && another.hasLeftClip()) {
                     setClipLeft(another.getClipLeft());
                 } else if (!hasRightClip() && another.hasRightClip()) {
                     setClipRight(another.getClipRight());
                 } else {
-                    Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
+                    Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
                 }
-                incrementStoredCount(another.hasLeftClip());
+//            incrementStoredCount(another.hasLeftClip(), freq);
+        } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
+            if (hasBothClips()) {
+                setIsInvalid(); //because already two different k-mers represented in this PairMer
+            } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
+                setIsInvalid();                
+            } else if (!hasLeftClip() && another.hasLeftClip()) {
+                setClipLeft(another.getClipLeft());
+            } else if (!hasRightClip() && another.hasRightClip()) {
+                setClipRight(another.getClipRight());
+            } else {
+                Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
             }
+//            incrementStoredCount(another.hasLeftClip(), freq);
         }
+        incrementStoredCount(another.hasLeftClip(), freq);
     }
 
 //    protected final void addFirstKmer(char leftClip, String core, char rightClip) {
@@ -118,15 +118,22 @@ public class PairMer {//implements Comparable<PairMer> {
 //            storedCount++;
 //        }
 //    }
-    protected void incrementStoredCount(boolean left) {
+//    protected void incrementStoredCount(boolean left) {
+//        if (left) {
+//            if (storedCountLeft < Byte.MAX_VALUE) {
+//                storedCountLeft++;
+//            }
+//        } else {
+//            if (storedCountRigth < Byte.MAX_VALUE) {
+//                storedCountRigth++;
+//            }            
+//        }
+//    }
+    protected void incrementStoredCount(boolean left, int freq) {
         if (left) {
-            if (storedCountLeft < Byte.MAX_VALUE) {
-                storedCountLeft++;
-            }
+            storedCountLeft = (byte) Math.min(storedCountLeft + freq, Byte.MAX_VALUE);
         } else {
-            if (storedCountRigth < Byte.MAX_VALUE) {
-                storedCountRigth++;
-            }            
+            storedCountRigth = (byte) Math.min(storedCountRigth + freq, Byte.MAX_VALUE);
         }
     }
 
@@ -181,9 +188,8 @@ public class PairMer {//implements Comparable<PairMer> {
 //    protected byte getStoredCount() {
 //        return storedCount;
 //    }
-    
     protected byte getStoredCount() {
-        return (byte) Math.min(storedCountLeft+storedCountRigth,Byte.MAX_VALUE);
+        return (byte) Math.min(storedCountLeft + storedCountRigth, Byte.MAX_VALUE);
     }
 
     public byte getStoredCountLeft() {
@@ -193,8 +199,6 @@ public class PairMer {//implements Comparable<PairMer> {
     public byte getStoredCountRigth() {
         return storedCountRigth;
     }
-    
-    
 
     protected void setClipLeft(char clipLeft) {
         this.clipLeft = clipLeft;

@@ -105,6 +105,8 @@ public class KmerExtender {
         INPUT_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
         INPUT_QUEUE_SIZE = (int) optSet.getOpt("Q").getValueOrDefault();
 
+        MIN_KMER_FREQUENCY = (int) optSet.getOpt("min-frequency").getValueOrDefault();
+        
         if (optSet.getOpt("k").isUsed()) {
             setKmerLength((int) optSet.getOpt("k").getValueOrDefault());
         } else {
@@ -189,7 +191,7 @@ public class KmerExtender {
         //INPUT
         optSet.setListingGroupLabel("[Input settings - general extender]");
         optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));
-//        optSet.addOpt(new Opt('M', "min-k-mer-frequency", "Only applicable if given along input k-mers", 1).setMinValue(4).setMaxValue(2048));        
+        optSet.addOpt(new Opt('M', "min-frequency", "[IMPLEMENTING]", 1).setMinValue(1).setMaxValue((int)Byte.MAX_VALUE).setDefaultValue(1));        
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of records (k-mers or FASTQ reads or pairs depending on input) "
             + "passed to in-queue", 1024, 128, 8092));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
@@ -428,7 +430,7 @@ public class KmerExtender {
         final ExecutorService purgeMapsExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
         //INIT THREADS
         for (int i = 0; i < threads; i++) {
-            futures.add(purgeMapsExecutorService.submit(new PairMerMapPurger(mapsQueue, TOOL_NAME)));
+            futures.add(purgeMapsExecutorService.submit(new PairMerMapPurger(mapsQueue, TOOL_NAME, MIN_KMER_FREQUENCY)));
         }
         //WAIT UNTIL DONE
         purgeMapsExecutorService.shutdown();

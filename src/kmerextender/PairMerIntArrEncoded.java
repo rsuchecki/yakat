@@ -44,8 +44,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @param frontClip
      * @throws kmerextender.NonACGTException
      */
-    public PairMerIntArrEncoded(CharSequence sequence, int from, int to, boolean frontClip) throws NonACGTException {
-        addFirstKmer(sequence, from, to, frontClip);
+    public PairMerIntArrEncoded(CharSequence sequence, int from, int to, boolean frontClip, int freq) throws NonACGTException {
+        addFirstKmer(sequence, from, to, frontClip, freq);        
     }
 
     
@@ -115,7 +115,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @param frontClip
      */
 //    protected final void addFirstKmer(int leftClipAt, CharSequence sequence, int rightClipAt, int coreStart, int coreEnd) {
-    protected final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip) throws NonACGTException {
+    protected final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip, int freq) throws NonACGTException {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
             int coreStart = frontClip ? from + 1 : from;
             int coreEnd = frontClip ? to : to - 1;
@@ -136,7 +136,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             }
 
 //            incrementStoredCount();
-            incrementStoredCount(hasLeftClip());
+            incrementStoredCount(hasLeftClip(), freq);
         } else {
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }

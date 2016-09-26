@@ -106,7 +106,7 @@ public class PairMerGenerator {
      * @param frontClip
      * @return 
      */
-    public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip) throws NonACGTException{        
+    public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip, int freq) throws NonACGTException{        
             
 //        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
 //            return new PairMer1LongEncoded(leftClip, core, rightClip);
@@ -119,7 +119,7 @@ public class PairMerGenerator {
 //        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
 //            return new PairMer5LongEncoded(leftClip, core, rightClip);
 //        } else {
-            return new PairMerIntArrEncoded(sequence, kmerFrom, kmerTo, frontClip);
+            return new PairMerIntArrEncoded(sequence, kmerFrom, kmerTo, frontClip, freq);
 //        }
     }
     

@@ -83,12 +83,13 @@ public class PairMersMap extends shared.MerMap {
      * @param to
      * @param frontClip
      * @param inputKmersUnique
+     * @param freq
      */
-    public void addToPairMersMap(CharSequence sequence, int from, int to, boolean frontClip, boolean inputKmersUnique) {
+    public void addToPairMersMap(CharSequence sequence, int from, int to, boolean frontClip, boolean inputKmersUnique, int freq) {
         boolean failed = false;
         PairMer pairMer = null;
         try {
-            pairMer = PairMerGenerator.generatePairMer(sequence, from, to, frontClip);
+            pairMer = PairMerGenerator.generatePairMer(sequence, from, to, frontClip, freq);
         } catch (NonACGTException ex) {
 //            Reporter.report("[WARNING]", ex.getMessage(), getClass().getCanonicalName());
             failed = true;
@@ -99,7 +100,7 @@ public class PairMersMap extends shared.MerMap {
             //Atomic operation END
             if (previousStoredPairMer != null) {
                 //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
-                previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
+                previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique, freq);
             }
         }
     }
@@ -142,14 +143,16 @@ public class PairMersMap extends shared.MerMap {
      *
      * @return the number of elements removed
      */
-    public long purge() {
+    public long purge(int minKmerFrequency) {
         long count = 0L;
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
 
 //        int total = 0;
         while (it.hasNext()) {
             PairMer next = it.next();
-            if (next.isInvalid() || (next.getStoredCountLeft() < 1 || next.getStoredCountRigth() < 1)) {
+//            System.err.print(next.getStoredCountLeft()+"\t"+next.getStoredCountRigth());
+            if (next.isInvalid() || (next.getStoredCountLeft() < minKmerFrequency || next.getStoredCountRigth() < minKmerFrequency)) {
+//                System.err.println("\tpurge\tisInvalid="+next.isInvalid());
 //            if (next.isInvalid() || next.getStoredCount() != 2) {
 //            if (next.isInvalid() || next.getStoredCount() < 2) {
 //                System.err.println("Removing:");//\n\t"+next.getClipLeft()+"-"+next.getTmpCore()+"-"+next.getClipRight());
@@ -159,6 +162,8 @@ public class PairMersMap extends shared.MerMap {
                 pairMersSkipListMap.remove(next);
                 count++;
 //                System.err.println(next.getPairMerString(k)+" <- PURGED");
+//            } else {
+//                System.err.println("\tkeep");
             }
         }
 

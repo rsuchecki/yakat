@@ -37,11 +37,11 @@ public class PairMer4LongEncoded extends PairMer implements Comparable<PairMer4L
      * @param core
      * @param rightClip
      */
-    public PairMer4LongEncoded(char leftClip, String core, char rightClip) {
-        addFirstKmer(leftClip, core, rightClip);
+    public PairMer4LongEncoded(char leftClip, String core, char rightClip, int freq) {
+        addFirstKmer(leftClip, core, rightClip, freq);
     }
 
-    public final void addFirstKmer(char leftClip, String core, char rightClip) {
+    public final void addFirstKmer(char leftClip, String core, char rightClip, int freq) {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
             encodeCore(core);
             if (leftClip != '#') {
@@ -50,7 +50,7 @@ public class PairMer4LongEncoded extends PairMer implements Comparable<PairMer4L
             if (rightClip != '#') {
                 setClipRight(rightClip);
             }
-           incrementStoredCount(hasLeftClip());
+           incrementStoredCount(hasLeftClip(), freq);
         } else {
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }
