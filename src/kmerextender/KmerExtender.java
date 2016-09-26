@@ -189,6 +189,7 @@ public class KmerExtender {
         //INPUT
         optSet.setListingGroupLabel("[Input settings - general extender]");
         optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));
+//        optSet.addOpt(new Opt('M', "min-k-mer-frequency", "Only applicable if given along input k-mers", 1).setMinValue(4).setMaxValue(2048));        
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of records (k-mers or FASTQ reads or pairs depending on input) "
             + "passed to in-queue", 1024, 128, 8092));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",

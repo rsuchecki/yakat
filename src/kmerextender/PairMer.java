@@ -15,7 +15,6 @@
  */
 package kmerextender;
 
-import org.omg.CORBA.PRIVATE_MEMBER;
 import shared.Reporter;
 
 /**
@@ -29,7 +28,9 @@ public class PairMer {//implements Comparable<PairMer> {
 //    private int[] kmerCoreBitsArray;  //12B + len*4 Bytes 
     private char clipLeft = '#';   //2B                     ///*TODO*/: encode to 2-3b if sticking to int array
     private char clipRight = '#';  //2B                     //TODO: encode to 2-3b
-    private byte storedCount;  //1B    //switch to short since all those add up to 7 bytes, 1 wasted
+//    private byte storedCount;  //1B    //can switch to short since all those add up to 7 bytes, 1 wasted
+    private byte storedCountLeft;
+    private byte storedCountRigth;
     private boolean invalid;  //1B
     private boolean visited;//1B
     //then round to multi of 8
@@ -42,16 +43,18 @@ public class PairMer {//implements Comparable<PairMer> {
     //could save even more if encoded along core in long, 2*long etc.
     //in such case, use masks for core-comparisons that ignore these encoded fields
     /**
-     * It is assumed that the input PairMer matches this one (another.core == this.core)
+     * It is assumed that the input PairMer matches this one (another.core ==
+     * this.core)
      *
      * @param another : newly generated PairMer holding a single k-mer
      * @param inputKmersUnique : set true if no duplicate k-mers expected
      */
     public synchronized void addKmerSynchronized(PairMer another, boolean inputKmersUnique) {
-        if (isInvalid() || (inputKmersUnique && getStoredCount() > 1) || (!inputKmersUnique && getStoredCount() > 2)) { //if already invalid PairMer  or more than second kmer being added
+        if (isInvalid() || (inputKmersUnique && getStoredCount() > 1) ) {//|| (!inputKmersUnique && getStoredCount() > 2)) { //if already invalid PairMer  or more than second kmer being added
             setIsInvalid();
         } else //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to ensure that we ignore it            
-         if (!inputKmersUnique) {
+        {
+            if (!inputKmersUnique) { //i.e. k-merizing FAST[A|Q] 
                 if ((hasLeftClip() && getClipLeft() == another.getClipLeft()) || (hasRightClip() && getClipRight() == another.getClipRight())) {
                     //fine, new k-mer is identical to a k-mer already stored
 //                    System.err.println("Adding same kmer again");
@@ -65,8 +68,8 @@ public class PairMer {//implements Comparable<PairMer> {
                     } else {
                         Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
                     }
-                    incrementStoredCount();
                 }
+                incrementStoredCount(another.hasLeftClip());
             } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
                 if (hasBothClips()) {
                     setIsInvalid(); //because already two different k-mers represented in this PairMer
@@ -79,8 +82,9 @@ public class PairMer {//implements Comparable<PairMer> {
                 } else {
                     Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
                 }
-                incrementStoredCount();
+                incrementStoredCount(another.hasLeftClip());
             }
+        }
     }
 
 //    protected final void addFirstKmer(char leftClip, String core, char rightClip) {
@@ -109,9 +113,20 @@ public class PairMer {//implements Comparable<PairMer> {
         return hasLeftClip() && hasRightClip();
     }
 
-    protected void incrementStoredCount() {
-        if (storedCount < Byte.MAX_VALUE) {
-            storedCount++;
+//    protected void incrementStoredCount() {
+//        if (storedCount < Byte.MAX_VALUE) {
+//            storedCount++;
+//        }
+//    }
+    protected void incrementStoredCount(boolean left) {
+        if (left) {
+            if (storedCountLeft < Byte.MAX_VALUE) {
+                storedCountLeft++;
+            }
+        } else {
+            if (storedCountRigth < Byte.MAX_VALUE) {
+                storedCountRigth++;
+            }            
         }
     }
 
@@ -142,8 +157,8 @@ public class PairMer {//implements Comparable<PairMer> {
     }
 
     /**
-     * Output PairMer String with delimiter separating {leftClip, rightClip} from core, if delimiter = "_" then e.g.
-     * A_TCCCTTGCT_C
+     * Output PairMer String with delimiter separating {leftClip, rightClip}
+     * from core, if delimiter = "_" then e.g. A_TCCCTTGCT_C
      *
      * @param k
      * @param delimiter
@@ -163,9 +178,23 @@ public class PairMer {//implements Comparable<PairMer> {
         return invalid;
     }
 
+//    protected byte getStoredCount() {
+//        return storedCount;
+//    }
+    
     protected byte getStoredCount() {
-        return storedCount;
+        return (byte) Math.min(storedCountLeft+storedCountRigth,Byte.MAX_VALUE);
     }
+
+    public byte getStoredCountLeft() {
+        return storedCountLeft;
+    }
+
+    public byte getStoredCountRigth() {
+        return storedCountRigth;
+    }
+    
+    
 
     protected void setClipLeft(char clipLeft) {
         this.clipLeft = clipLeft;

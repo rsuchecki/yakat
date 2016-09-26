@@ -136,7 +136,7 @@ public class PairMersMap extends shared.MerMap {
     /**
      * Removes from the Map each PairMer which (i) represents ambiguous extension (>2 k-mers matching the core) or (ii)
      * has no extensions (only one k-mer matching the core) or (iii) represents 2 conflicting k-mers (matching core, but
-     * both extending in the same direction) Run only when the set/map is fully populated.
+     * both extending in the same direction) Run only after the set/map is fully populated.
      *
      * Could be parallelized by applying the purge method to subsets see .subSet()
      *
@@ -149,7 +149,9 @@ public class PairMersMap extends shared.MerMap {
 //        int total = 0;
         while (it.hasNext()) {
             PairMer next = it.next();
-            if (next.isInvalid() || next.getStoredCount() != 2) {
+            if (next.isInvalid() || (next.getStoredCountLeft() < 1 || next.getStoredCountRigth() < 1)) {
+//            if (next.isInvalid() || next.getStoredCount() != 2) {
+//            if (next.isInvalid() || next.getStoredCount() < 2) {
 //                System.err.println("Removing:");//\n\t"+next.getClipLeft()+"-"+next.getTmpCore()+"-"+next.getClipRight());
 //                for (String s : next.getHistory()) {
 //                    System.err.println("\t" + s);

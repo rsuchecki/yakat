@@ -78,8 +78,8 @@ public class PairMersSeedExtenderConsumer implements Runnable {
 //                            seedSequence.setExtended(k, extension);
 
                                     //experimenting with storing left and right extensions separately
-                                    extendSeedAndSetExtensions(connectedMers, seedSequence, k);
-                                    extendSeedAndSetExtensions(connectedMersRC, seedSequence, k);
+                                    extendSeedAndStoreExtensions(connectedMers, seedSequence, k);
+                                    extendSeedAndStoreExtensions(connectedMersRC, seedSequence, k);
                                 }
                             } else {
                                 String message = "No terminal PairMer identified in cluster @ k=" + k;
@@ -128,7 +128,7 @@ public class PairMersSeedExtenderConsumer implements Runnable {
         return seed;
     }
 
-    private void extendSeedAndSetExtensions(String connectedMers, SeedSequence seedSequence, int k) {
+    private void extendSeedAndStoreExtensions(String connectedMers, SeedSequence seedSequence, int k) {
         String seed = seedSequence.getSequenceString();
         //check both ends of the seed if k-1 end bases of the connected overlap either in forward or RC
         String connectedMersHead = connectedMers.substring(0, k);

@@ -57,7 +57,7 @@ public class PairMer2LongEncoded extends PairMer implements Comparable<PairMer2L
             if (rightClip != '#') {
                 setClipRight(rightClip);
             }
-            incrementStoredCount();
+            incrementStoredCount(hasLeftClip());
         } else {
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }

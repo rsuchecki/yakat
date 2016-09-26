@@ -135,7 +135,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
                 setClipLeft(SequenceOps.complement(sequence.charAt(to)));
             }
 
-            incrementStoredCount();
+//            incrementStoredCount();
+            incrementStoredCount(hasLeftClip());
         } else {
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }

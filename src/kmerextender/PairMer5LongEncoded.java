@@ -60,7 +60,7 @@ public final void addFirstKmer(char leftClip, String core, char rightClip) {
             if (rightClip != '#') {
                 setClipRight(rightClip);
             }
-            incrementStoredCount();
+            incrementStoredCount(hasLeftClip());
         } else {
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }
