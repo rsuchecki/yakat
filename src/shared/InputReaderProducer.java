@@ -95,6 +95,24 @@ public class InputReaderProducer implements Runnable {
      * @param RECORD_NAME
      * @param RECORD_BUFFER_SIZE
      */
+    public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, String toolName, String RECORD_NAME, int RECORD_BUFFER_SIZE) {
+        this.queue = queue;
+        this.inputFiles = inputFiles;
+        TOOL_NAME = toolName;
+        KMER_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+        FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+//        this.RECORD_NAME = RECORD_NAME;
+    }
+    
+    /**    
+     *
+     * @param queue
+     * @param inputFiles
+     * @param k
+     * @param toolName
+     * @param RECORD_NAME
+     * @param RECORD_BUFFER_SIZE
+     */
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, Integer k, String toolName, String RECORD_NAME, int RECORD_BUFFER_SIZE) {
         this.queue = queue;
         this.inputFiles = inputFiles;
