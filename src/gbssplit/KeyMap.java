@@ -37,7 +37,7 @@ import shared.Reporter;
  */
 public class KeyMap {
 
-    private ConcurrentHashMap<String, ConcurrentHashMap<String, String>> keyMap;
+    private ConcurrentHashMap<String, ConcurrentHashMap<String, Sample>> keyMap;
     private ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     private ConcurrentHashMap<String, Long> sampleToCountMap;
     private ArrayBlockingQueue<PerSampleBuffer> matchlessOutQueue ;
@@ -55,7 +55,7 @@ public class KeyMap {
         populateMap(keyFileName);
     }
 
-    public String getSample(String flowCell, String barcode) {
+    public Sample getSample(String flowCell, String barcode) {
         return keyMap.get(flowCell).get(barcode);
     }
     
@@ -65,7 +65,7 @@ public class KeyMap {
         
     public int getSamplesTotal() {
         int tot = 0;
-        for (Map.Entry<String, ConcurrentHashMap<String, String>> entrySet : keyMap.entrySet()) {            
+        for (Map.Entry<String, ConcurrentHashMap<String, Sample>> entrySet : keyMap.entrySet()) {            
             tot += entrySet.getValue().size();
         }
         return tot;
@@ -97,20 +97,20 @@ public class KeyMap {
                     }
                 }
                 if (keyMap.containsKey(flowcell)) {
-                    ConcurrentHashMap<String, String> barcodeToSample = keyMap.get(flowcell);
+                    ConcurrentHashMap<String, Sample> barcodeToSample = keyMap.get(flowcell);
                     if (barcodeToSample.containsKey(barcode)) {
                         Reporter.report("[ERROR]", "Duplicate barcode on a flowcell!!!", TOOL_NAME);
                         System.exit(1);
                     } else {
-                        barcodeToSample.put(barcode, sample);
-                        sampleToQueueMap.put(sample, new ArrayBlockingQueue<PerSampleBuffer>(OUT_Q_CAPACITY));
+                        barcodeToSample.put(barcode, new Sample(barcode, sample));
+                        sampleToQueueMap.put(sample, new ArrayBlockingQueue<>(OUT_Q_CAPACITY));
 //                        sampleToCountMap.put(sample, 0L);
                     }
                 } else {
-                    ConcurrentHashMap<String, String> barcodeToSample = new ConcurrentHashMap<>();
-                    barcodeToSample.put(barcode, sample);
+                    ConcurrentHashMap<String, Sample> barcodeToSample = new ConcurrentHashMap<>();
+                    barcodeToSample.put(barcode, new Sample(barcode, sample));
                     keyMap.put(flowcell, barcodeToSample);
-                    sampleToQueueMap.put(sample, new ArrayBlockingQueue<PerSampleBuffer>(OUT_Q_CAPACITY));
+                    sampleToQueueMap.put(sample, new ArrayBlockingQueue<>(OUT_Q_CAPACITY));
 //                    sampleToCountMap.put(sample, 0L);
                 }
             }

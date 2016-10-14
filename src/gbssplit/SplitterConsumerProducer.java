@@ -107,28 +107,23 @@ public class SplitterConsumerProducer implements Runnable {
             long singleUnderLength = 0L;
             long lines = 0L;
             while (!(list = inputQueue.take()).isEmpty()) {
-
-//            while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     lines++;
-//                    StringTokenizer tokenizer = new StringTokenizer(line);
                     String toks[] = spliPattern.split(line);
-//                    String id = tokenizer.nextToken();
-//                    ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(id.substring(1).replaceAll(":.*", ""));
-                    ConcurrentHashMap<String, String> barcodes = keyMap.getBarcodes(toks[0].substring(1).replaceAll(":.*", ""));
-
+                    ConcurrentHashMap<String, Sample> barcodes = keyMap.getBarcodes(toks[0].substring(1).replaceAll(":.*", ""));
                     if (barcodes != null) {
                         int matchingBarcodes = 0;
-                        for (Map.Entry<String, String> entrySet : barcodes.entrySet()) {
+                        for (Map.Entry<String, Sample> entrySet : barcodes.entrySet()) {
                             String barcode = entrySet.getKey();
                             if (toks[1].startsWith(barcode)) {
+                                Sample sample = entrySet.getValue();
                                 matchingBarcodes++;
-                                if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(barcode + "TGCAG")) {
+                                if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(sample.getBatcodeAndPstI())) {
+//                                if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(barcode + "TGCAG")) {
                                     notPstIStart++;
                                     break;
                                 }
-                                String sample = entrySet.getValue();
-                                PerSampleBuffer sampleBuffer = getPerSampleBuffer(sample);
+                                PerSampleBuffer sampleBuffer = getPerSampleBuffer(sample.getSampleId());
 
                                 //TRIM AND ASSESS RECORDS
                                 StringBuilder builderR1 = new StringBuilder();
@@ -146,13 +141,20 @@ public class SplitterConsumerProducer implements Runnable {
                                 }
                                 boolean trimmedMspI = false;
                                 if (TRIM_ADAPTERS) {
-                                    int trimFrom = toks[1].indexOf("CCG" + ADAPTER);
-                                    if (trimFrom >= 0) {
+//                                    int trimFrom = toks[1].indexOf("CCG" + ADAPTER);
+//                                    if (trimFrom >= 0) {
+
+                                    int idxMspI = toks[1].lastIndexOf("CCG");
+                                    String toTrim = toks[1].substring(idxMspI + 3);
+                                    if (ADAPTER.startsWith(toTrim) || toTrim.startsWith(ADAPTER)) {
+                                        toks[1] = toks[1].substring(0, idxMspI + 3);
+                                        toks[3] = toks[3].substring(0, idxMspI + 3);
+
 //                                        System.err.println(toks[1]+" <--BEFORE l="+toks[1].length());
-                                        toks[1] = toks[1].substring(0, trimFrom + 3);
+//                                        toks[1] = toks[1].substring(0, trimFrom + 3);
 //                                        System.err.println(toks[1]+" <--AFTER  l="+toks[1].length());
 //                                        System.err.println(toks[3]+" <--BEFORE l="+toks[3].length());
-                                        toks[3] = toks[3].substring(0, trimFrom + 3);
+//                                        toks[3] = toks[3].substring(0, trimFrom + 3);
 //                                        System.err.println(toks[3]+" <--AFTER  l="+toks[3].length());
                                         trimmedMspI = true;
                                     }
@@ -164,13 +166,27 @@ public class SplitterConsumerProducer implements Runnable {
                                 boolean trimmedPstI = false;
                                 if (toks.length == 8) { //PE input
                                     builderR2.append(toks[4]); //mate id                                            
+//                                    if (TRIM_BARCODE) { //technically we are trimming the barcode here, but this is in the read-through, not in R1
                                     if (TRIM_ADAPTERS) {
-                                        int trimFrom = toks[5].indexOf("CTGCA" + SequenceOps.getReverseComplementString(barcode));
-                                        if (trimFrom >= 0) {
-                                            toks[5] = toks[5].substring(0, trimFrom + 5); //TODO don't trim PstI site!
-                                            toks[7] = toks[7].substring(0, trimFrom + 5);
+                                        //TODO
+                                        //FIND nBasesPrefix+CTGCA
+                                        //IF BASES PRESENT BEYOND THE MATCH THEN TRIM THEM OFF 
+                                        int idxPstI = toks[5].lastIndexOf("CTGCA");
+//                                        int seqLen = toks[5].length();                                        
+//                                        int basesPastPstI = seqLen-idxPstI-5;
+                                        String toTrim = toks[5].substring(idxPstI + 5);
+                                        String barcodeRC = SequenceOps.getReverseComplementString(barcode);
+                                        if (barcodeRC.startsWith(toTrim) || toTrim.startsWith(barcodeRC)) {
+                                            toks[5] = toks[5].substring(0, idxPstI + 5); //+5 not to  trim the PstI site
+                                            toks[7] = toks[7].substring(0, idxPstI + 5);
                                             trimmedPstI = true;
                                         }
+//                                        int trimFrom = toks[5].indexOf("CTGCA" + SequenceOps.getReverseComplementString(barcode));
+//                                        if (trimFrom >= 0) {
+//                                            toks[5] = toks[5].substring(0, trimFrom + 5); //+5 not to  trim the PstI site
+//                                            toks[7] = toks[7].substring(0, trimFrom + 5);
+//                                            trimmedPstI = true;
+//                                        }
                                     }
                                     builderR2.append("\t").append(toks[5]); //mate seq
                                     builderR2.append("\t").append("+"); //redundant id or '+

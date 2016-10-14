@@ -207,7 +207,8 @@ public class SplitGBS {
         final ExecutorService ioExecutorService = new ThreadPoolExecutor(ioThreads, ioThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
 
         //SPAWN INPUT READING THREAD
-        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, k, TOOL_NAME, "records", IN_BUFFER_SIZE);
+//        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, k, TOOL_NAME, "records", IN_BUFFER_SIZE);
+        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, inputFilenamesList, TOOL_NAME, "records", IN_BUFFER_SIZE);
         ioFutures.add(ioExecutorService.submit(inputReaderProducer));
 
         long timeStart = System.currentTimeMillis();
