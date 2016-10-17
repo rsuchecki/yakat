@@ -37,20 +37,21 @@ public class MpileupConsumer implements Runnable {
     private final int minCoveragePerAllele;
     private final double maxPercErrAllele;
     private final double maxPercErrLocus;
+    private final double minMinorMajorRatio;
     private final boolean allWithinThresholds;
 //    private final boolean reportHets;
     private final String TOOL_NAME;
     private final PrintStream bufferedOut;
 
-    private char zeroReadsChar;
-    private char ambiguousCallChar;
+    private final char zeroReadsChar;
+    private final char ambiguousCallChar;
 
-    private Integer minSnpsToRef;
+    private final Integer minSnpsToRef;
 
-    private int minCallsHet;
-    private int maxCallsHet;
-    private int minCallsUncertain;
-    private int maxCallsUnceratin;
+    private final int minCallsHet;
+    private final int maxCallsHet;
+    private final int minCallsUncertain;
+    private final int maxCallsUnceratin;
 
     private int minMissingSamples;
     private int maxUnCalledSamples;
@@ -63,6 +64,8 @@ public class MpileupConsumer implements Runnable {
         maxPercErrAllele = (double) optSet.getOpt("A").getValueOrDefault();
         maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
 //        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
+        minMinorMajorRatio = (double) optSet.getOpt("min-minor-major-ratio").getValueOrDefault();
+         
 
         zeroReadsChar = (Character) optSet.getOpt("zero-reads-char").getValueOrDefault();
         ambiguousCallChar = (Character) optSet.getOpt("ambiguous-call-char").getValueOrDefault();
@@ -110,6 +113,9 @@ public class MpileupConsumer implements Runnable {
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     String[] toks = spliPattern.split(line);
+                    if(toks.length == 4 && toks[3].equals("0")) { 
+                        continue;
+                    }
 //                    String[] toks = line.split("\t");
                     //toks 0,1,2 are ref, position, refbase
                     char refBase = toks[2].charAt(0);
@@ -245,52 +251,6 @@ public class MpileupConsumer implements Runnable {
                 return true;
             default:
                 return false;
-        }
-    }
-
-    private char callBase(int[] bases, int maxPercAlternativeAllowed, int minCoverageThreshold) {
-        int maxCov = 0;
-        int maxPos = 0;
-        int totalDepth = 0;
-        //Identify "major allele"
-        for (int i = 1; i < bases.length; i++) {
-            if (bases[i] > maxCov) {
-                maxCov = bases[i];
-                maxPos = i;
-            }
-            totalDepth += bases[i];
-        }
-
-        double percentOfOtherBases = 1 - ((double) maxCov / totalDepth);
-
-        if (maxCov >= minCoverageThreshold) {
-            if (percentOfOtherBases > maxPercAlternativeAllowed / 100) {
-                return 'N'; //
-            }
-            return getBase(maxPos);
-        }
-        if (maxCov == 0) {
-            return ' ';
-        }
-        //If uncertain
-        return ambiguousCallChar;
-    }
-
-//    private char getIUPAC(int [] callCounts, int ) {
-//        
-//    }
-    private char getBase(int encoded) {
-        switch (encoded) {
-            case 1:
-                return 'A';
-            case 2:
-                return 'C';
-            case 3:
-                return 'G';
-            case 4:
-                return 'T';
-            default:
-                return 'N';
         }
     }
 
