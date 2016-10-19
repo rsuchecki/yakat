@@ -140,7 +140,15 @@ public class MpileupConsumer implements Runnable {
                     int hetCalls = 0;
                     for (int i = 3; i < toks.length; i += 3) {
                         try {
+                            coveragesSB.append("\t");                                                        
+                            callsSB.append("\t");
                             int coverage = Integer.parseInt(toks[i]);
+                            if(coverage == 0) {
+                                coveragesSB.append("0,0,0,0,0,0");                           
+                                callsSB.append(zeroReadsChar);
+                                continue;
+                            }
+                            
                             coverageAllSamples += coverage;
                             if (coverage >= minCoveragePerLocus && coverage <= maxCoveragePerLocus) {
                                 samplesWithinCoverage++;
@@ -149,12 +157,9 @@ public class MpileupConsumer implements Runnable {
 //                            for (int j = 0; j < bases.length; j++) {
 //                                basesAllSamples[j] += bases[j];
 //                            }
-                            coveragesSB.append("\t");
-//                            String calledBase = callBase(bases, maxPercAlternative, minCoverageThreshold);
 
                             char calledBase = getIUPAC(bases, coverage);
                             char calledBaseUpper = Character.toUpperCase(calledBase);
-//                            if (calledBase.matches("A|T|C|G")) {
 
                             if (calledBase == ambiguousCallChar) {
                                 uncertain++;
@@ -173,10 +178,8 @@ public class MpileupConsumer implements Runnable {
                                 lastCalledBase = calledBase;
 //                                samplesWithBaseCalled++;
                             }
-                            callsSB.append("\t");
                             callsSB.append(calledBase);
-//                            if (calledBase != ' ') { //' ' != ""   which may have an impact on downstream analysis
-//                            }
+                            
                             for (int j = 1; j < bases.length; j++) {
                                 coveragesSB.append(bases[j]);
                                 if (j < bases.length - 1) {
