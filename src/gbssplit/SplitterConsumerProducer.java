@@ -65,6 +65,7 @@ public class SplitterConsumerProducer implements Runnable {
     private final int MIN_LENGTH_PAIR_SUM;
     private final int MIN_LENGTH_PAIR_EACH;
     private final String ADAPTER;
+    private final int ADAPTER_PREFIX_LEN;
     private final ArrayList<Message> finalMessages;
     ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
     ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
@@ -84,6 +85,7 @@ public class SplitterConsumerProducer implements Runnable {
         ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
 
         ADAPTER = (String) optSet.getOpt("A").getValueOrDefault();
+        ADAPTER_PREFIX_LEN = (int) optSet.getOpt("adapter-prefix-length").getValueOrDefault();
         MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
         MIN_LENGTH_PAIR_EACH = (int) optSet.getOpt("e").getValueOrDefault();
         MIN_LENGTH_PAIR_SUM = (int) optSet.getOpt("s").getValueOrDefault();
@@ -106,6 +108,9 @@ public class SplitterConsumerProducer implements Runnable {
             long pairedReadUnderLen = 0L;
             long singleUnderLength = 0L;
             long lines = 0L;
+            String adapterPrefix = ADAPTER.substring(0, ADAPTER_PREFIX_LEN);
+            String msp1 = "CCG";
+//            String msp1PlusAdapterPrefix = msp1+adapterPrefix;
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     lines++;
@@ -143,21 +148,35 @@ public class SplitterConsumerProducer implements Runnable {
                                 if (TRIM_ADAPTERS) {
 //                                    int trimFrom = toks[1].indexOf("CCG" + ADAPTER);
 //                                    if (trimFrom >= 0) {
-
-                                    int idxMspI = toks[1].lastIndexOf("CCG");
-                                    String toTrim = toks[1].substring(idxMspI + 3);
-                                    if (ADAPTER.startsWith(toTrim) || toTrim.startsWith(ADAPTER)) {
-                                        toks[1] = toks[1].substring(0, idxMspI + 3);
-                                        toks[3] = toks[3].substring(0, idxMspI + 3);
-
-//                                        System.err.println(toks[1]+" <--BEFORE l="+toks[1].length());
-//                                        toks[1] = toks[1].substring(0, trimFrom + 3);
-//                                        System.err.println(toks[1]+" <--AFTER  l="+toks[1].length());
-//                                        System.err.println(toks[3]+" <--BEFORE l="+toks[3].length());
-//                                        toks[3] = toks[3].substring(0, trimFrom + 3);
-//                                        System.err.println(toks[3]+" <--AFTER  l="+toks[3].length());
-                                        trimmedMspI = true;
+                                    int idxMspI = 0;
+                                    while (idxMspI != -1) {                                         
+                                        idxMspI = toks[1].indexOf(msp1, idxMspI);
+                                        if (idxMspI != -1) {
+                                            String toTrim = toks[1].substring(idxMspI + 3);
+                                            if (adapterPrefix.startsWith(toTrim) || toTrim.startsWith(adapterPrefix)) { //AGATCGGAA
+                                                toks[1] = toks[1].substring(0, idxMspI + 3);
+                                                toks[3] = toks[3].substring(0, idxMspI + 3);
+                                                trimmedMspI = true;
+                                                break;
+                                            }
+                                            idxMspI++;
+                                        }
                                     }
+//                                    int idxMspI = toks[1].lastIndexOf("CCG");
+//
+//                                    String toTrim = toks[1].substring(idxMspI + 3);
+//                                    if (adapterPrefix.startsWith(toTrim) || toTrim.startsWith(adapterPrefix)) { //AGATCGGAA
+//                                        toks[1] = toks[1].substring(0, idxMspI + 3);
+//                                        toks[3] = toks[3].substring(0, idxMspI + 3);
+//
+////                                        System.err.println(toks[1]+" <--BEFORE l="+toks[1].length());
+////                                        toks[1] = toks[1].substring(0, trimFrom + 3);
+////                                        System.err.println(toks[1]+" <--AFTER  l="+toks[1].length());
+////                                        System.err.println(toks[3]+" <--BEFORE l="+toks[3].length());
+////                                        toks[3] = toks[3].substring(0, trimFrom + 3);
+////                                        System.err.println(toks[3]+" <--AFTER  l="+toks[3].length());
+//                                        trimmedMspI = true;
+//                                    }
                                 }
                                 builderR1.append("\t").append(toks[1]); //sequence (possibly trimmed)
                                 builderR1.append("\t").append("+"); //redundant id or '+
