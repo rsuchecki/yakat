@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package kmermatch.TODO;
+package kmermatchNOTDONE;
 
 import argparser.ArgParser;
 import argparser.Opt;

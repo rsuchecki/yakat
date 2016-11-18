@@ -52,6 +52,12 @@ public class Sequence {
         return sequenceString.length();
     }
     
+    public int getLengthUnpadded() {
+        return getUnpaddedSequenceString().length();
+    }
+    
+    
+    
     public CharSequence getFasta(boolean addLengthInDescriptionLine) {
         StringBuilder sb = new StringBuilder(">"); 
         sb.append(getId());

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package processpileup.adhoc;
+package pileupstatsmerge;
 
 import argparser.ArgParser;
 import argparser.Opt;

@@ -19,11 +19,11 @@ import argparser.ParserTest;
 import gbssplit.SplitGBS;
 import kexpression.KeXpression;
 import kmerextender.KmerExtender;
-import kmermatch.TODO.KmerMatch;
+import kmermatchNOTDONE.KmerMatch;
 import kmerger.KmerSetMerge;
 import processpileup.ProcessPileup;
 import processpileup.PileupStats;
-import processpileup.adhoc.PileupStatsMerge;
+import pileupstatsmerge.PileupStatsMerge;
 import snpmers.SnpMers;
 import vsearchprocess.MsaParserListVariants;
 
