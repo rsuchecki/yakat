@@ -31,6 +31,7 @@ public class SnpFilter {
     private final Sequence sequence1;
     private final Sequence sequence2;
     private final int snpPosition0;
+//    private final int alignmentLength;
     private final String clusterId;
     private short[] mers1; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
     private short[] mers2; //RECORD START POSITIONS OF ENCOUNTERED k-mers WHICH OVERLAP WITH THE SNP
@@ -38,8 +39,8 @@ public class SnpFilter {
 //    private HashMap<String, String> callDetails;
     private boolean valid = true;
 
-    private int uniqeMersParent1;
-    private int uniqeMersParent2;
+    private int mersParent1;
+    private int mersParent2;
 
     /**
      *
@@ -177,6 +178,18 @@ public class SnpFilter {
             }
         }
     }
+    
+    private double getMax(ArrayList<Short> nonZeroValues) {
+        if (nonZeroValues.isEmpty()) {
+            return 0;
+        } else {
+            short max = 0;
+            for (Short nonZeroValue : nonZeroValues) {
+                max = nonZeroValue > max ? nonZeroValue : max;
+            }
+            return max;
+        }
+    }
 
     public BaseCall getBaseCall(String id) {
         return snpCalls.get(id);
@@ -261,12 +274,19 @@ public class SnpFilter {
     private BaseCall call(int minTotal, int minMinor, double minCoverageRatio, double maxError) {        
         ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
         ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
-        double median1 = getMedian(nonZeroKmerFreqs1);
-        double median2 = getMedian(nonZeroKmerFreqs2);
-        double coverageRatio1 = nonZeroKmerFreqs1.size() / getUniqeMersParent1();
-        double coverageRatio2 = nonZeroKmerFreqs2.size() / getUniqeMersParent2();
+        double cov1 = getMedian(nonZeroKmerFreqs1);
+        double cov2 = getMedian(nonZeroKmerFreqs2);
+//        double cov1 = getMax(nonZeroKmerFreqs1);
+//        double cov2 = getMax(nonZeroKmerFreqs2);
+//        int uniqeMersParent1 = getUniqeMersParent1();
+//        int uniqeMersParent2 = getUniqeMersParent2();
+        if(mersParent1 < 10 &&  mersParent2 < 10) {
+            int x =0;
+        }
+        double coverageRatio1 = (double)nonZeroKmerFreqs1.size() / getMersParent1();
+        double coverageRatio2 = (double)nonZeroKmerFreqs2.size() / getMersParent2();
         //QUICKLY DISCARD IF LOW FREQUENCY/LOW COVERAGE 
-        if (median1 + median2 < minTotal || (coverageRatio1 < minCoverageRatio && coverageRatio2 < minCoverageRatio)) {
+        if (cov1 + cov2 < minTotal || (coverageRatio1 < minCoverageRatio && coverageRatio2 < minCoverageRatio)) {
             return new BaseCall(null, null);
         }
         Character base1 = getBase1();
@@ -282,14 +302,14 @@ public class SnpFilter {
             base2 = null;
         }
         //CLEAR-CUT HOMOZYGOUS CASES
-        if (median1 == 0 && coverageRatio2 >= minCoverageRatio) { //homozygous
+        if (cov1 == 0 && coverageRatio2 >= minCoverageRatio) { //homozygous
             return new BaseCall(base2, null);
-        } else if (median2 == 0 && coverageRatio1 >= minCoverageRatio) { //homozygous
+        } else if (cov2 == 0 && coverageRatio1 >= minCoverageRatio) { //homozygous
             return new BaseCall(base1, null);
         }
         
-        if (median1 >= minMinor && median2 >= minMinor && coverageRatio1 >= minCoverageRatio && coverageRatio2 >= minCoverageRatio) {
-            return new BaseCall(getBase1(), getBase2());
+        if (cov1 >= minMinor && cov2 >= minMinor && coverageRatio1 >= minCoverageRatio && coverageRatio2 >= minCoverageRatio) {
+            return new BaseCall(base1, base2);
         }
         return new BaseCall(null, null);
 
@@ -311,20 +331,20 @@ public class SnpFilter {
         valid = false;
     }
 
-    public void incrementUniqMerCount(boolean parentOne) {
+    public void incrementMerCount(boolean parentOne) {
         if (parentOne) {
-            uniqeMersParent1++;
+            mersParent1++;
         } else {
-            uniqeMersParent2++;
+            mersParent2++;
         }
     }
 
-    public int getUniqeMersParent1() {
-        return uniqeMersParent1;
+    public int getMersParent1() {
+        return mersParent1;
     }
 
-    public int getUniqeMersParent2() {
-        return uniqeMersParent2;
+    public int getMersParent2() {
+        return mersParent2;
     }
     
 

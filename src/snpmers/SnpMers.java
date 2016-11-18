@@ -32,15 +32,11 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -51,7 +47,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
-import shared.FastaReader;
 import shared.InputReaderProducer;
 import shared.Message;
 import shared.Reporter;
@@ -73,7 +68,7 @@ public class SnpMers {
     private final int WRITER_BUFFER_SIZE = 8192;
     private String parent1 = null;
     private String parent2 = null;
-    private HashMap<CharSequence, KmerLink> map;
+    private HashMap<CharSequence, ArrayList<KmerLink>> map;
     ArrayList<SnpFilter> snpFilters;
 
     private boolean DEBUG = false;
@@ -96,7 +91,8 @@ public class SnpMers {
         if (optSet.getOpt("D").isUsed()) {
             DEBUG = true;
         }
-
+        //READ IN PREVIOUSLY IDENTIFIED SET OF SNPs 
+        //AND MAP SNP-OVERLAPPING k-mers TO SNP OBJECT
         buildSnpMerMap(optSet);
         removeSnpMersPoorlyCoveredInParents(optSet); //DONE AFTER FALSE POSITIVE FILTERING
 
@@ -107,7 +103,7 @@ public class SnpMers {
             double minCoverage = (double) optSet.getOpt("filter-min-snp-coverage").getValueOrDefault();
             double maxError = (double) optSet.getOpt("filter-max-coverage-error").getValueOrDefault();
             ArrayList<String> filteringNames = threadKmersThroughMap(optSet, filteringKmersFileNames,
-                minTotal, minMinor, minCoverage, maxError);
+                    minTotal, minMinor, minCoverage, maxError);
             removeFalsePositives(filteringNames);
         }
         int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
@@ -126,19 +122,19 @@ public class SnpMers {
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet("Given a list of NIKS-derived inter-parent SNPs and the corresponding "
-            + "MSA FASTA, read k-mers from each offspring sample and record frequencies of k-mers overlapping with "
-            + "the input SNPs. These are used to call offsping base for a given parental SNP.");
+                + "sequences, read k-mers from each offspring sample and record frequencies of k-mers overlapping with "
+                + "the input SNPs. These are used to call offsping base for a given parental SNP.");
 
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
 //        optSet.addOpt(new Opt(null, "sample-ids", "Space separated sample identifiers which form the prefices of the input FASTA identifiers")
 //            .setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
         optSet.addOpt(new Opt('k', "k-mer-length", "It must match the size of the k-mers used to query the niks-snps", 1).setRequired(true).setMinValue(3).setMaxValue(255));
-        optSet.addOpt(new Opt('s', "niks-snps", "File containing the table of SNPs called by NIKS", 1));
+        optSet.addOpt(new Opt('s', "niks-snps", "File containing the table of SNPs called by NIKS", 1).setRequired(true));
 //        optSet.addOpt(new Opt('f', "niks-fasta", "The (msa) FASTA file matching the SNP information", 1));
         optSet.addOpt(new Opt('K', "per-sample-k-mers", "A set (or sets) of k-mers to be threaded through the map of k-mer-links to SNPs").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
         optSet.addOpt(new Opt('F', "filtering-k-mers", "One or more sets of k-mers, each from one homozygous cultivar. "
-            + "If both alleles of a putative SNP are present in such a set the SNP will be discarded as a likely false-positive").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
+                + "If both alleles of a putative SNP are present in such a set the SNP will be discarded as a likely false-positive").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 8192, 128, 65535));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up", 64, 1, 256));
 
@@ -148,38 +144,38 @@ public class SnpMers {
 //        optSet.addOpt(new Opt(null, "min-seqs-clustered", "Minimum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(2));
 //        optSet.addOpt(new Opt(null, "max-seqs-clustered", "Maximum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(1000));
         int footId = 1;
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(),"[Filtering-out input SNPs supported by few unique k-mers]");
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Filtering-out input SNPs supported by few unique k-mers]");
         optSet.addOpt(new Opt(null, "filter-min-uniqmers-ratio", "Remove parental SNPs if at least one allele is supported by fewer than <arg> ratio of unique"
-            + "k-mers to k", 1).setMinValue(0.01).setDefaultValue(0.25).addFootnote(footId, "There can be up to k unique k-mers overlapping a SNP."));
+                + "k-mers to max possible k-mers", 1).setMinValue(0.01).setDefaultValue(0.75).addFootnote(footId, "There can be up to min(k,distance of snp from the end of the sequence) unique k-mers overlapping a SNP."));
 
         footId++;
         String footText = "k-mer frequency corresponding to a SNP allele is obtained by taking a median of frequencies of all k-mers overlapping the underlying SNP";
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(),"[Filtering-out potential false-positive input SNPs]");
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Filtering-out potential false-positive input SNPs]");
         optSet.addOpt(new Opt(null, "filter-min-k-mer-frequency-sum", "Minimum frequency of filtering k-mers "
-            + "which overlap with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, footText));
+                + "which overlap with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, footText));
         optSet.addOpt(new Opt(null, "filter-min-k-mer-frequency-minor", "Minimum frequency of filtering k-mers "
-            + "which support the minor allele", 1).setMinValue(1).setDefaultValue(1).addFootnote(footId, footText));
+                + "which support the minor allele", 1).setMinValue(1).setDefaultValue(1).addFootnote(footId, footText));
 //        optSet.addOpt(new Opt(null, "filter-min-overlapping-k-mers", "At least <arg> filtering k-mers must overlap a locus (for each allele)", 1).setMinValue(1).setDefaultValue(1));
         optSet.addOpt(new Opt(null, "filter-min-snp-coverage", "At least <arg> fraction of unique snp-covering k-mers must be present in a filtering dataset (for each allele)", 1).setDefaultValue(0.75));
         optSet.addOpt(new Opt(null, "filter-max-coverage-error", "Maximum fraction of unique snp-covering k-mers that will be ignored as errorneous assignment and not considered for filtering", 1).setMinValue(0.00).setDefaultValue(0.05));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Variant calling and reporting]");
         optSet.addOpt(new Opt(null, "min-k-mer-frequency-sum", "Minimum frequency of k-mers which overlap "
-            + "with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(5).addFootnote(footId, footText));
+                + "with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(5).addFootnote(footId, footText));
         optSet.addOpt(new Opt(null, "min-k-mer-frequency-minor", "Minimum frequency of k-mers "
-            + "which support the minor allele", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, footText));
+                + "which support the minor allele", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, footText));
 //        optSet.addOpt(new Opt(null, "min-overlapping-k-mers", "At least <arg> k-mers must overlap a locus (for each allele)", 1).setMinValue(1).setDefaultValue(1));
         optSet.addOpt(new Opt(null, "min-snp-coverage", "At least <arg> fraction of unique snp-covering k-mers must be present in a genotyped dataset (for each allele)", 1).setDefaultValue(0.9));
         optSet.addOpt(new Opt(null, "max-coverage-error", "Maximum fraction of unique snp-covering k-mers that will be ignored as errorneous assignment and not considered for genotyping", 1).setMinValue(0.00).setDefaultValue(0.05));
 //
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(),"[Runtime and output settings]");
+        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime and output settings]");
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
         optSet.addOpt(new Opt(null, "out-fasta", "Output relevant sequences to this file (in FASTA format)", 1));
         optSet.addOpt(new Opt(null, "out-calls", "Output calls to this file ", 1).setDefaultValue("/dev/stdout"));
         optSet.addOpt(new Opt(null, "out-calls-AB", "Output calls to this file (in AB format)", 1));
         optSet.addOpt(new Opt(null, "out-calls-IUPAC", "Output calls to this file (in IUPAC format) - due to the limitations "
-            + "of this format indels will be lost", 1));
+                + "of this format indels will be lost", 1));
         optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
         optSet.addOpt(new Opt('D', "debug", "Print additional info for debugging purposes"));
 //        boolean positionalArgumentRequired = true;
@@ -195,7 +191,7 @@ public class SnpMers {
         int k = (int) optSet.getOpt("k").getValueOrDefault();
 //        HashMap<String, Sequence> sequences = shared.FastaReader.hashMapOfSequencesFromFasta(fastaFileName, null);
         BufferedReader bufferdReader = null;
-        HashMap<String, ArrayList<KmerLink>> nonUniqueLinks = new HashMap<>();
+//        HashMap<String, ArrayList<KmerLink>> nonUniqueLinks = new HashMap<>();
         try {
             String inputLine;
             if (snpsFileName.endsWith(".gz")) {
@@ -220,13 +216,19 @@ public class SnpMers {
                         Reporter.report("[WARNING]", "Ignoring " + clusterId + " (" + toks.length + " cols)", TOOL_NAME);
                     } else {
                         if (parent1 == null) {
-                            parent1 = toks[2].substring(0, toks[2].indexOf('_'));
-                            parent2 = toks[4].substring(0, toks[4].indexOf('_'));
+                            if (toks[2].contains("_")) {
+                                parent1 = toks[2].substring(0, toks[2].indexOf('_'));
+                                parent2 = toks[4].substring(0, toks[4].indexOf('_'));
+                            } else {
+                                parent1 = toks[2];
+                                parent2 = toks[4];
+                            }
                         }
                         int snpPosition = Integer.parseInt(toks[6]) - 1;
                         SnpFilter snpFilter = new SnpFilter(clusterId, new Sequence(id1, toks[10]), new Sequence(id2, toks[11]), snpPosition, TOOL_NAME);
                         snpFilters.add(snpFilter);
-                        kmerizeAndAddToMap(snpFilter, k, map, nonUniqueLinks);
+//                        kmerizeAndAddToMap(snpFilter, k, map, nonUniqueLinks);
+                        kmerizeAndAddToMap(snpFilter, k, map);
                     }
                 }
             }
@@ -245,18 +247,51 @@ public class SnpMers {
         }
         Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map, purging non-unique ones", TOOL_NAME);
         //PURGE NON-UNIQUE k-mers (these can only be non-unique due to merging of non conflicting, clustered seeds from vsearch)
-        Iterator<Map.Entry<CharSequence, KmerLink>> it = map.entrySet().iterator();
+        Iterator<Map.Entry<CharSequence, ArrayList<KmerLink>>> it = map.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry<CharSequence, KmerLink> next = it.next();
-            KmerLink kmerLink = next.getValue();
-            if (!kmerLink.isUnique()) {
+            Map.Entry<CharSequence, ArrayList<KmerLink>> next = it.next();
+            ArrayList<KmerLink> kmerLinks = next.getValue();
+            if (kmerLinks.size() > 2) {
 //                System.err.println(kmerLink.getParentSequence().getId()+" "+kmerLink.getParentSequence().getSequenceString()+" "+kmerLink.getStartPosition());
                 it.remove();
+            } else if (kmerLinks.size() == 2) {
+                KmerLink kLink0 = kmerLinks.get(0);
+                KmerLink kLink1 = kmerLinks.get(1);
+                String clusterId0 = kLink0.getSnpFilter().getClusterId();
+                String clusterId1 = kLink1.getSnpFilter().getClusterId();
+                int pos0 = 0;
+                int pos1 = 0;
+                if (clusterId0.contains(":")) { //non-NIKS, mapping derived input
+                    String[] split = clusterId0.split(":");
+                    clusterId0 = split[0];
+                    pos0 = Integer.parseInt(split[1]);
+                }
+                if (clusterId1.contains(":")) {
+                    String[] split = clusterId1.split(":");
+                    clusterId1 = split[0];
+                    pos1 = Integer.parseInt(split[1]);
+                }
+                if (clusterId0.equals(clusterId1)) {
+                    int snpPosition0 = kLink0.getSnpFilter().getSnpPosition0();
+                    int snpPosition1 = kLink1.getSnpFilter().getSnpPosition0();
+                    int left = Math.min(snpPosition0, snpPosition1);
+                    int right = Math.max(snpPosition0, snpPosition1);
+
+                    if ((pos0 == pos1 && right - left + 1 <= k) || (pos0 != pos1 && Math.max(pos0, pos1) - Math.min(pos0, pos1) + 1 <= k)) {
+//                        kLink0.getSnpFilter().incrementMerCount(kLink0.isParentOne());
+//                        kLink1.getSnpFilter().incrementMerCount(kLink1.isParentOne());
+                    } else {
+                        it.remove();
+                    }
+                }
 //            } else {
 //                kmerLink.getSnpFilter();                
-            } else {
+//            } else if (kmerLinks.size() < 2) {
+
                 //keep a tally of unique k-mers overlapping each SNP so that in genotyping this can be an upper bound required for a call 
-                kmerLink.getSnpFilter().incrementUniqMerCount(kmerLink.isParentOne());
+//                for (KmerLink kmerLink : kmerLinks) {
+//                    kmerLink.getSnpFilter().incrementMerCount(kmerLink.isParentOne());
+//                }
             }
         }
         //INVESTIGATING CASES WHERE NON-UNIQUE k-mers HAVE BEEN OBSERVED 
@@ -286,8 +321,8 @@ public class SnpMers {
     }
 
 //    private static void kmerizeAndAddToMap(CharSequence sequence, int k, int snpSite) {
-    private void kmerizeAndAddToMap(SnpFilter snpFilter, int k, HashMap<CharSequence, KmerLink> map,
-        HashMap<String, ArrayList<KmerLink>> nonUniqueLinks) {
+    private void kmerizeAndAddToMap(SnpFilter snpFilter, int k, HashMap<CharSequence, ArrayList<KmerLink>> map) { //,
+//            HashMap<String, ArrayList<KmerLink>> nonUniqueLinks) {
         //TWO PARENT SEQUENCES FOR EACH SNP
         for (int parent = 1; parent < 3; parent++) {
             Sequence parentSequence = snpFilter.getParentSequence(parent);
@@ -346,34 +381,41 @@ public class SnpMers {
 
                 int pos = i + offset; //position in the original/padded MSA sequence
                 KmerLink kmerLink = new KmerLink(snpFilter, (parent == 1), pos, !kmer.equals(canonical));
-                if (map.containsKey(canonical)) {
-                    kmerLink.setUnique(false);
+                ArrayList<KmerLink> kmerLinks = map.get(canonical);
+                if (kmerLinks == null) {
+                    kmerLinks = new ArrayList();
                 }
-                KmerLink put = map.put(canonical, kmerLink);
-                if (put != null) {
-                    String key = parentSequence.getId() + "," + put.getParentSequence().getId();
+                kmerLinks.add(kmerLink);
+                snpFilter.incrementMerCount(kmerLink.isParentOne());
+                map.put(canonical, kmerLinks);
 
-                    ArrayList<KmerLink> nonUniqList = nonUniqueLinks.getOrDefault(key, new ArrayList<KmerLink>());
-                    if (!nonUniqList.contains(kmerLink)) {
-                        nonUniqList.add(kmerLink);
-                    }
-                    if (!nonUniqList.contains(put)) {
-                        nonUniqList.add(put);
-                    }
-                    nonUniqueLinks.put(key, nonUniqList);
-//                    Reporter.report("[WARNING]", "Non-unique ["+parentSequence.getId()+","+put.getParentSequence().getId()+"] k-mer overlapping a SNP will be ignored: " + canonical, TOOL_NAME);
-//                        Reporter.report("[ERROR]", "Unexpected issue of a k-mer already present in the map: " + canonical, TOOL_NAME);
-                    if (DEBUG) {
-                        System.err.println("kmer, canonical:");
-                        System.err.println(kmer + ", " + canonical);
-//                        System.err.println("Current:\n" + parentSequence.getId() + " at0=" + startPosition);
-                        System.err.println("Current:\n" + parentSequence.getId() + " at0=" + pos);
-                        System.err.println(parentSequence.getSequenceString());
-                        System.err.println("Previous:\n" + put.getParentSequence().getId() + " at0=" + put.getStartPosition());
-                        System.err.println(put.getParentSequence().getSequenceString());
-                    }
-                }
-
+//                if (map.containsKey(canonical)) {
+//                    kmerLink.setUnique(false);
+//                }
+//                ArrayList<KmerLink> put = map.put(canonical, kmerLink);
+//                if (put != null) {
+//                    String key = parentSequence.getId() + "," + put.getParentSequence().getId();
+//
+//                    ArrayList<KmerLink> nonUniqList = nonUniqueLinks.getOrDefault(key, new ArrayList<KmerLink>());
+//                    if (!nonUniqList.contains(kmerLink)) {
+//                        nonUniqList.add(kmerLink);
+//                    }
+//                    if (!nonUniqList.contains(put)) {
+//                        nonUniqList.add(put);
+//                    }
+//                    nonUniqueLinks.put(key, nonUniqList);
+////                    Reporter.report("[WARNING]", "Non-unique ["+parentSequence.getId()+","+put.getParentSequence().getId()+"] k-mer overlapping a SNP will be ignored: " + canonical, TOOL_NAME);
+////                        Reporter.report("[ERROR]", "Unexpected issue of a k-mer already present in the map: " + canonical, TOOL_NAME);
+//                    if (DEBUG) {
+//                        System.err.println("kmer, canonical:");
+//                        System.err.println(kmer + ", " + canonical);
+////                        System.err.println("Current:\n" + parentSequence.getId() + " at0=" + startPosition);
+//                        System.err.println("Current:\n" + parentSequence.getId() + " at0=" + pos);
+//                        System.err.println(parentSequence.getSequenceString());
+//                        System.err.println("Previous:\n" + put.getParentSequence().getId() + " at0=" + put.getStartPosition());
+//                        System.err.println(put.getParentSequence().getSequenceString());
+//                    }
+//                }
                 if (DEBUG) {
                     for (int j = 0; j < i; j++) {
                         System.err.print(" ");
@@ -389,7 +431,7 @@ public class SnpMers {
     }
 
     private ArrayList<String> threadKmersThroughMap(OptSet optSet, ArrayList<String> kmersFileNames,
-        int minTotal, int minMinor, double minCoverage, double minError) {
+            int minTotal, int minMinor, double minCoverage, double minError) {
         ArrayList<String> samples = new ArrayList<>();
         int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
         int IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
@@ -428,7 +470,7 @@ public class SnpMers {
         ArrayList<Message> finalMessages = new ArrayList<>(threads * 5);
 //        for (int i = 0; i < threads; i++) {
         futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, snpFilters,
-            minTotal, minMinor, minCoverage, minError)));
+                minTotal, minMinor, minCoverage, minError)));
 //        }
         execService.shutdown();
         ioExecutorService.shutdown();
@@ -474,7 +516,7 @@ public class SnpMers {
                     invalid++;
                     if (DEBUG) {
                         Reporter.report("[INFO]", "SNV filtered-out " + snpFilter.getClusterId() + " "
-                            + snpFilter.getSequence1().getId() + " " + snpFilter.getSequence2().getId() + " at " + snpFilter.getSnpPosition0(), TOOL_NAME);
+                                + snpFilter.getSequence1().getId() + " " + snpFilter.getSequence2().getId() + " at " + snpFilter.getSnpPosition0(), TOOL_NAME);
 //                    System.err.println("Call: " + snpFilter.getBaseCall(sample));
                     }
                     break; //ensures we only invalidate a snp once
@@ -502,28 +544,56 @@ public class SnpMers {
 
     private void removeSnpMersPoorlyCoveredInParents(OptSet optSet) {
         int k = (int) optSet.getOpt("k").getValueOrDefault();
-        double minUniq = (double) optSet.getOpt("filter-min-uniqmers-ratio").getValueOrDefault();
+        double minUniqRatio = (double) optSet.getOpt("filter-min-uniqmers-ratio").getValueOrDefault();
         Iterator<SnpFilter> iterator = snpFilters.iterator();
         int invalid = 0;
+        System.err.println("P1\tP2\tID\tpos\tpos_rev");
         while (iterator.hasNext()) {
             SnpFilter snpFilter = iterator.next();
-            int uniqeMersParent1 = snpFilter.getUniqeMersParent1();
+            int uniqeMersParent1 = snpFilter.getMersParent1();
 //            if (snpFilter.getBase1() == '-') {
 //                uniqeMersParent1++;
 //            }
-            int uniqeMersParent2 = snpFilter.getUniqeMersParent2();
+            int uniqeMersParent2 = snpFilter.getMersParent2();
 //            if (snpFilter.getBase2() == '-') {6
 //                uniqeMersParent2++;
 //            }
-            double uniqCov1 = (double) uniqeMersParent1 / k;
-            double uniqCov2 = (double) uniqeMersParent2 / k;
-            if (uniqCov1 < minUniq || uniqCov2 < minUniq) {
-                System.out.println(uniqeMersParent1 + "\t" + uniqeMersParent2+ "\t"+snpFilter.getClusterId()+"\t"+(snpFilter.getSnpPosition0()+1));
+//            System.err.println();
+            int lengthUnpadded1 = snpFilter.getSequence1().getLengthUnpadded();
+            int lengthUnpadded2 = snpFilter.getSequence2().getLengthUnpadded();
+            int positionUnpadded1 = snpFilter.getSnpPosition0UnpaddedSeq1();
+            int positionUnpadded2 = snpFilter.getSnpPosition0UnpaddedSeq2();
+            
+//            int maxUniq1 = Math.min(positionUnpadded1 + 1, lengthUnpadded1 - positionUnpadded1);
+//            int maxUniq2 = Math.min(positionUnpadded2 + 1, lengthUnpadded2 - positionUnpadded2);
+            int leftDelatK1 = k - positionUnpadded1-1;
+            int rightDelatK1 = k - (lengthUnpadded1 - positionUnpadded1);
+            int maxUniq1 = k - Math.max(leftDelatK1, 0) - Math.max(rightDelatK1, 0);
+            int leftDelatK2 = k - positionUnpadded2-1;
+            int rightDelatK2 = k - (lengthUnpadded2 - positionUnpadded2);
+            int maxUniq2 = k - Math.max(leftDelatK2, 0) - Math.max(rightDelatK2, 0);
+            
+            maxUniq1 = k < maxUniq1 ? k : maxUniq1;
+            maxUniq2 = k < maxUniq2 ? k : maxUniq2;
+            double uniqCov1 = (double) uniqeMersParent1 / maxUniq1;
+            double uniqCov2 = (double) uniqeMersParent2 / maxUniq2;
+
+            if (uniqCov1 < minUniqRatio || uniqCov2 < minUniqRatio) {
+                System.err.println("Removing\t" + uniqeMersParent1 + " of " + maxUniq1 + "\t" + uniqeMersParent2 + " of " + maxUniq2+ "\t" 
+                        + snpFilter.getClusterId() + "\t" + (snpFilter.getSnpPosition0UnpaddedSeq1()+ 1) + "\t" 
+                        + (snpFilter.getSequence1().getLength() - snpFilter.getSnpPosition0UnpaddedSeq2())+ "\t"
+                        + snpFilter.getSequence1().getSequenceString() + "\t" +snpFilter.getSequence2().getSequenceString());
                 snpFilter.setInvalid();
                 invalid++;
+            } else {
+//                System.err.println("KEEP\t" + uniqeMersParent1 + " of " + maxUniq1 + "\t" + uniqeMersParent2 + " of " + maxUniq2+ "\t" 
+//                        + snpFilter.getClusterId() + "\t" + (snpFilter.getSnpPosition0UnpaddedSeq1()+ 1) + "\t" 
+//                        + (snpFilter.getSequence1().getLength() - snpFilter.getSnpPosition0UnpaddedSeq2())+ "\t"
+//                        + snpFilter.getSequence1().getSequenceString() + "\t" +snpFilter.getSequence2().getSequenceString());
+//                System.out.print("");
             }
         }
-        Reporter.report("[INFO]", "Filtered-out " + invalid + " SNPs due to unique k-mer coverage under " + minUniq, TOOL_NAME);
+        Reporter.report("[INFO]", "Filtered-out " + invalid + " SNPs due to unique k-mer coverage under " + minUniqRatio, TOOL_NAME);
     }
 
     private void reportResults(ArrayList<String> samples, String outFile, OutFmt fmt) {
