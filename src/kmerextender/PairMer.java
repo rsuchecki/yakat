@@ -52,7 +52,8 @@ public class PairMer {//implements Comparable<PairMer> {
      * otherwise counting is done here)
      */
     public synchronized void addKmerSynchronized(PairMer another, boolean inputKmersUnique, int freq) {
-        if (isInvalid() || (inputKmersUnique && (getStoredCountLeft() > 0 && getStoredCountRigth() > 0))) {//|| (!inputKmersUnique && getStoredCount() > 2)) { //if already invalid PairMer  or more than second kmer being added
+        //if already invalid PairMer  or more than second kmer being added
+        if (isInvalid() || (inputKmersUnique && (getStoredCountLeft() > 0 && getStoredCountRigth() > 0))) { 
             setIsInvalid();
         } else if (!inputKmersUnique) { //i.e. k-merizing FAST[A|Q] 
             //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to take this into account       
@@ -61,7 +62,7 @@ public class PairMer {//implements Comparable<PairMer> {
 //                    System.err.println("Adding same kmer again");
             } else //it is a different k-mer
              if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                    setIsInvalid(); //has clip at the same end but not identical (as implied by unmet if above )
+                    setIsInvalid(); //has clip at the same end but not identical 
                 } else if (!hasLeftClip() && another.hasLeftClip()) {
                     setClipLeft(another.getClipLeft());
                 } else if (!hasRightClip() && another.hasRightClip()) {

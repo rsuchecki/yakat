@@ -24,6 +24,7 @@ import kmerger.KmerSetMerge;
 import processpileup.ProcessPileup;
 import processpileup.PileupStats;
 import pileupstatsmerge.PileupStatsMerge;
+import seedmers.SeedMers;
 import snpmers.SnpMers;
 import vsearchprocess.MsaParserListVariants;
 
@@ -59,6 +60,8 @@ public class MerUtensils {
             new ParserTest(this.getClass().getSimpleName(), "test", args);
         } else if (args.length != 0 && args[0].matches("sn(i)?pmers")) {
             new SnpMers(args, name, "snpmers");
+        } else if (args.length != 0 && args[0].matches("s(eed)?mers")) {
+            new SeedMers(args, name, "seedmers");
         } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {
 //            new (args, name, "vclustersvars");
             new MsaParserListVariants(args, name, "vclust");
@@ -88,6 +91,7 @@ public class MerUtensils {
         System.out.println("   pmpileup      : count and call bases from mpileup");
         System.out.println("   pileupstats   : extract some stats from (m)pileup");
         System.out.println("   snpmers       : given parental SNPs and the corresponding FASTA sequences from NIKS, call F2s genotypes by overlapping their k-mers with parental SNP sequences ");
+        System.out.println("   seedmers      : given seed seequences interrogare sets of k-mers to genotype presumed mutations at positions k bases from the seed edges");
         System.out.println("   vclusters     : call variants from vsearch clustering msa output");
 //        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");
         System.out.println("   version       : print the version and build time then exit");

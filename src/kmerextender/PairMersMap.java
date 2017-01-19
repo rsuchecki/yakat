@@ -105,7 +105,7 @@ public class PairMersMap extends shared.MerMap {
 //                System.err.println("Kmer - decode mismtach "+canonicalKmer+" "+canonicalDecoded);
 //            }
         } catch (NonACGTException ex) {
-            Reporter.report("[WARNING]", ex.getMessage(), getClass().getCanonicalName());
+//            Reporter.report("[WARNING]", ex.getMessage(), getClass().getCanonicalName());
             failed = true;
         }
         if (!failed) {
