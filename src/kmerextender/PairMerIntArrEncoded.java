@@ -45,11 +45,9 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @throws kmerextender.NonACGTException
      */
     public PairMerIntArrEncoded(CharSequence sequence, int from, int to, boolean frontClip, int freq) throws NonACGTException {
-        addFirstKmer(sequence, from, to, frontClip, freq);        
+        addFirstKmer(sequence, from, to, frontClip, freq);
     }
 
-    
-    
 //    /**
 //     * Proper constructor
 //     *
@@ -64,6 +62,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * Does not generate a complete PairMer, just the core, for Set/Maps lookups
      *
      * @param kmerCoreOnly
+     * @throws kmerextender.NonACGTException
      */
     public PairMerIntArrEncoded(String kmerCoreOnly) throws NonACGTException {
 //        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
@@ -75,11 +74,12 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * Does not generate a complete PairMer, just the core, for Set/Maps lookups
      *
      * @param encodedKmerCoreOnly
+     * @param coreLen
      */
     public PairMerIntArrEncoded(int[] encodedKmerCoreOnly, int coreLen) {
 //        String decodeCore = decodeCore(coreLen, encodedKmerCoreOnly);
-        
-        storeCanonical(encodedKmerCoreOnly, recodeInReverseComplement(coreLen, encodedKmerCoreOnly, false), coreLen+1);
+
+        storeCanonical(encodedKmerCoreOnly, recodeInReverseComplement(coreLen, encodedKmerCoreOnly, false));
 //        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
 //        encodeCoreCanonical(kmerCoreOnly, 0, kmerCoreOnly.length() - 1);
 //        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
@@ -152,10 +152,12 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         int hash = 3;
         hash = 79 * hash + Arrays.hashCode(this.kmerCoreBitsArray);
         return hash;
+//        return decodeCore(44).hashCode();
     }
 
     @Override
     public int compareTo(PairMerIntArrEncoded anotherKmer) {
+//        return decodeCore(44).compareTo(anotherKmer.decodeCore(44));
         int[] bitArrayAnother = anotherKmer.getKmerCoreBitsArray();
         for (int i = 0; i < kmerCoreBitsArray.length; i++) {
             try {
@@ -181,24 +183,32 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      *
      * @param forward
      * @param reverseComplement
-     * @return true if stored in forward orientation, false if in reverse-complement
+     * @return true if stored in forward orientation, false if in
+     * reverse-complement
      */
-    public final boolean storeCanonical(int[] forward, int[] reverseComplement, int k) {
+    public final boolean storeCanonical(int[] forward, int[] reverseComplement) { //, String tmpCore) {
 
+//        String canonical = SequenceOps.getCanonical(tmpCore);
         for (int i = 0; i < forward.length; i++) {
             if (forward[i] < reverseComplement[i]) {
                 break;
             } else if (forward[i] > reverseComplement[i]) {
                 kmerCoreBitsArray = reverseComplement;
+//                if(canonical.equals(tmpCore)) {
+//                    System.err.println("Cannonical storage error "+tmpCore+" "+canonical);
+//                }
                 return false;
             }
         }
+//        if(!canonical.equals(tmpCore)) {
+//            System.err.println("Cannonical storage error "+tmpCore+" "+canonical);
+//        }
         kmerCoreBitsArray = forward;
         return true;
     }
-    
+
     public final boolean isCanonical(int[] encoded, int k) {
-        int[] reverseComplement =recodeInReverseComplement(k-1, encoded, false);
+        int[] reverseComplement = recodeInReverseComplement(k - 1, encoded, false);
         for (int i = 0; i < encoded.length; i++) {
             if (encoded[i] < reverseComplement[i]) {
                 break;
@@ -208,7 +218,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         }
         return true;
     }
-    
+
     public int[] whichCanonical(int[] encoded, int[] reverseComplement, int k) {
         for (int i = 0; i < encoded.length; i++) {
             if (encoded[i] < reverseComplement[i]) {
@@ -219,8 +229,6 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         }
         return encoded;
     }
-    
-    
 
     public int[] getKmerCoreBitsArray() {
         return kmerCoreBitsArray;
@@ -266,7 +274,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         int firstReadChunkLength = encodedSequenceLength * 2 % INT_LENGTH;
         int writeBit = 0;
         int writeChunk = 0; //= rc.length - 1;
-        if(debug) {
+        if (debug) {
             System.err.println("Read: ");
         }
         for (int i = kmerCoreBitsArray.length - 1; i > -1; --i) {
@@ -278,8 +286,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             if (writeChunk == 0 && firstReadChunkLength != 0) {
                 stopWritingBitsAt = firstReadChunkLength;
             }
-            if(debug) {
-                System.out.println("Reading from i="+i+" "+kmerCoreBitsArray[i]+" stop at "+stopReadingBitsAt);
+            if (debug) {
+                System.out.println("Reading from i=" + i + " " + kmerCoreBitsArray[i] + " stop at " + stopReadingBitsAt);
             }
             for (int j = 0; j < stopReadingBitsAt; j += 2) {
                 int b2 = (kmerCoreBitsArray[i] & (1 << j)) >> j;
@@ -288,7 +296,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //                    int x =0;
 //                }
 //                try {
-                    rc[writeChunk] <<= 1;
+                rc[writeChunk] <<= 1;
 //                } catch (IndexOutOfBoundsException e) {
 //                    String forwardCore = decodeCore(encodedSequenceLength, kmerCoreBitsArray);
 ////                    String reverseCore = decodeCore(encodedSequenceLength, reverseComplement);
@@ -301,8 +309,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //                    e.printStackTrace();
 //                    System.exit(1);
 //                }
-                if(debug) {
-                    System.err.print(b1+""+b2+" ");
+                if (debug) {
+                    System.err.print(b1 + "" + b2 + " ");
                 }
                 if (b1 == 1 && b2 == 1) {
 //                    rc[writeChunk]++;
@@ -321,8 +329,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
                 }
 //                System.err.println("Written to "+writeBit+" @ "+writeChunk);
                 writeBit++;
-                if(debug) {
-                    System.out.println("Written to complement of "+b1+""+b2+" to "+writeBit+" in "+writeChunk);
+                if (debug) {
+                    System.out.println("Written to complement of " + b1 + "" + b2 + " to " + writeBit + " in " + writeChunk);
                 }
                 if ((writeChunk == 0 && writeBit >= stopWritingBitsAt / 2) || (writeChunk > 0 && writeBit >= INT_LENGTH / 2)) {
 //                    --writeChunk;
@@ -331,7 +339,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
                 }
             }
         }
-        if(debug) {
+        if (debug) {
             System.err.println();
         }
 //         String forwardCore = decodeCore(encodedSequenceLength, kmerCoreBitsArray);
@@ -410,8 +418,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //        }
 //    }
     /**
-     * Encode kmer core in it's two possible representations (forward, rev-comp) but store canonical representation only
-     * (decided by lex order)
+     * Encode kmer core in it's two possible representations (forward, rev-comp)
+     * but store canonical representation only (decided by lex order)
      *
      * @param sequence
      * @param from inclusive
@@ -480,8 +488,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
                         //00 in Reverse-Complement                        
                         positionInIntRc += 2;
                         break;
-                    default:                        
-                        String message = "Failed ecoding kmerstring to int array. Offending char: " + sequence.charAt(position)+" in "+ sequence;
+                    default:
+                        String message = "Failed ecoding kmerstring to int array. Offending char: " + sequence.charAt(position) + " in " + sequence;
                         throw new NonACGTException(message);
 //                        System.err.println();
 //                        System.err.println("Offending char: " + sequence.charAt(position));
@@ -496,13 +504,14 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             positionInInt = 0;
         }
 
-        return storeCanonical(kmerCoreBitsArray, kmerCoreBitsArrayRC, stringLength);
+        return storeCanonical(kmerCoreBitsArray, kmerCoreBitsArrayRC); //, sequence.subSequence(from , to+1).toString());
     }
 
     /**
      * UNUSED
+     *
      * @param k
-     * @return 
+     * @return
      */
     @Override
     public PairMer getOtherPairmerCoreLeft(int k) {
@@ -514,7 +523,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //            printPaddedEncoded(k, kmerCoreBitsArray);
             //SHIFT BITS RIGHT TWICE TO DROP 2 RIGHTMOST BITS
             //SET 2 LEFTMOST BITS TO THE VALUE OF CLIP-LEFT
-            return new PairMerIntArrEncoded(shiftBitsRightAndAddLeftClip(kmerCoreBitsArray, k - 1), k-1);
+            return new PairMerIntArrEncoded(shiftBitsRightAndAddLeftClip(kmerCoreBitsArray, k - 1), k - 1);
 //            int[] leftClipCore = shiftBitsRightAndAddLeftClip(kmerCoreBitsArray, k - 1);
 //            int[] rightClipCore = shiftBitsLeftAndAddRightClip(kmerCoreBitsArray, k - 1);
 //            String[] s = new String []{decodeCore(k-1, leftClipCore),decodeCore(k-1, rightClipCore)};
@@ -536,21 +545,23 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 
     /**
      * UNUSED
+     *
      * @param k
-     * @return 
+     * @return
      */
     @Override
     public PairMer getOtherPairmerCoreRight(int k) {
         if (!isInvalid() && getStoredCount() == 2) {
-            return new PairMerIntArrEncoded(shiftBitsLeftAndAddRightClip(kmerCoreBitsArray, k - 1), k-1);
+            return new PairMerIntArrEncoded(shiftBitsLeftAndAddRightClip(kmerCoreBitsArray, k - 1), k - 1);
         }
         return null;
     }
 
     /**
-     * Method intended to extracting "core" which can then be used as a key for finding neighboring pairMer in the
-     * implicit de Brujin graph; For example, given a pairMer A_TTC_G (leftClip_core_rightClip) the method should return
-     * encoded representation of ATTC
+     * Method intended to extracting "core" which can then be used as a key for
+     * finding neighboring pairMer in the implicit de Brujin graph; For example,
+     * given a pairMer A_TTC_G (leftClip_core_rightClip) the method should
+     * return encoded representation of ATTC
      *
      * @param kmerCoreBitsArray
      * @param coreLength

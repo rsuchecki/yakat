@@ -83,7 +83,7 @@ public class PairMer {//implements Comparable<PairMer> {
                 Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
             }
 //            incrementStoredCount(another.hasLeftClip(), freq);
-        }
+        }        
         incrementStoredCount(another.hasLeftClip(), freq);
     }
 
@@ -165,7 +165,7 @@ public class PairMer {//implements Comparable<PairMer> {
 
     /**
      * Output PairMer String with delimiter separating {leftClip, rightClip}
-     * from core, if delimiter = "_" then e.g. A_TCCCTTGCT_C
+     * from core, if e.g. delimiter = "_" then  return A_TCCCTTGCT_C
      *
      * @param k
      * @param delimiter

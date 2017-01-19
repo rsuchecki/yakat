@@ -35,9 +35,10 @@ public class PairMerMapPopulatorConsumer implements Runnable {
 //    private final Integer KMER_LENGTH;
     private final ArrayList<Integer> kList;
     private final boolean SKIP_TERMINAL_BASES;
+//    private long pairMersGenerated;
 
     public PairMerMapPopulatorConsumer(BlockingQueue<List<String>> queue, PairMerMaps pairMerMaps,
-        boolean splitInputSequenceintoKmers, ArrayList<Integer> kList, Integer minFreq, boolean skipTerminalBases) {
+            boolean splitInputSequenceintoKmers, ArrayList<Integer> kList, Integer minFreq, boolean skipTerminalBases) {
         this.queue = queue;
         this.pairMersMaps = pairMerMaps;
         this.SPLIT_INPUT_INTO_KMERS = splitInputSequenceintoKmers;
@@ -90,20 +91,23 @@ public class PairMerMapPopulatorConsumer implements Runnable {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+//        pairMersMaps.addToTotalPairMersGenerated(pairMersGenerated);
     }
 
     private boolean addKmerToMap(CharSequence kmerString, int freq) {
         try {
 //            System.err.println("");
 //            System.err.println(" "+kmerString+" <-Generating from");
-            pairMersMaps.getPairMersMap(kmerString.length()).addToPairMersMap(kmerString, 0, kmerString.length() - 1, true, !SPLIT_INPUT_INTO_KMERS, freq);
-            pairMersMaps.getPairMersMap(kmerString.length()).addToPairMersMap(kmerString, 0, kmerString.length() - 1, false, !SPLIT_INPUT_INTO_KMERS, freq);
-
+//            synchronized (KmerExtender.class) {
+                pairMersMaps.getPairMersMap(kmerString.length()).addToPairMersMap(kmerString, 0, kmerString.length() - 1, true, !SPLIT_INPUT_INTO_KMERS, freq);
+                pairMersMaps.getPairMersMap(kmerString.length()).addToPairMersMap(kmerString, 0, kmerString.length() - 1, false, !SPLIT_INPUT_INTO_KMERS, freq);
+//            }
+//            pairMersGenerated+=2;
         } catch (OutOfMemoryError e) {
 //            Reporter.report("[ERROR]", "Out of memory error !");
             pairMersMaps.getPairMersMap(kmerString.length()).setOutOfMemory();
             try {
-                queue.put(new ArrayList<String>());
+                queue.put(new ArrayList<>());
             } catch (InterruptedException ex) {
                 System.err.println(ex.getMessage());
             }
@@ -124,7 +128,7 @@ public class PairMerMapPopulatorConsumer implements Runnable {
                 }
                 for (int i = startAt; i < maxKmer; i++) {
 //                String s = (String) sequence.subSequence(i, i + KMER_LENGTH);
-                    pairMersMaps.getPairMersMap(k).addToPairMersMap(sequence, i, i + k - 1, true, !SPLIT_INPUT_INTO_KMERS,  1);
+                    pairMersMaps.getPairMersMap(k).addToPairMersMap(sequence, i, i + k - 1, true, !SPLIT_INPUT_INTO_KMERS, 1);
                     pairMersMaps.getPairMersMap(k).addToPairMersMap(sequence, i, i + k - 1, false, !SPLIT_INPUT_INTO_KMERS, 1);
                 }
             } catch (OutOfMemoryError e) {

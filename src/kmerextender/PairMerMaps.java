@@ -28,6 +28,7 @@ public class PairMerMaps {
     private final ConcurrentHashMap<Integer, PairMersMap> kSizeToPairMersMap;
     private final ArrayList<Integer> kSizes;
     private final String TOOL_NAME;
+    private long totalPairMersGenerated;
 
     public PairMerMaps(ArrayList<Integer> kSizes, String TOOL_NAME) {
         this.TOOL_NAME = TOOL_NAME;
@@ -40,7 +41,12 @@ public class PairMerMaps {
         }
     }
 
-    public PairMersMap getPairMersMap(int k) {
+    /**
+     *
+     * @param k
+     * @return
+     */
+    public synchronized PairMersMap getPairMersMap(int k) {
         PairMersMap map = kSizeToPairMersMap.get(k);
         if (map == null) {
             map = new PairMersMap(k);
@@ -52,6 +58,16 @@ public class PairMerMaps {
         return map;
     }
 
+    public synchronized void addToTotalPairMersGenerated(long add) {
+        totalPairMersGenerated += add;
+    }
+
+    public long getTotalPairMersGenerated() {
+        return totalPairMersGenerated;
+    }
+    
+    
+    
     private synchronized void addKValue(int k) {
         if (!kSizes.contains(k)) { //might have been added by input reader, 
 ////            System.err.print("\n" + kSizes.size() + " kSizes:");

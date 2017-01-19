@@ -15,8 +15,6 @@
  */
 package kmerextender;
 
-import shared.SequenceOps;
-
 /**
  * One of the two representations of a k-mer, with one of the ends (typically 1
  * base) stored separately from the reminder (core - typically k-1 bases). The
@@ -104,7 +102,9 @@ public class PairMerGenerator {
      * @param kmerFrom
      * @param kmerTo inclusive
      * @param frontClip
+     * @param freq
      * @return 
+     * @throws kmerextender.NonACGTException 
      */
     public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip, int freq) throws NonACGTException{        
             
@@ -130,6 +130,7 @@ public class PairMerGenerator {
      * @param core, which will be converted to its canonical form
      * @param k, used to encode pairMer using the correct data structure
      * @return PairMer to be used for interrogating a Map
+     * @throws kmerextender.NonACGTException
      */
     public static PairMer getPairMer(String core, int k) throws NonACGTException {
 //        if (k - 1 <= MAX_1LONG_ENCODE) {

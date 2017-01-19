@@ -63,7 +63,7 @@ public class KmerExtender {
     private Integer KMER_LENGTH_MAX;
     private Integer KMER_LENGTH_STEP;
     private SeedSequences seedSequences;
-    private Integer MIN_KMER_FREQUENCY;
+    private Integer MIN_KMER_FREQUENCY = 1; //PLANNED but not really used
     private int MAX_THREADS;
     private int INPUT_BUFFER_SIZE;
     private int INPUT_QUEUE_SIZE;
@@ -105,7 +105,7 @@ public class KmerExtender {
         INPUT_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
         INPUT_QUEUE_SIZE = (int) optSet.getOpt("Q").getValueOrDefault();
 
-        MIN_KMER_FREQUENCY = (int) optSet.getOpt("min-frequency").getValueOrDefault();
+//        MIN_KMER_FREQUENCY = (int) optSet.getOpt("min-frequency").getValueOrDefault();
         
         if (optSet.getOpt("k").isUsed()) {
             setKmerLength((int) optSet.getOpt("k").getValueOrDefault());
@@ -191,9 +191,9 @@ public class KmerExtender {
         //INPUT
         optSet.setListingGroupLabel("[Input settings - general extender]");
         optSet.addOpt(new Opt('k', "k-mer-length", "Required only if input other than a list of k-mers", 1).setMinValue(4).setMaxValue(2048));
-        optSet.addOpt(new Opt('M', "min-frequency", "[IMPLEMENTING]", 1).setMinValue(1).setMaxValue((int)Byte.MAX_VALUE).setDefaultValue(1));        
+//        optSet.addOpt(new Opt('M', "min-frequency", "[IMPLEMENTING]", 1).setMinValue(1).setMaxValue((int)Byte.MAX_VALUE).setDefaultValue(1));        
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of records (k-mers or FASTQ reads or pairs depending on input) "
-            + "passed to in-queue", 1024, 128, 8092));
+            + "passed to in-queue", 1024, 1, 8092));
         optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
             2, 1, 256));
 //        optSet.addOpt(new Opt('m', "min-frequency", "....", 1,1,Integer.MAX_VALUE));
@@ -247,7 +247,7 @@ public class KmerExtender {
         readKmersAndPopulatePairMersMaps(pairMerMaps);
         for (Integer k : kSizes) {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
+            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.size()), TOOL_NAME);
         }
 
         //RELEASE SOME MEMORY
@@ -408,6 +408,7 @@ public class KmerExtender {
 //            printStatus("Reference set n = " + NumberFormat.getNumberInstance().format(clipMersMap.getClipMersMap().size()));
             System.exit(1);
         }
+        
 
 //        return kReturn;
     }
@@ -539,12 +540,12 @@ public class KmerExtender {
         for (Integer k : kSizes) {
 //            Reporter.report("[INFO]", "Seed-mers map populated, k=" + k, TOOL_NAME);
 
-            Iterator<PairMer> it = trimmedSeedPairMerMaps.getPairMersMap(k).getPairMersSkipListMap().keySet().iterator();
+            Iterator<PairMer> it = trimmedSeedPairMerMaps.getPairMersMap(k).getPairMersMap().keySet().iterator();
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 
             long removedCount = 0L;
             while (it.hasNext()) {
-                if (pairMersMap.getPairMersSkipListMap().remove(it.next()) != null) {
+                if (pairMersMap.getPairMersMap().remove(it.next()) != null) {
                     removedCount++;
                 }
             }

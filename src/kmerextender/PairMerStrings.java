@@ -29,7 +29,8 @@ public class PairMerStrings {
         if (!mer.isInvalid()) {
 
             String decodedCore = mer.decodeCore(k - 1);
-            StringBuilder sb1 = new StringBuilder().append(mer.getClipLeft());
+            StringBuilder sb1 = new StringBuilder();
+            sb1.append(mer.getClipLeft());
             sb1.append(decodedCore);
             this.kmer1String = sb1.toString();
 

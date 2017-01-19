@@ -36,6 +36,14 @@ public class ConnectedPairMers {
     private PairMerNode terminal2;
     private PairMerNode singletonNode;
     private final HashMap<PairMer, PairMerNode> pairMerNodes = new HashMap<>();
+//    ArrayList<PairMer> connectedPairMersTemp = new ArrayList<>();
+
+    String DEBUG_FILE;
+    private boolean bug;
+
+    public ConnectedPairMers(String DEBUG_FILE) {
+        this.DEBUG_FILE = DEBUG_FILE;
+    }
 
     /**
      * Given a PairMer recursively follows the implicit connections to generate
@@ -47,6 +55,8 @@ public class ConnectedPairMers {
      * @param pairMersMap
      */
     public void connectPairMers(PairMer pairMer, int k, PairMersMap pairMersMap) {
+
+//        connectedPairMersTemp.add(pairMer);
         if (!pairMer.isVisited()) {
             pairMer.setVisited();
             PairMerStrings wrapper = new PairMerStrings(pairMer, k);
@@ -126,6 +136,11 @@ public class ConnectedPairMers {
         }
     }
 
+    public boolean isBug() {
+        return bug;
+    }
+
+    
     /**
      *
      * @param pairMer
@@ -145,24 +160,41 @@ public class ConnectedPairMers {
                 terminal2 = pairMerNode;
             } else {
                 Reporter.report("[BUG?]", "Third terminal PairMerNode identified? Trying to store a terminal node again?", getClass().getSimpleName());
-                try {
-                    System.err.println(terminal1.getPairMer().getPairMerString(k) + " <- terminal1");
-                    System.err.println(terminal2.getPairMer().getPairMerString(k) + " <- terminal2");
-                    System.err.println(pairMer.getPairMerString(k) + " <- pairMer");
-                    System.err.println(traverse(terminal1, k, true, null) + " <- traverse1");
-                    System.err.println(traverse(terminal2, k, true, null) + " <- traverse2");
-                    if (previous != null) {
-                        System.err.println(previous.getPairMerString(k) + " <- previous");
+                bug = true;
+                if (DEBUG_FILE != null) {
+                    ArrayList<String> toReport = new ArrayList<>();
+                    try {
+
+                        toReport.add("Third terminal PairMerNode identified? Trying to store a terminal node again?");
+
+//                    System.err.println("Stored connected pairMers:");
+//                    for (PairMer pairMerTmp : connectedPairMersTemp) {
+//                        System.err.println(pairMerTmp.getClipLeft()+pairMerTmp.decodeCore(k-1));
+//                        System.err.println(pairMerTmp.decodeCore(k-1)+pairMerTmp.getClipRight());
+//                    }
+                        toReport.add(terminal1.getPairMer().getPairMerString(k) + " <- terminal1");
+                        toReport.add(terminal2.getPairMer().getPairMerString(k) + " <- terminal2");
+                        toReport.add(pairMer.getPairMerString(k) + " <- pairMer");
+//                        toReport.add(traverse(terminal1, k, true, null) + " <- traverse1");
+//                        toReport.add(traverse(terminal2, k, true, null) + " <- traverse2");
+                        if (previous != null) {
+                            toReport.add(previous.getPairMerString(k) + " <- previous");
+                        }
+                        if (next != null) {
+                            toReport.add(next.getPairMerString(k) + " <- next");
+                        }
+//                        toReport.add(pairMerNode.pairMer.getPairMerString(k) + " <-- PM String");
+//                        toReport.add(pairMerNode.next.getPairMerString(k) + " <-- PM next, RC=" + pairMerNode.nextRc);
+//                        toReport.add(pairMerNode.previous.getPairMerString(k) + " <-- PM previous, RC=" + pairMerNode.previousRc);
+//                        toReport.add(traverse(pairMerNode, k, true, null) + " <- terminal2");
+//                        toReport.add(" -=-=- ");
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
                     }
-                    if (next != null) {
-                        System.err.println(next.getPairMerString(k) + " <- next");
-                    }
-                    System.err.println(traverse(pairMerNode, k, true, null) + " <- terminal2");
-                    System.err.println(" -=-=- ");
-                } catch (Exception e) {
-                    e.printStackTrace();
+                    Reporter.writeToFile(DEBUG_FILE, toReport, true);
                 }
-                System.exit(1);
+//                System.exit(1);
 
             }
         } else if (previous == null && next == null) {

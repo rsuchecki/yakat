@@ -75,8 +75,9 @@ public class PairMersExtender {
         if (!namePrefix.isEmpty() && !namePrefix.endsWith("_")) {
             namePrefix += "_";
         }
-        NavigableSet<PairMer> pairMers = pairMersMap.getPairMersSkipListMap().keySet();
-        Iterator<PairMer> it = pairMers.iterator();
+//        NavigableSet<PairMer> pairMers = pairMersMap.getPairMersMap().keySet();
+
+        Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
         long clusterNumber = 0; //Connected-component in the de-bruijn graph
         long extendedNumber = 0;
         long extendedLength = 0;
@@ -100,8 +101,18 @@ public class PairMersExtender {
                 PairMer pairMer = it.next();
                 if (!pairMer.isVisited()) {
                     clusterNumber++;
-                    ConnectedPairMers connectedPairMers = new ConnectedPairMers();
+                    ConnectedPairMers connectedPairMers = new ConnectedPairMers(DEBUG_FILE);
                     connectedPairMers.connectPairMers(pairMer, k, pairMersMap);
+////                    if(DEBUG_FILE != null &&  connectedPairMers.isBug()) {
+//                    if(DEBUG_FILE != null) {
+//                        ArrayList<String> toReport = new ArrayList<>();
+//                        toReport.add("Cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
+//                        for (PairMer pm : connectedPairMers.getKeys()) {
+//                            toReport.add(pm.getPairMerString(k));
+//                        }
+//                        Reporter.writeToFile(DEBUG_FILE, toReport, true);
+//                        
+//                    }
                     try {
                         if (connectedPairMers.hasTerminalOrSingletonNode()) {
                             extendedNumber++;
