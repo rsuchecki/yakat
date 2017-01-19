@@ -280,9 +280,9 @@ public class SnpFilter {
 //        double cov2 = getMax(nonZeroKmerFreqs2);
 //        int uniqeMersParent1 = getUniqeMersParent1();
 //        int uniqeMersParent2 = getUniqeMersParent2();
-        if(mersParent1 < 10 &&  mersParent2 < 10) {
-            int x =0;
-        }
+//        if(mersParent1 < 10 &&  mersParent2 < 10) {
+//            int x =0;
+//        }
         double coverageRatio1 = (double)nonZeroKmerFreqs1.size() / getMersParent1();
         double coverageRatio2 = (double)nonZeroKmerFreqs2.size() / getMersParent2();
         //QUICKLY DISCARD IF LOW FREQUENCY/LOW COVERAGE 

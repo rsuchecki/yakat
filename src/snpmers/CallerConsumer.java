@@ -54,7 +54,7 @@ public class CallerConsumer implements Runnable {
     private final String TOOL_NAME;
     private final ArrayList<SnpFilter> snpFilters;
 //    private final ConcurrentSkipListMap<CharSequence, KmerLink> map;
-    private final HashMap<CharSequence, ArrayList<KmerLink>> map;
+    private final HashMap<String, ArrayList<KmerLink>> map;
 //    private final OptSet optSet;
     private final ArrayList<String> samples;
     private final int minTotal;
@@ -65,7 +65,7 @@ public class CallerConsumer implements Runnable {
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
-            HashMap<CharSequence, ArrayList<KmerLink>> map, ArrayList<SnpFilter> snpFilters,
+            HashMap<String, ArrayList<KmerLink>> map, ArrayList<SnpFilter> snpFilters,
             int minTotal, int minMinor, double minKmers, double maxError) {
         this.inputQueue = inputQueue;
         this.samples = samples;
@@ -104,11 +104,14 @@ public class CallerConsumer implements Runnable {
                 }
                 ArrayList<String[]> data = laeblledBuffer.getData();
                 for (String[] toks : data) {
-                    ArrayList<KmerLink> kmerLinks = map.get(toks[0]);
+                    ArrayList<KmerLink> kmerLinks = map.get(SequenceOps.getCanonical(toks[0]));
                     if (kmerLinks != null) {
+//                        if(kmerLinks.size()>1) {
+//                            int f=0;
+//                        }
                         for (KmerLink kmerLink : kmerLinks) {
                             if (kmerLink != null) {
-                                boolean setMer = kmerLink.setMer(Short.parseShort(toks[1]));
+                                boolean setMer = kmerLink.setMer((short) Math.min(Integer.parseInt(toks[1]), Short.MAX_VALUE)); 
                                 if (!setMer) {
                                     Reporter.report("[ERROR]", "Unable to set k-mer link to SNP, possible reason: duplicate k-mer in an input set, k-mer: " + toks[0], TOOL_NAME);
                                 }

@@ -68,8 +68,8 @@ public class SnpMers {
     private final int WRITER_BUFFER_SIZE = 8192;
     private String parent1 = null;
     private String parent2 = null;
-    private HashMap<CharSequence, ArrayList<KmerLink>> map;
-    ArrayList<SnpFilter> snpFilters;
+    private HashMap<String, ArrayList<KmerLink>> map;
+    private ArrayList<SnpFilter> snpFilters;
 
     private boolean DEBUG = false;
 
@@ -94,7 +94,7 @@ public class SnpMers {
         //READ IN PREVIOUSLY IDENTIFIED SET OF SNPs 
         //AND MAP SNP-OVERLAPPING k-mers TO SNP OBJECT
         buildSnpMerMap(optSet);
-        removeSnpMersPoorlyCoveredInParents(optSet); //DONE AFTER FALSE POSITIVE FILTERING
+//        removeSnpMersPoorlyCoveredInParents(optSet); //DONE AFTER FALSE POSITIVE FILTERING
 
         if (optSet.getOpt("F").isUsed()) {
             ArrayList<String> filteringKmersFileNames = (ArrayList<String>) optSet.getOpt("F").getValues();
@@ -144,11 +144,11 @@ public class SnpMers {
 //        optSet.addOpt(new Opt(null, "min-seqs-clustered", "Minimum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(2));
 //        optSet.addOpt(new Opt(null, "max-seqs-clustered", "Maximum number of sequences in a cluster", 1).setMinValue(2).setDefaultValue(1000));
         int footId = 1;
-        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Filtering-out input SNPs supported by few unique k-mers]");
-        optSet.addOpt(new Opt(null, "filter-min-uniqmers-ratio", "Remove parental SNPs if at least one allele is supported by fewer than <arg> ratio of unique"
-                + "k-mers to max possible k-mers", 1).setMinValue(0.01).setDefaultValue(0.75).addFootnote(footId, "There can be up to min(k,distance of snp from the end of the sequence) unique k-mers overlapping a SNP."));
-
-        footId++;
+//        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Filtering-out input SNPs supported by few unique k-mers]");
+//        optSet.addOpt(new Opt(null, "filter-min-uniqmers-ratio", "Remove parental SNPs if at least one allele is supported by fewer than <arg> ratio of unique"
+//                + "k-mers to max possible k-mers", 1).setMinValue(0.01).setDefaultValue(0.75).addFootnote(footId, "There can be up to min(k,distance of snp from the end of the sequence) unique k-mers overlapping a SNP."));
+//
+//        footId++;
         String footText = "k-mer frequency corresponding to a SNP allele is obtained by taking a median of frequencies of all k-mers overlapping the underlying SNP";
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Filtering-out potential false-positive input SNPs]");
         optSet.addOpt(new Opt(null, "filter-min-k-mer-frequency-sum", "Minimum frequency of filtering k-mers "
@@ -246,54 +246,60 @@ public class SnpMers {
             }
         }
         Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map, purging non-unique ones", TOOL_NAME);
-        //PURGE NON-UNIQUE k-mers (these can only be non-unique due to merging of non conflicting, clustered seeds from vsearch)
-        Iterator<Map.Entry<CharSequence, ArrayList<KmerLink>>> it = map.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<CharSequence, ArrayList<KmerLink>> next = it.next();
-            ArrayList<KmerLink> kmerLinks = next.getValue();
-            if (kmerLinks.size() > 2) {
-//                System.err.println(kmerLink.getParentSequence().getId()+" "+kmerLink.getParentSequence().getSequenceString()+" "+kmerLink.getStartPosition());
-                it.remove();
-            } else if (kmerLinks.size() == 2) {
-                KmerLink kLink0 = kmerLinks.get(0);
-                KmerLink kLink1 = kmerLinks.get(1);
-                String clusterId0 = kLink0.getSnpFilter().getClusterId();
-                String clusterId1 = kLink1.getSnpFilter().getClusterId();
-                int pos0 = 0;
-                int pos1 = 0;
-                if (clusterId0.contains(":")) { //non-NIKS, mapping derived input
-                    String[] split = clusterId0.split(":");
-                    clusterId0 = split[0];
-                    pos0 = Integer.parseInt(split[1]);
-                }
-                if (clusterId1.contains(":")) {
-                    String[] split = clusterId1.split(":");
-                    clusterId1 = split[0];
-                    pos1 = Integer.parseInt(split[1]);
-                }
-                if (clusterId0.equals(clusterId1)) {
-                    int snpPosition0 = kLink0.getSnpFilter().getSnpPosition0();
-                    int snpPosition1 = kLink1.getSnpFilter().getSnpPosition0();
-                    int left = Math.min(snpPosition0, snpPosition1);
-                    int right = Math.max(snpPosition0, snpPosition1);
+        
 
-                    if ((pos0 == pos1 && right - left + 1 <= k) || (pos0 != pos1 && Math.max(pos0, pos1) - Math.min(pos0, pos1) + 1 <= k)) {
+//PURGE NON-UNIQUE k-mers (these can only be non-unique due to merging of non conflicting, clustered seeds from vsearch)
+//        Iterator<Map.Entry<CharSequence, ArrayList<KmerLink>>> it = map.entrySet().iterator();
+//        while (it.hasNext()) {
+//            Map.Entry<CharSequence, ArrayList<KmerLink>> next = it.next();
+//            ArrayList<KmerLink> kmerLinks = next.getValue();
+//            if (kmerLinks.size() > 2) {
+////                System.err.println(kmerLink.getParentSequence().getId()+" "+kmerLink.getParentSequence().getSequenceString()+" "+kmerLink.getStartPosition());
+//                it.remove();
+//            } else if (kmerLinks.size() == 2) {
+//                KmerLink kLink0 = kmerLinks.get(0);
+//                KmerLink kLink1 = kmerLinks.get(1);
+//                String clusterId0 = kLink0.getSnpFilter().getClusterId();
+//                String clusterId1 = kLink1.getSnpFilter().getClusterId();
+//                int pos0 = 0;
+//                int pos1 = 0;
+//                if (clusterId0.contains(":")) { //non-NIKS, mapping derived input
+//                    String[] split = clusterId0.split(":");
+//                    clusterId0 = split[0];
+//                    pos0 = Integer.parseInt(split[1]);
+//                }
+//                if (clusterId1.contains(":")) {
+//                    String[] split = clusterId1.split(":");
+//                    clusterId1 = split[0];
+//                    pos1 = Integer.parseInt(split[1]);
+//                }
+//                if (clusterId0.equals(clusterId1)) {
+//                    int snpPosition0 = kLink0.getSnpFilter().getSnpPosition0();
+//                    int snpPosition1 = kLink1.getSnpFilter().getSnpPosition0();
+//                    int left = Math.min(snpPosition0, snpPosition1);
+//                    int right = Math.max(snpPosition0, snpPosition1);
+//
+//                    if ((pos0 == pos1 && right - left + 1 <= k) || (pos0 != pos1 && Math.max(pos0, pos1) - Math.min(pos0, pos1) + 1 <= k)) {
 //                        kLink0.getSnpFilter().incrementMerCount(kLink0.isParentOne());
 //                        kLink1.getSnpFilter().incrementMerCount(kLink1.isParentOne());
-                    } else {
-                        it.remove();
-                    }
-                }
-//            } else {
-//                kmerLink.getSnpFilter();                
+//                    } else {
+//                        it.remove();
+//                    }
+//                }
+////            } else {
+////                kmerLink.getSnpFilter();                
 //            } else if (kmerLinks.size() < 2) {
-
-                //keep a tally of unique k-mers overlapping each SNP so that in genotyping this can be an upper bound required for a call 
+//
+//                //keep a tally of unique k-mers overlapping each SNP so that in genotyping this can be an upper bound required for a call 
 //                for (KmerLink kmerLink : kmerLinks) {
 //                    kmerLink.getSnpFilter().incrementMerCount(kmerLink.isParentOne());
 //                }
-            }
-        }
+//            }
+//        }
+
+
+
+
         //INVESTIGATING CASES WHERE NON-UNIQUE k-mers HAVE BEEN OBSERVED 
 //        Iterator<Map.Entry<String, ArrayList<KmerLink>>> iterator = nonUniqueLinks.entrySet().iterator();
 //        while (iterator.hasNext()) {
@@ -321,7 +327,7 @@ public class SnpMers {
     }
 
 //    private static void kmerizeAndAddToMap(CharSequence sequence, int k, int snpSite) {
-    private void kmerizeAndAddToMap(SnpFilter snpFilter, int k, HashMap<CharSequence, ArrayList<KmerLink>> map) { //,
+    private void kmerizeAndAddToMap(SnpFilter snpFilter, int k, HashMap<String, ArrayList<KmerLink>> map) { //,
 //            HashMap<String, ArrayList<KmerLink>> nonUniqueLinks) {
         //TWO PARENT SEQUENCES FOR EACH SNP
         for (int parent = 1; parent < 3; parent++) {
@@ -377,10 +383,11 @@ public class SnpMers {
             int startAt = Math.max(0, snpSite - k + 1);
             for (int i = startAt; i < maxKmer; i++) {
                 CharSequence kmer = sequence.subSequence(i, i + k);
-                CharSequence canonical = SequenceOps.getCanonical(kmer);
+                String canonical = SequenceOps.getCanonical(kmer).toString();
 
                 int pos = i + offset; //position in the original/padded MSA sequence
-                KmerLink kmerLink = new KmerLink(snpFilter, (parent == 1), pos, !kmer.equals(canonical));
+//                KmerLink kmerLink = new KmerLink(snpFilter, (parent == 1), pos, !kmer.equals(canonical));
+                KmerLink kmerLink = new KmerLink(snpFilter, (parent == 1), pos);
                 ArrayList<KmerLink> kmerLinks = map.get(canonical);
                 if (kmerLinks == null) {
                     kmerLinks = new ArrayList();

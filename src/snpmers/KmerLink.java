@@ -25,14 +25,12 @@ public class KmerLink implements Comparable<KmerLink>{
     private final SnpFilter snpFilter;
     private final boolean parentOne;        
     private final int startPosition;
-    private final boolean reverseComplement;
     private boolean unique = true;
 
-    public KmerLink(SnpFilter snpFilter, boolean parentOne, int startPosition, boolean reverseComplement) {
+    public KmerLink(SnpFilter snpFilter, boolean parentOne, int startPosition) {
         this.snpFilter = snpFilter;
         this.parentOne = parentOne;
         this.startPosition = startPosition;
-        this.reverseComplement = reverseComplement;
     }
 
     public SnpFilter getSnpFilter() {
@@ -60,9 +58,6 @@ public class KmerLink implements Comparable<KmerLink>{
     }
 
     
-    public boolean isReverseComplement() {
-        return reverseComplement;
-    }
 
     
     
