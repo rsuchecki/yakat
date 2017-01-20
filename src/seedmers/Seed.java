@@ -135,13 +135,13 @@ public class Seed {
         
         int numKmers[] = new int[mers.length];
         double coverageMedian[] = new double[mers.length];
-        double coverageRatio[] = new double[mers.length];
+//        double coveredRatio[] = new double[mers.length];
         for (int i = 0; i < mers.length; i++) {
             short[] m = mers[i];
             ArrayList<Short> nonZeroKmerFreqs = getNonZeroKmerFreqs(m);
             numKmers[i] = nonZeroKmerFreqs.size();
             coverageMedian[i] = shared.CommonMaths.getMedian(nonZeroKmerFreqs);
-            coverageRatio[i] = (double) nonZeroKmerFreqs.size() / m.length;
+//            coveredRatio[i] = (double) nonZeroKmerFreqs.size() / m.length;
 //            double cov = shared.CommonMaths.getMedian(nonZeroKmerFreqs);
 //            double covRatio = (double) nonZeroKmerFreqs.size() / m.length;
 //            sb.append("\t");               
@@ -154,7 +154,7 @@ public class Seed {
         StringBuilder sb = new StringBuilder(id);        
         sb.append("\t").append(Arrays.toString(numKmers));
         sb.append("\t").append(Arrays.toString(coverageMedian));
-        sb.append("\t").append(Arrays.toString(coverageRatio));
+//        sb.append("\t").append(Arrays.toString(coveredRatio));
         sb.append("\t").append(getIUPAC(numKmers));
         System.out.println(sb.toString());
 
@@ -184,7 +184,7 @@ public class Seed {
 //        if (cov1 >= minMinor && cov2 >= minMinor && coverageRatio1 >= minCoverageRatio && coverageRatio2 >= minCoverageRatio) {
 //            return new BaseCall(base1, base2);
 //        }
-        return new BaseCall(null, null);
+        return new BaseCall(getIUPAC(numKmers));
 
     }
 

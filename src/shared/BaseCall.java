@@ -34,6 +34,55 @@ public class BaseCall {
         this.allele2 = allele2;
     }
 
+    public BaseCall(char iupac) {
+        switch (iupac) {
+            case 'W': 
+                allele1 = 'A';
+                allele2 = 'T';
+                break;
+            case 'S': 
+                allele1 = 'C';
+                allele2 = 'G';
+                break;
+            case 'M': 
+                allele1 = 'A';
+                allele2 = 'C';
+                break;
+            case 'K': 
+                allele1 = 'G';
+                allele2 = 'T';
+                break;
+            case 'R': 
+                allele1 = 'A';
+                allele2 = 'G';
+                break;
+            case 'Y': 
+                allele1 = 'C';
+                allele2 = 'T';
+                break;
+            case 'A':
+                allele1 = 'A';
+                allele2 = null;
+                break;
+            case 'C':
+                allele1 = 'C';
+                allele2 = null;
+                break;
+            case 'G':
+                allele1 = 'G';
+                allele2 = null;
+                break;
+            case 'T':
+                allele1 = 'T';
+                allele2 = null;
+                break;
+            default:
+                allele1 = null;
+                allele2 = null;
+                Reporter.report("[WARNING]", "Unable to convert IUPAC call "+iupac+" into a BaseCall object", this.getClass().getSimpleName());
+        }
+    }
+
     public String getCallString() {
         if (allele1 == null && allele2 == null) {
             return "N";

@@ -98,7 +98,7 @@ public class CallerConsumer implements Runnable {
 //            
 //        }
 //        System.out.println(header.toString());
-        System.out.println("ID\t#kmers\tmedian_cov\tcov_ratio\tCall");
+        System.out.println("ID\t#kmers\tmedian_cov\tCall");
         
         try {
             LabelledInputBuffer laeblledBuffer = null;
