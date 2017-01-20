@@ -18,6 +18,8 @@ package shared;
 import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Random;
 
@@ -74,5 +76,22 @@ public class CommonMaths implements Serializable {
         return df.format(number).toLowerCase();
     }
     
-    
+    public static double getMedian(ArrayList<Short> nonZeroValues) {
+        if (nonZeroValues.isEmpty()) {
+            return 0;
+        } else {
+            Collections.sort(nonZeroValues);
+            int size = nonZeroValues.size();
+            if (size == 1) {
+                return (double) nonZeroValues.get(0);
+            } else if (size % 2 == 0) {
+                int middle = size / 2;
+                int sum = nonZeroValues.get(middle - 1) + nonZeroValues.get(middle);
+                return ((double) (sum)) / 2;
+            } else {
+                int middle = size / 2;
+                return (double) nonZeroValues.get(middle);
+            }
+        }
+    }
 }
