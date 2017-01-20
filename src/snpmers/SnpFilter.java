@@ -15,6 +15,7 @@
  */
 package snpmers;
 
+import shared.BaseCall;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -160,24 +161,7 @@ public class SnpFilter {
         return nonZeroValues;
     }
 
-    private double getMedian(ArrayList<Short> nonZeroValues) {
-        if (nonZeroValues.isEmpty()) {
-            return 0;
-        } else {
-            Collections.sort(nonZeroValues);
-            int size = nonZeroValues.size();
-            if (size == 1) {
-                return (double) nonZeroValues.get(0);
-            } else if (size % 2 == 0) {
-                int middle = size / 2;
-                int sum = nonZeroValues.get(middle - 1) + nonZeroValues.get(middle);
-                return ((double) (sum)) / 2;
-            } else {
-                int middle = size / 2;
-                return (double) nonZeroValues.get(middle);
-            }
-        }
-    }
+    
     
     private double getMax(ArrayList<Short> nonZeroValues) {
         if (nonZeroValues.isEmpty()) {
@@ -274,8 +258,8 @@ public class SnpFilter {
     private BaseCall call(int minTotal, int minMinor, double minCoverageRatio, double maxError) {        
         ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
         ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
-        double cov1 = getMedian(nonZeroKmerFreqs1);
-        double cov2 = getMedian(nonZeroKmerFreqs2);
+        double cov1 = shared.CommonMaths.getMedian(nonZeroKmerFreqs1);
+        double cov2 = shared.CommonMaths.getMedian(nonZeroKmerFreqs2);
 //        double cov1 = getMax(nonZeroKmerFreqs1);
 //        double cov2 = getMax(nonZeroKmerFreqs2);
 //        int uniqeMersParent1 = getUniqeMersParent1();

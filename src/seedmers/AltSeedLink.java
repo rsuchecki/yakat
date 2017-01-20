@@ -22,10 +22,14 @@ package seedmers;
 public class AltSeedLink {
     private final Seed parent;
     private final int position;
+    private final byte base;
+    private final boolean forward;
     
-    public AltSeedLink(Seed parent, int position) {
+    public AltSeedLink(Seed parent, int position, char base, boolean forward) {
         this.parent = parent;
         this.position = position;
+        this.base = encodeChar(base);
+        this.forward = forward;
     }
 
     public int getPosition() {
@@ -35,5 +39,36 @@ public class AltSeedLink {
     public Seed getParent() {
         return parent;
     }
+    
+    private byte encodeChar(char base) {
+        switch(base) {
+            case 'A' : return 0;
+            case 'C' : return 1;
+            case 'G' : return 2;
+            case 'T' : return 3;
+        }
+        return -1;
+    }
+
+    public byte getBase() {
+        return base;
+    }
+    
+    
+    public  char getBaseChar() {
+        switch(base) {
+            case 0 : return 'A';
+            case 1 : return 'C';
+            case 2 : return 'G';
+            case 3 : return 'T';
+        }
+        return '#';
+    }
+
+    public boolean isForward() {
+        return forward;
+    }
+    
+    
     
 }

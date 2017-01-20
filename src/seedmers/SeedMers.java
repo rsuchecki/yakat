@@ -26,8 +26,10 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -51,7 +53,7 @@ import shared.StdRedirect;
  *
  * Thread set(s) of k-mers through altseeds to genotype the respective source
  *
- * For now: focus on seeds length=2k-1 only focus on SNPs, ignore indels
+ * For now: focus on seeds length=2k-1, only focus on SNPs, ignore indels
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
@@ -63,7 +65,8 @@ public class SeedMers {
     private final int WRITER_BUFFER_SIZE = 8192;
     private final int REPORTING_SHIFT = 6; //input progress reporting every READER_BUFFER_SIZE*REPORTING_FACTOR records
     private HashMap<String, ArrayList<AltSeedLink>> map;
-    
+    private ArrayList<Seed> seeds;
+
     public SeedMers(String[] args, String callerName, String toolName) {
         TOOL_NAME = callerName + " " + toolName;
 
@@ -78,12 +81,13 @@ public class SeedMers {
         buildSeedMersMap(optSet);
 //        removeSnpMersPoorlyCoveredInParents(optSet); //DONE AFTER FALSE POSITIVE FILTERING
 
-//        int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
-//        int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
-//        double minCoverage = (double) optSet.getOpt("min-snp-coverage").getValueOrDefault();
-//        double maxError = (double) optSet.getOpt("max-coverage-error").getValueOrDefault();
-        ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
+        int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
+        int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
+        double minCoverage = (double) optSet.getOpt("min-snp-coverage").getValueOrDefault();
+        double maxError = (double) optSet.getOpt("max-coverage-error").getValueOrDefault();
+
 //        ArrayList<String> sampleNames = threadKmersThroughMap(optSet, kmersFileNames, minTotal, minMinor, minCoverage, maxError);
+        threadKmersThroughMap(optSet);
         Reporter.report("[INFO]", "Done!", TOOL_NAME);
     }
 
@@ -131,6 +135,7 @@ public class SeedMers {
      * @param optSet
      */
     private void buildSeedMersMap(OptSet optSet) {
+        seeds = new ArrayList<>();
         map = new HashMap<>();
         String seedsFileName = (String) optSet.getOpt("f").getValueOrDefault();
         int k = (int) optSet.getOpt("k").getValueOrDefault();
@@ -148,8 +153,10 @@ public class SeedMers {
             StringBuilder seqBuilder = null;
             while ((inputLine = bufferdReader.readLine()) != null) {
                 if (inputLine.startsWith(">")) {
-                    if(id != null) {
-                        kmerizeAndLink(k, new Seed(id, seqBuilder, k));
+                    if (id != null) {
+                        Seed seed = new Seed(id, seqBuilder, k);
+                        seeds.add(seed);
+                        kmerizeAndLink(k, seed);
                     }
                     id = inputLine.trim();
                     seqBuilder = new StringBuilder();
@@ -157,7 +164,9 @@ public class SeedMers {
                     seqBuilder.append(inputLine);
                 }
             }
-            kmerizeAndLink(k, new Seed(id, seqBuilder, k));            
+            Seed seed = new Seed(id, seqBuilder, k);
+            seeds.add(seed);
+            kmerizeAndLink(k, seed);            
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found: " + seedsFileName, TOOL_NAME);
         } catch (IOException ex) {
@@ -171,45 +180,50 @@ public class SeedMers {
                 ex.printStackTrace();
             }
         }
-//        Reporter.report("[INFO]", intFormat(map.size()) + " k-mer->altseed links in map", TOOL_NAME);
-
+        Reporter.report("[INFO]", "Seed-mers map populated, n="+NumberFormat.getIntegerInstance().format(map.size()), TOOL_NAME);
+//        for (Map.Entry<String, ArrayList<AltSeedLink>> entry : map.entrySet()) {
+//            String key = entry.getKey();
+//            ArrayList<AltSeedLink> value = entry.getValue();
+//            System.err.println(key);
+//        }
     }
 
     /**
      * Consider multi-threading
+     *
      * @param k
-     * @param seed 
-     */    
+     * @param seed
+     */
     private void kmerizeAndLink(int k, Seed seed) {
         CharSequence sequence = seed.getSequence();
         int snpSite = k - 1;
         int maxKmer = Math.min(sequence.length() - k + 1, snpSite + 1);
         int startAt = Math.max(0, snpSite - k + 1);
 
-        Character altChars[] = new Character[]{'A', 'C', 'G', 'T'};        
+        Character altChars[] = new Character[]{'A', 'C', 'G', 'T'};
         for (Character base : altChars) {
             StringBuilder altSeq = new StringBuilder(sequence.subSequence(0, snpSite));
             altSeq.append(base);
-            altSeq.append(sequence.subSequence(snpSite, sequence.length()));
+            altSeq.append(sequence.subSequence(snpSite+1, sequence.length()));
             //k-merize
             for (int i = startAt; i < maxKmer; i++) {
                 CharSequence kmer = altSeq.subSequence(i, i + k);
-                String canonical = SequenceOps.getCanonical(kmer).toString();   
+                String canonical = SequenceOps.getCanonical(kmer).toString();
                 ArrayList<AltSeedLink> altSeeds = map.get(canonical);
-                if(altSeeds == null) {
+                if (altSeeds == null) {
                     altSeeds = new ArrayList<>();
                 }
-                altSeeds.add(new AltSeedLink(seed, i));
+                altSeeds.add(new AltSeedLink(seed, i, base, canonical.compareTo(kmer.toString()) == 0));
                 map.put(canonical, altSeeds);
             }
         }
     }
 
-private ArrayList<String> threadKmersThroughMap(OptSet optSet, ArrayList<String> kmersFileNames,
-            int minTotal, int minMinor, double minCoverage, double minError) {
+    private ArrayList<String> threadKmersThroughMap(OptSet optSet) {
         ArrayList<String> samples = new ArrayList<>();
         int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
         int IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
+        ArrayList<String> kmersFileNames = (ArrayList<String>) optSet.getOpt("K").getValues();
 
         BlockingQueue inputQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
 //            boolean stranded = false;
@@ -244,7 +258,7 @@ private ArrayList<String> threadKmersThroughMap(OptSet optSet, ArrayList<String>
 //        AtomicInteger splitterThreads = new AtomicInteger(SPLITTER_THREADS);
         ArrayList<Message> finalMessages = new ArrayList<>(threads * 5);
 //        for (int i = 0; i < threads; i++) {
-        futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, minTotal, minMinor, minError, minError)));
+        futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, seeds)));
 //        futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, minTotal, minMinor, minCoverage, minError)));
 //        }
         execService.shutdown();

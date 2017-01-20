@@ -15,7 +15,13 @@
  */
 package seedmers;
 
+import java.text.NumberFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import shared.Reporter;
+import shared.BaseCall;
+import shared.CommonMaths;
 
 /**
  *
@@ -26,15 +32,14 @@ public class Seed {
     private final String id;
     private final CharSequence sequence;
     private final int snpPosition;
-    private short mersA[];
-    private short mersC[];
-    private short mersG[];
-    private short mersT[];
+    private short mers[][];
+    private HashMap<String, BaseCall> snpCalls;
 
     public Seed(String id, CharSequence sequence, int k) {
         this.id = id;
         this.sequence = sequence;
-        this.snpPosition = k-1;
+        this.snpPosition = k - 1;
+        mers = new short[4][snpPosition + 1];
     }
 
     public String getId() {
@@ -49,31 +54,252 @@ public class Seed {
         return snpPosition;
     }
 
-    public boolean setMer(int position, short value, String kmer) {
-        char allele = kmer.charAt(getSnpPosition() - position + 1);
-        short mers[];
-        switch (allele) {
-            case 'A':
-                mers = mersA;
-                break;
-            case 'C':
-                mers = mersC;
-                break;
-            case 'G':
-                mers = mersG;
-                break;
-            case 'T':
-                mers = mersT;
-                break;
-            default: {
-                Reporter.report("[WARNING]", "Unrecognized based in kmer "+kmer+ " - failed setting mer count...", this.getClass().getSimpleName());
-                return false;
-            }
-        }        
-        if (mers[position] == 0) {
-            mers[position] = value;
+    public boolean setMer(AltSeedLink seedLink, short value) {
+//        char allele = seedLink.getBaseChar();
+        short mrs[] = mers[seedLink.getBase()];
+//        switch (allele) {
+//            case 'A':
+//                mrs = mers[0];
+//                break;
+//            case 'C':
+//                mrs = mers[1];
+//                break;
+//            case 'G':
+//                mrs = mers[2];
+//                break;
+//            case 'T':
+//                mrs = mers[3];
+//                break;
+//            default: {
+//                Reporter.report("[WARNING]", "Unrecognized based in kmer " + kmer + " - failed setting mer count...", this.getClass().getSimpleName());
+//                return false;
+//            }
+//        }
+        if (mrs[seedLink.getPosition()] == 0) {
+            mrs[seedLink.getPosition()] = value;
             return true;
         }
         return false;
+    }
+
+//    public void callBaseAndResetMers(String sampleName, int minTotal, int minMinor, double minCoverage, double maxError, String TOOL_NAME) {
+    public void callBaseAndResetMers(String sampleName, String TOOL_NAME) {
+        if (snpCalls == null) {
+            snpCalls = new HashMap<>();
+//            callDetails = new HashMap<>();
+        }
+
+//        BaseCall call = call(minTotal, minMinor, minCoverage, maxError);
+        BaseCall call = call();
+        BaseCall put = snpCalls.put(sampleName, call);
+        //DEBUGGING ONLY
+        if (put != null) {
+            Reporter.report("[WARNING]", "Call " + put + " previously made for " + sampleName + ", current call: " + call, this.getClass().getSimpleName());
+        }
+//        if(this.clusterId.equals("Cluster_172")) {
+//            int x = 0;
+//        }        
+        mers = new short[4][snpPosition + 1];
+
+    }
+
+    public BaseCall getBaseCall(String id) {
+        return snpCalls.get(id);
+    }
+
+//    private BaseCall call(int minTotal, int minMinor, double minCoverageRatio, double maxError) {        
+    private BaseCall call() {
+//        int minTotal = 10;
+//        int minMinor = 2; //double minCoverageRatio, double maxError
+////        ArrayList<Short> nonZeroKmerFreqsA = getNonZeroKmerFreqs(mersA);
+////        ArrayList<Short> nonZeroKmerFreqsC = getNonZeroKmerFreqs(mersC);
+////        ArrayList<Short> nonZeroKmerFreqsG = getNonZeroKmerFreqs(mersG);
+////        ArrayList<Short> nonZeroKmerFreqsT = getNonZeroKmerFreqs(mersT);
+//        double covA = shared.CommonMaths.getMedian(nonZeroKmerFreqsA);
+//        double covC = shared.CommonMaths.getMedian(nonZeroKmerFreqsC);
+//        double covG = shared.CommonMaths.getMedian(nonZeroKmerFreqsG);
+//        double covT = shared.CommonMaths.getMedian(nonZeroKmerFreqsT);
+////        double cov1 = getMax(nonZeroKmerFreqs1);
+////        double cov2 = getMax(nonZeroKmerFreqs2);
+////        int uniqeMersParent1 = getUniqeMersParent1();
+////        int uniqeMersParent2 = getUniqeMersParent2();
+////        if(mersParent1 < 10 &&  mersParent2 < 10) {
+////            int x =0;
+////        }
+//        double coverageRatioA = (double) nonZeroKmerFreqsA.size() / mersA.length;
+//        double coverageRatioC = (double) nonZeroKmerFreqsC.size() / mersC.length;
+//        double coverageRatioG = (double) nonZeroKmerFreqsG.size() / mersG.length;
+//        double coverageRatioT = (double) nonZeroKmerFreqsT.size() / mersT.length;
+
+       
+        
+        int numKmers[] = new int[mers.length];
+        double coverageMedian[] = new double[mers.length];
+        double coverageRatio[] = new double[mers.length];
+        for (int i = 0; i < mers.length; i++) {
+            short[] m = mers[i];
+            ArrayList<Short> nonZeroKmerFreqs = getNonZeroKmerFreqs(m);
+            numKmers[i] = nonZeroKmerFreqs.size();
+            coverageMedian[i] = shared.CommonMaths.getMedian(nonZeroKmerFreqs);
+            coverageRatio[i] = (double) nonZeroKmerFreqs.size() / m.length;
+//            double cov = shared.CommonMaths.getMedian(nonZeroKmerFreqs);
+//            double covRatio = (double) nonZeroKmerFreqs.size() / m.length;
+//            sb.append("\t");               
+//            sb.append(nonZeroKmerFreqs.size());
+//            sb.append("\t");               
+//            sb.append(cov);               
+//            sb.append("\t");               
+//            sb.append(CommonMaths.round(covRatio,2));               
+        }
+        StringBuilder sb = new StringBuilder(id);        
+        sb.append("\t").append(Arrays.toString(numKmers));
+        sb.append("\t").append(Arrays.toString(coverageMedian));
+        sb.append("\t").append(Arrays.toString(coverageRatio));
+        sb.append("\t").append(getIUPAC(numKmers));
+        System.out.println(sb.toString());
+
+        //QUICKLY DISCARD IF LOW FREQUENCY/LOW COVERAGE 
+//        if (cov1 + cov2 < minTotal || (coverageRatio1 < minCoverageRatio && coverageRatio2 < minCoverageRatio)) {
+//            return new BaseCall(null, null);
+//        }
+//        Character base1 = getBase1();
+//        Character base2 = getBase2();
+//        //ALLOW FOR CERTAIN AMOUNT OF ERROR 
+//        //e.g. a few k-mers from elswhere in the genome could be ignored rather than leading to an ambigous call.
+//        if (coverageRatio1 <= maxError) {
+//            coverageRatio1 = 0;
+//            base1 = null;
+//        }
+//        if (coverageRatio2 <= maxError) {
+//            coverageRatio2 = 0;
+//            base2 = null;
+//        }
+//        //CLEAR-CUT HOMOZYGOUS CASES
+//        if (cov1 == 0 && coverageRatio2 >= minCoverageRatio) { //homozygous
+//            return new BaseCall(base2, null);
+//        } else if (cov2 == 0 && coverageRatio1 >= minCoverageRatio) { //homozygous
+//            return new BaseCall(base1, null);
+//        }
+//        
+//        if (cov1 >= minMinor && cov2 >= minMinor && coverageRatio1 >= minCoverageRatio && coverageRatio2 >= minCoverageRatio) {
+//            return new BaseCall(base1, base2);
+//        }
+        return new BaseCall(null, null);
+
+    }
+
+    private ArrayList<Short> getNonZeroKmerFreqs(short[] mers) {
+        ArrayList<Short> nonZeroValues = new ArrayList<>(mers.length);
+        for (Short value : mers) {
+            if (value > 0) {
+                nonZeroValues.add(value);
+            }
+        }
+        return nonZeroValues;
+    }
+
+    /**
+     * Given an array of numbers representing observed base counts
+     * [#A,#C,#G,#T]  call IUPAC representation of
+     * the observed bases. Bases are not considered for IUPAC reporting if there
+     * are less than minCoverageThreshold or
+     *
+     * @param encoded [#A,#C,#G,#T]
+     * @param locusDepth
+     * @param maxErrorPercent % of totalDepth threshold above which a base (or
+     * resulting IUPAC) is reported rather than being ignored as erroneous
+     * @paramminCoveragePerAlleleminCoverageThreshold int min depth for a base
+     * to be considered
+     *
+     * TODO EXTEND TO ACCOMMODATE IDELS
+     *
+     * @return
+     */
+    private char getIUPAC(int[] encoded) {
+//        if (locusDepth == 0) {
+//            return '0';
+//        } else if (locusDepth < minCoveragePerLocus || locusDepth > maxCoveragePerLocus) {
+//            return '?';
+//        }
+        boolean tt[] = new boolean[4]; //truth table i=0,1,2,3 values A,C,G,T...
+        //Convert max perc error into max int coverage
+//        int maxErrAlleleInt = (int) Math.floor(locusDepth * maxPercErrAllele / 100);
+//        System.err.println("MaxErrInt="+maxErrInt);
+        //Max of maxErr min coverage threshold 
+//        int minCoverage = Math.max((int) Math.ceil(totalDepth * (float) maxErrorPercent / 100), minCoverageThreshold);
+        int total = 0;
+        for (int i = 0; i < encoded.length; i++) {
+            if (encoded[i] > 0) {
+                tt[i] = true;
+            }
+//            if (encoded[i] < minCoverageThreshold || encoded[i] <= maxErrInt) {
+//                totalOther += encoded[i];                
+//            }
+
+//            if (encoded[i] >= minCoveragePerAllele && encoded[i] > maxErrAlleleInt) {
+//                tt[i] = true;
+//            } else {
+//                totalOther += encoded[i];
+                total += encoded[i];
+//            }
+        }
+        char base = '?'; //ambiguousCallChar;
+//        if (totalOther > maxErrAlleleInt) {
+//            return ambiguousCallChar;
+//        }
+        if (!tt[0] && !tt[1] && !tt[2] && !tt[3]) {
+//            if (tt[5] && !tt[6]) { //insertion in reference
+//                base = 'E';
+//            } else if (!tt[5] && tt[6]) { //deletion in reference
+//                base = 'I';
+//            } else if (tt[5] && tt[6]) { //deletion and insertion??
+//                base = ambiguousCallChar;
+//            } else 
+            if (total == 0) {
+                base = '.';
+//            } else {
+//                base = '?';
+            }
+//        } else if ((tt[0] || tt[1] || tt[2] || tt[3]) && (tt[5] || tt[6])) { //base and an indel???
+//            base = ambiguousCallChar;
+        } else if (tt[0] && !tt[1] && !tt[2] && !tt[3]) { //A
+            base = 'A';
+        } else if (!tt[0] && tt[1] && !tt[2] && !tt[3]) { //C
+            base = 'C';
+        } else if (!tt[0] && !tt[1] && tt[2] && !tt[3]) { //G
+            base = 'G';
+        } else if (!tt[0] && !tt[1] && !tt[2] && tt[3]) { //T
+            base = 'T';
+        } else if (tt[0] && !tt[1] && tt[2] && !tt[3]) { //A or G 
+            base = 'R';
+        } else if (!tt[0] && tt[1] && !tt[2] && tt[3]) { //C or T 
+            base = 'Y';
+        } else if (!tt[0] && tt[1] && tt[2] && !tt[3]) { //G or C 
+            base = 'S';
+        } else if (tt[0] && !tt[1] && !tt[2] && tt[3]) { //A or T 
+            base = 'W';
+        } else if (!tt[0] && !tt[1] && tt[2] && tt[3]) { //G or T 
+            base = 'K';
+        } else if (tt[0] && tt[1] && !tt[2] && !tt[3]) { //A or C 
+            base = 'M';
+        } else if (!tt[0] && tt[1] && tt[2] && tt[3]) { //C or G or T
+            base = 'B';
+        } else if (tt[0] && !tt[1] && tt[2] && tt[3]) { //A or G or T
+            base = 'D';
+        } else if (tt[0] && tt[1] && !tt[2] && tt[3]) { //A or C or T
+            base = 'H';
+        } else if (tt[0] && tt[1] && tt[2] && !tt[3]) { //A or C or G
+            base = 'V';
+        } else if (tt[0] && tt[1] && tt[2] && tt[3]) {   //any base
+            base = 'N';
+        }
+
+//        int maxErrLocusInt = (int) Math.floor(locusDepth * maxPercErrLocus / 100);
+//        if (totalOther > maxErrLocusInt) {
+//            return Character.toLowerCase(base);
+//        } else {
+            return base;
+//        }
+//        return '#'; //should never happen
     }
 }

@@ -55,46 +55,62 @@ public class CallerConsumer implements Runnable {
     private final HashMap<String, ArrayList<AltSeedLink>> map;
 //    private final OptSet optSet;
     private final ArrayList<String> samples;
-    private final int minTotal;
-    private final int minMinor;
-    private final double minCoverage;
-    private final double maxError;
+//    private final int minTotal;
+//    private final int minMinor;
+//    private final double minCoverage;
+//    private final double maxError;
+    ArrayList<Seed> seeds;
 
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
-            HashMap<String, ArrayList<AltSeedLink>> map, int minTotal, int minMinor, double minKmers, double maxError) {
+            HashMap<String, ArrayList<AltSeedLink>> map, ArrayList<Seed> seeds) {
+//            HashMap<String, ArrayList<AltSeedLink>> map, int minTotal, int minMinor, double minKmers, double maxError) {
         this.inputQueue = inputQueue;
         this.samples = samples;
         this.map = map;
 //        this.snpFilters = altSeedLinks;
 //        this.optSet = optSet;
         this.TOOL_NAME = TOOL_NAME;
+        this.seeds = seeds;
 //        ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
 //        MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
 //        sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
 //        sampleToQueueMap = keyMap.getSampleToQueueMap();
-        this.minTotal = minTotal;
-        this.minMinor = minMinor;
-        this.minCoverage = minKmers;
-        this.maxError = maxError;
+//        this.minTotal = minTotal;
+//        this.minMinor = minMinor;
+//        this.minCoverage = minKmers;
+//        this.maxError = maxError;
     }
 
     @Override
     public void run() {
 
+//         char labels[] = {'A','C','G','T'};
+//        StringBuilder header = new StringBuilder("ID");
+//        for (char label : labels) {
+//            header.append("\t");
+//            header.append("#kmers_").append(label);
+//            header.append("\t");
+//            header.append("median_cov_").append(label);
+//            header.append("\t");
+//            header.append("cov_ratio_").append(label);
+//            
+//        }
+//        System.out.println(header.toString());
+        System.out.println("ID\t#kmers\tmedian_cov\tcov_ratio\tCall");
+        
         try {
             LabelledInputBuffer laeblledBuffer = null;
             String previous = null;
             while (!(laeblledBuffer = inputQueue.take()).getData().isEmpty()) {
                 if (!samples.contains(laeblledBuffer.getLabel())) {  //FIRST OR NEW SAMPLE (not seen before)
-//                    if (!samples.isEmpty()) { //NEW SAMPLE
-//                        Reporter.report("[INFO]", "Calling bases for " + previous + " and reseting mer-counters", TOOL_NAME);
-//                        for (SnpFilter snpFilter : snpFilters) {
-//                            snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1),
-//                                    minTotal, minMinor, minCoverage, maxError, TOOL_NAME);
-//                        }
-//                    }
+                    if (!samples.isEmpty()) { //NEW SAMPLE
+                        Reporter.report("[INFO]", "Calling bases for " + previous + " and reseting mer-counters", TOOL_NAME);
+                        for (Seed seed : seeds) {
+                            seed.callBaseAndResetMers(samples.get(samples.size() - 1), TOOL_NAME);
+                        }
+                    }
 //                    Reporter.report("[INFO]", "Current sample: " + list.getLabel(), TOOL_NAME);
                     previous = laeblledBuffer.getLabel();
                     samples.add(laeblledBuffer.getLabel());
@@ -102,6 +118,7 @@ public class CallerConsumer implements Runnable {
                 ArrayList<String[]> data = laeblledBuffer.getData();
                 for (String[] toks : data) {
                     String canonical = SequenceOps.getCanonical(toks[0]);
+//                    System.err.println("Current "+toks[0]+" canonical: "+canonical);
                     ArrayList<AltSeedLink> altSeedLinks = map.get(canonical);
                     if (altSeedLinks != null) {
 //                        if(kmerLinks.size()>1) {
@@ -109,7 +126,8 @@ public class CallerConsumer implements Runnable {
 //                        }
                         for (AltSeedLink altSeedLink : altSeedLinks) {
                             if (altSeedLink != null) {
-                                boolean setMer = altSeedLink.getParent().setMer(altSeedLink.getPosition(), (short) Math.min(Integer.parseInt(toks[1]), Short.MAX_VALUE), canonical); 
+//                                System.err.println("Setting "+toks[0]);
+                                boolean setMer = altSeedLink.getParent().setMer(altSeedLink, (short) Math.min(Integer.parseInt(toks[1]), Short.MAX_VALUE));
                                 if (!setMer) {
                                     Reporter.report("[ERROR]", "Unable to set k-mer link to SNP, possible reason: duplicate k-mer in an input set, k-mer: " + toks[0], TOOL_NAME);
                                 }
@@ -123,11 +141,11 @@ public class CallerConsumer implements Runnable {
             }
 //            inputQueue.put(new LabelledInputBuffer(null, new ArrayList())); //inform other threads
             //PROCESS LAST SAMPLE RESULTS
-//            Reporter.report("[INFO]", "Calling bases for " + previous + " and reseting mer-counters", TOOL_NAME);
-//            for (SnpFilter snpFilter : snpFilters) {
-//                snpFilter.callBaseAndResetMers(samples.get(samples.size() - 1), minTotal, minMinor, minCoverage, maxError, TOOL_NAME);
-//            }
-            Reporter.report("[INFO]", "Finished assigning k-mer frequencies to SNPs", TOOL_NAME);
+            Reporter.report("[INFO]", "Calling bases for " + previous + " and reseting mer-counters", TOOL_NAME);
+            for (Seed seed : seeds) {
+                seed.callBaseAndResetMers(samples.get(samples.size() - 1), TOOL_NAME);
+            }
+            Reporter.report("[INFO]", "Finished assigning k-mer frequencies to candidate variants", TOOL_NAME);
 
         } catch (InterruptedException e) {
             e.printStackTrace();
