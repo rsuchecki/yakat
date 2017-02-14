@@ -195,7 +195,6 @@ public class MpileupConsumer implements Runnable {
                             System.exit(1);
                         }
                     }
-                    //TODO zeroReads should be set to > 0, > 1 is specific to having a very poor sample here
 //                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
                     if (samplesWithinCoverage >= minSamples) {
                         if (betweenSamplesSnps || (minSnpsToRef != null && snpsToRef >= minSnpsToRef)
