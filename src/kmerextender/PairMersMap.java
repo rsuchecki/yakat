@@ -27,7 +27,7 @@ import shared.Reporter;
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class PairMersMap extends shared.MerMap {
-    private final Object LOCK;
+//    private final Object LOCK;
     private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
@@ -44,7 +44,7 @@ public class PairMersMap extends shared.MerMap {
 //           pairMersHashMap  = new ConcurrentHashMap<>();
             this.k = k;
         }
-        this.LOCK = new Object();
+//        this.LOCK = new Object();
     }
 
     public boolean isEmpty() {
