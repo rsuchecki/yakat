@@ -91,13 +91,6 @@ public class SequenceOps {
         return sb;
     }
     
-    public static CharSequence getCanonical(CharSequence sequence) {
-        String rc = getReverseComplementString(sequence);
-        if(rc.compareTo(sequence.toString()) < 0) {
-            return rc;
-        } else {
-            return sequence;
-        }
-    }
+
     
 }

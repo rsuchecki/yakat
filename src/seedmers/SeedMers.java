@@ -51,7 +51,7 @@ import shared.StdRedirect;
  * such that a base x at position k bases from a sequence end is replaced with
  * base y \in {A,C,G,T}, y != x;
  *
- * Thread set(s) of k-mers through altseeds to genotype the respective source
+ * Thread the input set(s) of k-mers through altseeds to genotype the respective source
  *
  * For now: focus on seeds length=2k-1, only focus on SNPs, ignore indels
  *
@@ -208,7 +208,7 @@ public class SeedMers {
             //k-merize
             for (int i = startAt; i < maxKmer; i++) {
                 CharSequence kmer = altSeq.subSequence(i, i + k);
-                String canonical = SequenceOps.getCanonical(kmer).toString();
+                String canonical = SequenceOps.getCanonical(kmer.toString());
                 ArrayList<AltSeedLink> altSeeds = map.get(canonical);
                 if (altSeeds == null) {
                     altSeeds = new ArrayList<>();

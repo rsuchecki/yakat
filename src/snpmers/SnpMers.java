@@ -383,7 +383,7 @@ public class SnpMers {
             int startAt = Math.max(0, snpSite - k + 1);
             for (int i = startAt; i < maxKmer; i++) {
                 CharSequence kmer = sequence.subSequence(i, i + k);
-                String canonical = SequenceOps.getCanonical(kmer).toString();
+                String canonical = SequenceOps.getCanonical(kmer.toString());
 
                 int pos = i + offset; //position in the original/padded MSA sequence
 //                KmerLink kmerLink = new KmerLink(snpFilter, (parent == 1), pos, !kmer.equals(canonical));
