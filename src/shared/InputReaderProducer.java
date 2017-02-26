@@ -314,12 +314,11 @@ public class InputReaderProducer implements Runnable {
         String line;
         while ((line = content.readLine()) != null && !line.isEmpty()) {
             if (bufferList.size() == KMER_BUFFER_SIZE) {
-//                            queue.put(bufferList);
                 putOnQueue(bufferList);
                 kmerCount += KMER_BUFFER_SIZE;
                 bufferList = new ArrayList<>();
                 if (kmerCount % reportThreshold == 0) {
-                    if (reportThreshold < 1e9) {
+                    if (reportThreshold < 1e8) {
 //                                    reportThreshold *= 10;
 //                                    reportThreshold *= KMER_REPORTING_MULTIPLY;
                         reportThreshold <<= 1; // *= 2
