@@ -63,7 +63,7 @@ public class KmerExtender {
     private Integer KMER_LENGTH_MAX;
     private Integer KMER_LENGTH_STEP;
     private SeedSequences seedSequences;
-    private Integer MIN_KMER_FREQUENCY = 1; //PLANNED but not really used
+    private Integer MIN_KMER_FREQUENCY = 1; //PLANNED but not really used other than to exclude , must be >=1 
     private int MAX_THREADS;
     private int INPUT_BUFFER_SIZE;
     private int INPUT_QUEUE_SIZE;

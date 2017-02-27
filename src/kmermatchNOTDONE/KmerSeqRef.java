@@ -26,8 +26,8 @@ public class KmerSeqRef implements Kmer, Comparable<Kmer> {
 
     
     public KmerSeqRef(CharSequence sequence, int from, int to, boolean canonical) {
-        if(canonical) {
-            kmerSequence = SequenceOps.getCanonical(sequence.subSequence(from, to));            
+        if(canonical) {            
+            kmerSequence = SequenceOps.getCanonical(sequence.subSequence(from, to).toString());            
         } else {
             kmerSequence = sequence.subSequence(from, to);            
         }

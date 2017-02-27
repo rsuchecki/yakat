@@ -239,7 +239,10 @@ public class PairMersMap extends shared.MerMap {
 //            }
 //            String decodeCore = next.decodeCore(44);
 //            System.err.println(next.getPairMerString(k)+"\t"+next.getStoredCountLeft()+"\t"+next.getStoredCountRigth()+"\t"+next.isInvalid());
-            if (next.isInvalid() || (next.getStoredCountLeft() < minKmerFrequency || next.getStoredCountRigth() < minKmerFrequency)) {
+            if (next.isInvalid()) {
+                it.remove();
+                count++;
+            } else if (next.getStoredCountLeft() < minKmerFrequency || next.getStoredCountRigth() < minKmerFrequency) {
 //                System.err.println("\tpurge\tisInvalid="+next.isInvalid());
 //            if (next.isInvalid() || next.getStoredCount() != 2) {
 //            if (next.isInvalid() || next.getStoredCount() < 2) {
