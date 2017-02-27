@@ -65,7 +65,6 @@ public class MpileupConsumer implements Runnable {
         maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
 //        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
         minMinorMajorRatio = (double) optSet.getOpt("min-minor-major-ratio").getValueOrDefault();
-         
 
         zeroReadsChar = (Character) optSet.getOpt("zero-reads-char").getValueOrDefault();
         ambiguousCallChar = (Character) optSet.getOpt("ambiguous-call-char").getValueOrDefault();
@@ -113,7 +112,7 @@ public class MpileupConsumer implements Runnable {
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     String[] toks = spliPattern.split(line);
-                    if(toks.length == 4 && toks[3].equals("0")) { 
+                    if (toks.length == 4 && toks[3].equals("0")) {
                         continue;
                     }
 //                    String[] toks = line.split("\t");
@@ -140,15 +139,15 @@ public class MpileupConsumer implements Runnable {
                     int hetCalls = 0;
                     for (int i = 3; i < toks.length; i += 3) {
                         try {
-                            coveragesSB.append("\t");                                                        
+                            coveragesSB.append("\t");
                             callsSB.append("\t");
                             int coverage = Integer.parseInt(toks[i]);
-                            if(coverage == 0) {
-                                coveragesSB.append("0,0,0,0,0,0");                           
+                            if (coverage == 0) {
+                                coveragesSB.append("0,0,0,0,0,0");
                                 callsSB.append(zeroReadsChar);
                                 continue;
                             }
-                            
+
                             coverageAllSamples += coverage;
                             if (coverage >= minCoveragePerLocus && coverage <= maxCoveragePerLocus) {
                                 samplesWithinCoverage++;
@@ -179,7 +178,7 @@ public class MpileupConsumer implements Runnable {
 //                                samplesWithBaseCalled++;
                             }
                             callsSB.append(calledBase);
-                            
+
                             for (int j = 1; j < bases.length; j++) {
                                 coveragesSB.append(bases[j]);
                                 if (j < bases.length - 1) {
@@ -198,9 +197,9 @@ public class MpileupConsumer implements Runnable {
 //                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
                     if (samplesWithinCoverage >= minSamples) {
                         if (betweenSamplesSnps || (minSnpsToRef != null && snpsToRef >= minSnpsToRef)
-                            || (allWithinThresholds
-                            && hetCalls >= minCallsHet && hetCalls <= maxCallsHet
-                            && uncertain >= minCallsUncertain && uncertain <= maxCallsUnceratin)) {
+                                || (allWithinThresholds
+                                && hetCalls >= minCallsHet && hetCalls <= maxCallsHet
+                                && uncertain >= minCallsUncertain && uncertain <= maxCallsUnceratin)) {
 //                            && samplesWithBaseCalled > 0 && uncertain == 0 && samplesZeroCoverage > 1)) {
 //                            coveragesSB.append("\t");
 //                            for (int j = 1; j < basesAllSamples.length; j++) {
@@ -211,8 +210,8 @@ public class MpileupConsumer implements Runnable {
 //                            }
 //                            callsSB.append("\t").append(getIUPAC(basesAllSamples, coverageAllSamples));
 
-                                bufferedOut.println(coveragesSB);
-                                bufferedOut.println(callsSB);
+                            bufferedOut.println(coveragesSB);
+                            bufferedOut.println(callsSB);
 //                        System.out.println(coveragesSB);
 //                        System.out.println(callsSB);
 //                        bufferList.add(coveragesSB.toString());
@@ -365,6 +364,7 @@ public class MpileupConsumer implements Runnable {
         StringBuilder lenInsRef = null;
         StringBuilder lenDelRef = null;
 
+//        boolean processIndel = false;
         for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             switch (c) {
@@ -375,6 +375,7 @@ public class MpileupConsumer implements Runnable {
 
             //Not processing an indel
             if (lenInsRef == null && lenDelRef == null) {
+//            if (!processIndel) {
                 switch (c) {
                     case 'A':
                     case 'a':
@@ -395,11 +396,13 @@ public class MpileupConsumer implements Runnable {
                     case '^': //aligned fragment start
                     case '$': //aligned fragment end
                         break;
-                    case '+': //insertion in the reference indicator, pattern: `\+[0-9]+[ACGTNacgtn]+'            
+                    case '+': //insertion in the read indicator, pattern: `\+[0-9]+[ACGTNacgtn]+'            
                         lenInsRef = new StringBuilder();
+//                        processIndel = true;
                         break;
-                    case '-': //deletion  in the reference indicator, pattern: `\-[0-9]+[ACGTNacgtn]+'            
+                    case '-': //deletion  in the read indicator, pattern: `\-[0-9]+[ACGTNacgtn]+'            
                         lenDelRef = new StringBuilder();
+//                        processIndel = true;
                         break;
                     default:
 //                    bases[0]++;
@@ -409,6 +412,23 @@ public class MpileupConsumer implements Runnable {
                     if (Character.isDigit(c)) {
                         lenInsRef.append(c);
                     } else {
+//                        switch (c) {
+//                            case 'A':
+//                            case 'a':
+//                                break;
+//                            case 'C':
+//                            case 'c':
+//                                break;
+//                            case 'G':
+//                            case 'g':
+//                                break;
+//                            case 'T':
+//                            case 't':
+//                                break;
+//                            case 'N':
+//                            case 'n':
+//                                break;
+//                        }
                         int indelLen = Integer.parseInt(lenInsRef.toString());
                         lenInsRef = null;
                         i += indelLen - 1;
