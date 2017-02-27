@@ -29,6 +29,7 @@ import shared.Reporter;
 public class PairMersMap extends shared.MerMap {
 //    private final Object LOCK;
     private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
+    private ConcurrentSkipListMap<PairMer, PairMer> terminalPairMers;
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
 
@@ -133,9 +134,27 @@ public class PairMersMap extends shared.MerMap {
      * @return PairMer if present in Map, null otherwise
      * @throws kmerextender.NonACGTException
      */
-    public PairMer get(String core, int k) throws NonACGTException {
+    public PairMer get(CharSequence core, int k) throws NonACGTException {
         return pairMersSkipListMap.get(PairMerGenerator.getPairMer(core, k));
     }
+    
+    /**
+     * Given a core string, retrieves the matching PairMer
+     *
+     * @param core, which will be converted to its canonical form
+     * @param k
+     * @return PairMer if present in Map, null otherwise
+     * @throws kmerextender.NonACGTException
+     */
+    public PairMer getTerminal(CharSequence core, int k) throws NonACGTException {        
+        return terminalPairMers.get(PairMerGenerator.getPairMer(core, k));
+    }
+    
+    public void removeTerminal(PairMer terminal) {
+        terminalPairMers.remove(terminal);
+    }
+    
+    
 
     /**
      * Retrieve a PairMer with a matching core
@@ -159,6 +178,11 @@ public class PairMersMap extends shared.MerMap {
         return pairMersSkipListMap;
     }
 
+    public ConcurrentSkipListMap<PairMer, PairMer> getTerminalPairMers() {
+        return terminalPairMers;
+    }
+
+    
 //    private boolean consistentTraversal(PairMer current) {
 //        PairMer left = pairMersSkipListMap.get(current.getOtherPairmerCoreLeft(k));
 //        PairMer right = pairMersSkipListMap.get(current.getOtherPairmerCoreRight(k));
@@ -191,7 +215,8 @@ public class PairMersMap extends shared.MerMap {
      * @return the number of elements removed
      */
     public long purge(int minKmerFrequency) {
-        long count = 0L;
+        terminalPairMers = new ConcurrentSkipListMap<>();
+        long count = 0L;        
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
 //        while (it.hasNext()) {
 //            PairMer current = it.next();
@@ -242,6 +267,10 @@ public class PairMersMap extends shared.MerMap {
             if (next.isInvalid()) {
                 it.remove();
                 count++;
+            } else if (next.getStoredCountLeft() == 0 || next.getStoredCountRigth() == 0) {
+                it.remove();
+                terminalPairMers.put(next, next);
+                count++;
             } else if (next.getStoredCountLeft() < minKmerFrequency || next.getStoredCountRigth() < minKmerFrequency) {
 //                System.err.println("\tpurge\tisInvalid="+next.isInvalid());
 //            if (next.isInvalid() || next.getStoredCount() != 2) {
@@ -250,6 +279,7 @@ public class PairMersMap extends shared.MerMap {
 //                for (String s : next.getHistory()) {
 //                    System.err.println("\t" + s);
 //                }
+                
                 it.remove();
 //                pairMersSkipListMap.remove(next);
                 count++;

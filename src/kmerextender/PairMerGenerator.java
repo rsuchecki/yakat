@@ -132,7 +132,7 @@ public class PairMerGenerator {
      * @return PairMer to be used for interrogating a Map
      * @throws kmerextender.NonACGTException
      */
-    public static PairMer getPairMer(String core, int k) throws NonACGTException {
+    public static PairMer getPairMer(CharSequence core, int k) throws NonACGTException {
 //        if (k - 1 <= MAX_1LONG_ENCODE) {
 //            return new PairMer1LongEncoded(core);
 //        } else if (k - 1 <= MAX_2LONG_ENCODE) {

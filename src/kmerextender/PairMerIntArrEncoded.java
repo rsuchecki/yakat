@@ -64,7 +64,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @param kmerCoreOnly
      * @throws kmerextender.NonACGTException
      */
-    public PairMerIntArrEncoded(String kmerCoreOnly) throws NonACGTException {
+    public PairMerIntArrEncoded(CharSequence kmerCoreOnly) throws NonACGTException {
 //        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
         encodeCoreCanonical(kmerCoreOnly, 0, kmerCoreOnly.length() - 1);
 //        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);

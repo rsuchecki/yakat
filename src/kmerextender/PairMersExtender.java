@@ -75,9 +75,9 @@ public class PairMersExtender {
         if (!namePrefix.isEmpty() && !namePrefix.endsWith("_")) {
             namePrefix += "_";
         }
-//        NavigableSet<PairMer> pairMers = pairMersMap.getPairMersMap().keySet();
 
-        Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
+//        Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
+        Iterator<PairMer> it = pairMersMap.getTerminalPairMers().keySet().iterator();
         long clusterNumber = 0; //Connected-component in the de-bruijn graph
         long extendedNumber = 0;
         long extendedLength = 0;
@@ -85,6 +85,7 @@ public class PairMersExtender {
         long longEnoughBp = 0;
         int[] extendedLengths = null;
         int longest = 0;
+        int shortest = Integer.MAX_VALUE;
         int MAX_LENGTH_STATS = 2000;
         if (STATS_FILE != null) {
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", "Kmer extrending stats", TOOL_NAME), false);
@@ -99,7 +100,37 @@ public class PairMersExtender {
             }
             while (it.hasNext()) {
                 PairMer pairMer = it.next();
-                if (!pairMer.isVisited()) {
+                
+                
+                StringBuilder otherCore = new StringBuilder();
+                 String decodedCore = pairMer.decodeCore(k - 1);
+                 if(pairMer.hasBothClips()) {
+                     Reporter.report("[WARNING]", "Both clips present in a suposedly terminal pairmer!", getClass().getCanonicalName());
+                 } else if(pairMer.hasLeftClip()) {
+                    otherCore.append(pairMer.getClipLeft());
+                    otherCore.append(decodedCore.subSequence(0, decodedCore.length() - 1));                     
+                 } else if(pairMer.hasRightClip()) {
+                    otherCore.append(decodedCore.subSequence(1, decodedCore.length()));                     
+                    otherCore.append(pairMer.getClipRight());                    
+                 } 
+           
+
+                
+                 
+                try {
+                    it.remove();
+                    PairMer otherTerminal = pairMersMap.getTerminal(otherCore, k);
+                    if(otherTerminal != null)  {
+                        //skipping one-base extension
+                        pairMersMap.removeTerminal(otherTerminal);
+                        continue;
+                    }
+                    pairMer = pairMersMap.get(otherCore, k);
+                } catch (NonACGTException ex) {
+                    Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
+                }
+
+                if (pairMer != null && !pairMer.isVisited()) {
                     clusterNumber++;
                     ConnectedPairMers connectedPairMers = new ConnectedPairMers(DEBUG_FILE);
                     connectedPairMers.connectPairMers(pairMer, k, pairMersMap);
@@ -122,6 +153,9 @@ public class PairMersExtender {
                             extendedLength += len;
                             if (len > longest) {
                                 longest = len;
+                            }
+                            if (len < shortest) {
+                                shortest = len;
                             }
                             if (STATS_FILE != null) {
                                 if (len < MAX_LENGTH_STATS) {
@@ -157,9 +191,8 @@ public class PairMersExtender {
                         Reporter.report("[ERROR]", "Obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
                         System.exit(1);
                     }
-                }
                 out.flush();
-
+                }
             }
         } catch (UnsupportedEncodingException e) {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
@@ -169,10 +202,10 @@ public class PairMersExtender {
         String longestExtMessage = "Longest extended sequence = " + NumberFormat.getNumberInstance().format(longest) + "bp";
         String totalExtendedMessage = "Number of extended sequences = " + NumberFormat.getNumberInstance().format(extendedNumber);
         String totalExtendedMessage2 = "Total length of extended sequences = " + NumberFormat.getNumberInstance().format(extendedLength) + " bp";
-        String longEnoughMessage = "Number of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + "bp and longer = "
-            + NumberFormat.getNumberInstance().format(longEnough);
-        String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + "bp and longer = "
-            + NumberFormat.getNumberInstance().format(longEnoughBp)+ " bp";
+        String longEnoughMessage = "Number of reported sequences " + NumberFormat.getNumberInstance().format(shortest == Integer.MAX_VALUE ? minLen : shortest) + "bp and longer = "
+                + NumberFormat.getNumberInstance().format(longEnough);
+        String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(shortest == Integer.MAX_VALUE ? minLen : shortest) + "bp and longer = "
+                + NumberFormat.getNumberInstance().format(longEnoughBp) + " bp";
         if (STATS_FILE != null) {
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", longestExtMessage, TOOL_NAME), true);
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", totalExtendedMessage, TOOL_NAME), true);
