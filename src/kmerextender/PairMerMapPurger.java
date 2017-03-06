@@ -44,6 +44,7 @@ public class PairMerMapPurger implements Runnable {
                 if (purged > 100000) {
                     gc(3, 500); //force GC 
                 }
+//                Reporter.report("[INFO]", "Finished purging map, k=" + map.getK() + ", n=" + NumberFormat.getIntegerInstance().format(map.size()) , TOOL_NAME);
                 Reporter.report("[INFO]", "Finished purging map, k=" + map.getK() + ", n=" + NumberFormat.getIntegerInstance().format(map.size()) + ", |Terimnal|=" + NumberFormat.getIntegerInstance().format(map.getTerminalPairMers().size()), TOOL_NAME);
             }
             queue.put(new PairMersMap(null)); //inform other threads

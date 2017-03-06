@@ -15,9 +15,13 @@
  */
 package kmerextender;
 
+import java.text.NumberFormat;
+import java.util.ArrayList;
 import shared.SequenceOps;
 import shared.Reporter;
 import java.util.Arrays;
+import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Proof of concept structure to hold up to 2 k-mers paired
@@ -84,6 +88,26 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //        encodeCoreCanonical(kmerCoreOnly, 0, kmerCoreOnly.length() - 1);
 //        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
     }
+    
+    /**
+     * Does not generate a complete PairMer, just the core, for Set/Maps lookups
+     *
+     * @param encodedKmerCoreOnly
+     * @param coreLen
+     */
+    public PairMerIntArrEncoded(int[] encodedKmerCoreOnly, int coreLen, boolean canonical) {
+//        String decodeCore = decodeCore(coreLen, encodedKmerCoreOnly);
+        if(canonical) {
+            storeCanonical(encodedKmerCoreOnly, recodeInReverseComplement(coreLen, encodedKmerCoreOnly, false));
+        } else {
+            kmerCoreBitsArray = encodedKmerCoreOnly;  
+        }
+//        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
+//        encodeCoreCanonical(kmerCoreOnly, 0, kmerCoreOnly.length() - 1);
+//        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
+    }
+    
+    
 
 //    /**
 //     * Add first kmer (encoded as a SplitMer)
@@ -515,6 +539,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      */
     @Override
     public PairMer getOtherPairmerCoreLeft(int k) {
+        
+        
         if (!isInvalid() && getStoredCount() == 2) {
 
 //            String decodedCore = decodeCore(k - 1);
@@ -561,7 +587,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * Method intended to extracting "core" which can then be used as a key for
      * finding neighboring pairMer in the implicit de Brujin graph; For example,
      * given a pairMer A_TTC_G (leftClip_core_rightClip) the method should
-     * return encoded representation of ATTC
+     * return the encoded representation of ATTC
      *
      * @param kmerCoreBitsArray
      * @param coreLength
@@ -702,5 +728,37 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         }
         return s.append(bitString);
     }
+    
+//    @Override
+//    public ArrayList<PairMer> generateSpacedPairMersForMapSplitting(int k, int chunks) {
+//        ArrayList<PairMer> pms = new ArrayList<>(chunks);
+//        int chunk = 0b00111111111111111111111111111111 / chunks;        
+//        int reminder = 0b00111111111111111111111111111111 % chunks;
+//        for (int i = chunk; i <= 0b00111111111111111111111111111111-reminder; i+=chunk) {
+//            int[] encoded = new int[kmerCoreBitsArray.length];
+//            encoded[0] = i;
+////            for (int j = 1; j < encoded.length; j++) {
+////                encoded[j] = i;// Integer.MAX_VALUE; //0b00111111111111111111111111111111;
+////            }
+//            pms.add(new PairMerIntArrEncoded(encoded, k-1, false));
+//            System.err.println(NumberFormat.getNumberInstance().format(encoded[0])+" "+NumberFormat.getNumberInstance().format(encoded[1])+" "+NumberFormat.getNumberInstance().format(encoded[2]));
+//        }
+//        return pms;
+//    }
 
+    
+    public PairMer luckyDipPairMer(int k, PairMerIntArrEncoded another) {
+        int[] encoded = new int[kmerCoreBitsArray.length];
+        int[] anotherEnc = another.getEncoded();
+        for (int i = 0; i < encoded.length; i++) {
+//            encoded[i] = Math.min(kmerCoreBitsArray[i]+kmerCoreBitsArray[i]/2,r.nextInt(0b00111111111111111111111111111111));
+//            encoded[i] = Math.min(kmerCoreBitsArray[i]+kmerCoreBitsArray[i]/2,r.nextInt(0b00111111111111111111111111111111));
+            encoded[i] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[i]+1, anotherEnc[i]-1);
+        }        
+        return new PairMerIntArrEncoded(encoded, k-1, false);
+    }
+    
+    public int[] getEncoded() {
+        return kmerCoreBitsArray;
+    }
 }

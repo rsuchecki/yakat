@@ -210,7 +210,7 @@ public class KmerExtender {
         //RUNTIME
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
         optSet.addOpt(new Opt('t', "threads", "Number threads for populating a set of implicitly connected k-mers",
-            1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+            1, 1, Math.min(Runtime.getRuntime().availableProcessors(),255), 1, 1)); //max 255 threads as w use a byte to store thread id on visited pairmers with Byte.MAX_VALUE reserved as intial value representing not visited
 
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
@@ -273,7 +273,7 @@ public class KmerExtender {
                     (String) optSet.getOpt("stats-file").getValueOrDefault(), TOOL_NAME);
                 Integer minLen = (int) optSet.getOpt("min-length").getValueOrDefault(k + 1);
                 pairMersExtender.matchAndExtendKmers(k, pairMersMap, OUTPUT_FASTA, NAME_PREFIX,
-                    outFile, minLen);
+                    outFile, minLen, MAX_THREADS);
                 Reporter.report("[INFO]", "Finished extending for k=" + k, TOOL_NAME);
 
             }
@@ -444,7 +444,8 @@ public class KmerExtender {
             Reporter.report("[ERROR]", "PairMerSet purger interrupted exception!", TOOL_NAME);
         } catch (ExecutionException ex) {
             Reporter.report("[ERROR]", "PairMerSet purger execution exception!", TOOL_NAME);
-//            ex.printStackTrace();
+            ex.printStackTrace();
+            System.exit(1);
         } catch (TimeoutException ex) {
             Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
             Reporter.report("[ERROR]", "PairMerSet purger timeout exception!", TOOL_NAME);
@@ -568,11 +569,13 @@ public class KmerExtender {
         } catch (InterruptedException ex) {
         }
 
+        
+        byte threadId = Byte.MIN_VALUE;
         //INIT THREADS
         for (int i = 0; i < threads; i++) {
 //            PairMersSeedExtenderConsumer = new PairMersSeedExtenderConsumer
             PairMersSeedExtenderConsumer extenderConsumer = new PairMersSeedExtenderConsumer(queue, kToSeedMers,
-                (String) optSet.getOpt("debug-file").getValueOrDefault(), TOOL_NAME);
+                (String) optSet.getOpt("debug-file").getValueOrDefault(), TOOL_NAME, threadId++);
             futures.add(seedExtenderExecutorService.submit(extenderConsumer));
         }
 

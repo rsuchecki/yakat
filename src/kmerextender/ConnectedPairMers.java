@@ -37,13 +37,8 @@ public class ConnectedPairMers {
     private PairMerNode singletonNode;
     private final HashMap<PairMer, PairMerNode> pairMerNodes = new HashMap<>();
 //    ArrayList<PairMer> connectedPairMersTemp = new ArrayList<>();
-
-    String DEBUG_FILE;
-    private boolean bug;
-
-    public ConnectedPairMers(String DEBUG_FILE) {
-        this.DEBUG_FILE = DEBUG_FILE;
-    }
+    private CharSequence extendedString;
+    private boolean potentialDuplicate = false;
 
     /**
      * Given a PairMer recursively follows the implicit connections to generate
@@ -53,18 +48,46 @@ public class ConnectedPairMers {
      * @param pairMer
      * @param k
      * @param pairMersMap
+     * @param threadId
+     * @return
      */
-    public void connectPairMers(PairMer pairMer, int k, PairMersMap pairMersMap) {
+    public boolean connectPairMers(PairMer pairMer, int k, PairMersMap pairMersMap, byte threadId, String DEBUG_FILE, boolean reset) {
+//        boolean visited;
+//        boolean visited = pairMer.checkAndSetVisited();
+//        if (!pairMer.isVisited()) {
+//            pairMer.setVisited();
+        byte visitedBy = pairMer.checkAndSetVisitedBy(threadId);
+        if (visitedBy == Byte.MAX_VALUE) { //NODE NOT VISITED BEFORE -> keep going
+//            visited = false;
+        } else if (visitedBy > threadId) { //NODE PREVIOUSLY VISITED BY A LOWER PRIORITY THREAD -> keep going, but tag result as a posiible duplicate
+//            visited = false;
+            potentialDuplicate = true;
+        } else if (visitedBy == threadId) { //NODE ALREADY VISITED BY THE SAME THREAD -> skip
+//            visited = true;
+            return true;
+        } else { //NODE PREVIOUSLY VISITED BY A HIGHER PRIORITY THREAD  -> terminate extension 
+            return false;
+        }
 
-//        connectedPairMersTemp.add(pairMer);
-        if (!pairMer.isVisited()) {
+//        if(checkAndSetVisitedBy)
+//        if (!visited || reset) {
             pairMer.setVisited();
-            PairMerStrings wrapper = new PairMerStrings(pairMer, k);
-            //
-            String otherCoreOfKmer1 = wrapper.getOtherCoreOfKmer1();
+//            pairMer.setVisitedBy(threadId);
+
+            String decodedCore = pairMer.decodeCore(k - 1);
+            StringBuilder otherCoreOfKmer1 = new StringBuilder();
+            StringBuilder otherCoreOfKmer2 = new StringBuilder();
+            if (pairMer.hasLeftClip()) {
+                otherCoreOfKmer1.append(pairMer.getClipLeft());
+                otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
+            }
+            if (pairMer.hasRightClip()) {
+                otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
+                otherCoreOfKmer2.append(pairMer.getClipRight());
+            }
             PairMer otherPairMer1 = null;
-            String otherCoreOfKmer2 = wrapper.getOtherCoreOfKmer2();
             PairMer otherPairMer2 = null;
+
             try {
                 otherPairMer1 = pairMersMap.get(otherCoreOfKmer1, k);
                 otherPairMer2 = pairMersMap.get(otherCoreOfKmer2, k);
@@ -109,14 +132,29 @@ public class ConnectedPairMers {
 //                System.err.println(wrapper.getOtherCoreOfKmer1() + "\tk1otherCore");
 //                System.err.println(SequenceOps.getReverseComplementString(wrapper.getOtherCoreOfKmer1()) + "\tk1otherCoreRC");
 //                if (!otherCoreOfKmer1.equals(otherPairMer1.decodeCore(k - 1))) {
-                if (!otherCoreOfKmer1.equals(otherPairMer1.decodeCore(k - 1))) {
+                if (!otherCoreOfKmer1.toString().equals(otherPairMer1.decodeCore(k - 1))) {
                     otherPairMer1isRC = true;
 //                    System.err.println("blah!!!!");
                 }
-                if (!otherPairMer1.isVisited()) {
-                    connectPairMers(otherPairMer1, k, pairMersMap);
+
+//                //recycling variables visited, visitedBy
+//                visitedBy = otherPairMer1.checkAndSetVisitedBy(threadId);
+//                if (visitedBy == Byte.MAX_VALUE) { //NODE NOT VISITED BEFORE -> keep going
+//                    visited = false;
+//                } else if (visitedBy > threadId) { //NODE PREVIOUSLY VISITED BY A LOWER PRIORITY THREAD -> keep going, but tag result as a posiible duplicate
+//                    visited = false;
+//                    potentialDuplicate = true;
+//                } else if (visitedBy == threadId) { //NODE ALREADY VISITED BY THE SAME THREAD -> skip
+//                    visited = true;
+//                } else { //NODE PREVIOUSLY VISITED BY A HIGHER PRIORITY THREAD  -> terminate extension 
+//                    return false;
+//                }
+//                if (!visited) {
+                    if (!connectPairMers(otherPairMer1, k, pairMersMap, threadId, DEBUG_FILE, reset)) {
+                        return false;
+                    }
 //                    terminalPairMer1 = addPairMerToListOfConnected(otherPairMer1, k, pairMersMap, connectedPairMers);
-                }
+//                }
             }
             boolean otherPairMer2isRC = false;
 //            System.err.println(wrapper.getKmer2String() + "\tk2");
@@ -124,23 +162,23 @@ public class ConnectedPairMers {
             if (otherPairMer2 != null) {
 //                System.err.println(wrapper.getOtherCoreOfKmer2() + "\tk2otherCore");
 //                System.err.println(SequenceOps.getReverseComplementString(wrapper.getOtherCoreOfKmer2()) + "\tk2otherCoreRC");
-                if (!otherCoreOfKmer2.equals(otherPairMer2.decodeCore(k - 1))) {
+                if (!otherCoreOfKmer2.toString().equals(otherPairMer2.decodeCore(k - 1))) {
                     otherPairMer2isRC = true;
                 }
-                if (!otherPairMer2.isVisited()) {
-                    connectPairMers(otherPairMer2, k, pairMersMap);
-                }
+//                if (!otherPairMer2.isVisited()) {
+                    if (!connectPairMers(otherPairMer2, k, pairMersMap, threadId, DEBUG_FILE, reset)) {
+                        return false;
+                    }
+//                }
             }
-            add(pairMer, otherPairMer1, otherPairMer1isRC, otherPairMer2, otherPairMer2isRC, k);
-
-        }
+            add(pairMer, otherPairMer1, otherPairMer1isRC, otherPairMer2, otherPairMer2isRC, k, DEBUG_FILE);
+//        }
+        return true;
     }
 
-    public boolean isBug() {
-        return bug;
-    }
-
-    
+//    public boolean isBug() {
+//        return bug;
+//    }
     /**
      *
      * @param pairMer
@@ -149,7 +187,7 @@ public class ConnectedPairMers {
      * @param next
      * @param nextRc
      */
-    private void add(PairMer pairMer, PairMer previous, boolean previousRc, PairMer next, boolean nextRc, int k) {
+    private void add(PairMer pairMer, PairMer previous, boolean previousRc, PairMer next, boolean nextRc, int k, String DEBUG_FILE) {
         PairMerNode pairMerNode = new PairMerNode(pairMer, previous, previousRc, next, nextRc);
 //        connectedPairMers.add(pairMerNode);
 //        if (previous == null ^ next == null) {
@@ -160,7 +198,7 @@ public class ConnectedPairMers {
                 terminal2 = pairMerNode;
             } else {
                 Reporter.report("[BUG?]", "Third terminal PairMerNode identified? Trying to store a terminal node again?", getClass().getSimpleName());
-                bug = true;
+//                bug = true;
                 if (DEBUG_FILE != null) {
                     ArrayList<String> toReport = new ArrayList<>();
                     try {
@@ -218,24 +256,32 @@ public class ConnectedPairMers {
      * @param k
      * @return
      */
-    public String toString(int k) {
-        if (singletonNode != null) {
-            return singletonNode.getPairMer().getPairMerString(k);
-        } else if (!hasTerminalOrSingletonNode()) {
-            Reporter.report("[WARNING]", "No terminal PairMerNodes ", getClass().getSimpleName());
-            return null;
-        } else if (terminal1 != null) {
-            return traverse(terminal1, k, true, null);
-        } else if (terminal2 != null) {
-            return traverse(terminal2, k, true, null);
-        } else {
-            //not possible everything correct           
-            Reporter.report("[BUG?]", "No terminal or sungleton PairMerNodes in ConnectedPairMers? ", getClass().getSimpleName());
-            return null;
+    public CharSequence toCharSeq(int k) {
+        if (extendedString == null) {
+            if (singletonNode != null) {
+                extendedString = singletonNode.getPairMer().getPairMerString(k);
+            } else if (!hasTerminalOrSingletonNode()) {
+                Reporter.report("[WARNING]", "No terminal PairMerNodes ", getClass().getSimpleName());
+                return null;
+            } else if (terminal1 != null) {
+                extendedString = traverse(terminal1, k, true, null);
+            } else if (terminal2 != null) {
+                extendedString = traverse(terminal2, k, true, null);
+            } else {
+                //not possible everything correct           
+                Reporter.report("[BUG?]", "No terminal or sungleton PairMerNodes in ConnectedPairMers? ", getClass().getSimpleName());
+                return null;
+            }
         }
-
+        return extendedString;
     }
 
+    public boolean isPotentialDuplicate() {
+        return potentialDuplicate;
+    }
+
+    
+    
     /**
      * If a non-empty set of connected PairMers has no terminal nodes, it
      * indicates that it represents a circular molecule. In most contexts it
@@ -248,7 +294,7 @@ public class ConnectedPairMers {
         return terminal1 != null || terminal2 != null || singletonNode != null;
     }
 
-    private String traverse(PairMerNode currentNode, int k, boolean isInitial, PairMerNode alreadyVisited) {
+    private CharSequence traverse(PairMerNode currentNode, int k, boolean isInitial, PairMerNode alreadyVisited) {
         StringBuilder sb = new StringBuilder();
         String currentString = new String();
         if (isInitial) {
@@ -298,7 +344,8 @@ public class ConnectedPairMers {
         }
 //            return "not implemented yet " + currentString;
 
-        return sb.toString();
+//        return sb.toString();
+        return sb;
     }
 
     public int size() {

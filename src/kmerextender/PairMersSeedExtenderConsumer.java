@@ -42,15 +42,17 @@ public class PairMersSeedExtenderConsumer implements Runnable {
     private final String TOOL_NAME;
     private final BlockingQueue<PairMersMap> pairMersMapsQueue;
     private final ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers;
+    private final byte threadId;
 //    private HashMap<String,String> ID_2_SEED_SEQUENCE_MAP;
 
     public PairMersSeedExtenderConsumer(BlockingQueue<PairMersMap> pairMersMapsQueue,
-        ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers, String DEBUG_FILE, String TOOL_NAME) {
+        ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers, String DEBUG_FILE, String TOOL_NAME, byte threadId) {
         this.DEBUG_FILE = DEBUG_FILE;
 //        this.STATS_FILE = STATS_FILE;
         this.TOOL_NAME = TOOL_NAME;
         this.pairMersMapsQueue = pairMersMapsQueue;
         this.kToSeedMers = kToSeedMers;
+        this.threadId = threadId;
     }
 
 //    public void matchAndExtendSeeds(int k, PairMersMap pairMersMap, PairMerToSeedMap pairMerToSeedMap) {
@@ -66,13 +68,15 @@ public class PairMersSeedExtenderConsumer implements Runnable {
                     PairMer seedMer = it.next();
                     PairMer pairMer = pairMersMap.get(seedMer);
                     if (pairMer != null && !pairMer.isVisited()) {
-                        ConnectedPairMers connectedPairMers = new ConnectedPairMers(DEBUG_FILE);
-                        connectedPairMers.connectPairMers(pairMer, k, pairMersMap);
+                        ConnectedPairMers connectedPairMers = new ConnectedPairMers();
+                        if(!connectedPairMers.connectPairMers(pairMer, k, pairMersMap, threadId, DEBUG_FILE, false)) {
+                            System.err.println("Failed connecting pairmers "+this.getClass().getCanonicalName());
+                        }
                         try {
                             if (connectedPairMers.hasTerminalOrSingletonNode()) {
                                 SeedSequence seedSequence = kToSeedMers.get(k).get(seedMer);
                                  if (seedSequence != null && seedSequence.getSequenceString() != null) {
-                                    String connectedMers = connectedPairMers.toString(k);
+                                    String connectedMers = connectedPairMers.toCharSeq(k).toString(); //TODO CONSIDER SWITCHING TO CHAr SEQ
                                     String connectedMersRC = SequenceOps.getReverseComplementString(connectedMers);
 //                            String extension = extendSeed(connectedMers, extendSeed(connectedMersRC, seedSequence.getExtendedOrOriginal(k), k), k);
 //                            seedSequence.setExtended(k, extension);

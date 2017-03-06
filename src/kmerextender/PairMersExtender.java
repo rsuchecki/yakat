@@ -25,10 +25,23 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.NavigableSet;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
+import shared.InputReaderProducer;
 import shared.Sequence;
 import shared.SequenceOps;
 
@@ -43,7 +56,7 @@ public class PairMersExtender {
     private final String STATS_FILE;
     private final String TOOL_NAME;
 //    private HashMap<String,String> ID_2_SEED_SEQUENCE_MAP;
-    private int WRITER_BUFFER_SIZE = 8192;
+    private final int WRITER_BUFFER_SIZE = 8192;
 
     /**
      * Given optional DEBUG and STATS filenames, init Object
@@ -71,13 +84,12 @@ public class PairMersExtender {
 //        this.STATS_FILE = STATS_FILE;
 //        this.ID_2_SEED_SEQUENCE_MAP = idToSeedSequenceMap;
 //    }
-    public void matchAndExtendKmers(int k, PairMersMap pairMersMap, boolean outputFasta, String namePrefix, String outFile, int minLen) {
+    public void matchAndExtendKmers(int k, PairMersMap pairMersMap, boolean outputFasta, String namePrefix, String outFile, int minLen, int extenderThreads) {
         if (!namePrefix.isEmpty() && !namePrefix.endsWith("_")) {
             namePrefix += "_";
         }
+        
 
-//        Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
-        Iterator<PairMer> it = pairMersMap.getTerminalPairMers().keySet().iterator();
         long clusterNumber = 0; //Connected-component in the de-bruijn graph
         long extendedNumber = 0;
         long extendedLength = 0;
@@ -87,6 +99,7 @@ public class PairMersExtender {
         int longest = 0;
         int shortest = Integer.MAX_VALUE;
         int MAX_LENGTH_STATS = 2000;
+        int potentialDuplicate = 0;
         if (STATS_FILE != null) {
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", "Kmer extrending stats", TOOL_NAME), false);
             extendedLengths = new int[MAX_LENGTH_STATS];
@@ -98,59 +111,37 @@ public class PairMersExtender {
             } else {
                 out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile), "UTF-8"), WRITER_BUFFER_SIZE);
             }
-            while (it.hasNext()) {
-                PairMer pairMer = it.next();
-                
-                
-                StringBuilder otherCore = new StringBuilder();
-                 String decodedCore = pairMer.decodeCore(k - 1);
-                 if(pairMer.hasBothClips()) {
-                     Reporter.report("[WARNING]", "Both clips present in a suposedly terminal pairmer!", getClass().getCanonicalName());
-                 } else if(pairMer.hasLeftClip()) {
-                    otherCore.append(pairMer.getClipLeft());
-                    otherCore.append(decodedCore.subSequence(0, decodedCore.length() - 1));                     
-                 } else if(pairMer.hasRightClip()) {
-                    otherCore.append(decodedCore.subSequence(1, decodedCore.length()));                     
-                    otherCore.append(pairMer.getClipRight());                    
-                 } 
-           
 
-                
-                 
-                try {
-                    it.remove();
-                    PairMer otherTerminal = pairMersMap.getTerminal(otherCore, k);
-                    if(otherTerminal != null)  {
-                        //skipping one-base extension
-                        pairMersMap.removeTerminal(otherTerminal);
-                        continue;
-                    }
-                    pairMer = pairMersMap.get(otherCore, k);
-                } catch (NonACGTException ex) {
-                    Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
-                }
-
-                if (pairMer != null && !pairMer.isVisited()) {
-                    clusterNumber++;
-                    ConnectedPairMers connectedPairMers = new ConnectedPairMers(DEBUG_FILE);
-                    connectedPairMers.connectPairMers(pairMer, k, pairMersMap);
-////                    if(DEBUG_FILE != null &&  connectedPairMers.isBug()) {
-//                    if(DEBUG_FILE != null) {
-//                        ArrayList<String> toReport = new ArrayList<>();
-//                        toReport.add("Cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
-//                        for (PairMer pm : connectedPairMers.getKeys()) {
-//                            toReport.add(pm.getPairMerString(k));
-//                        }
-//                        Reporter.writeToFile(DEBUG_FILE, toReport, true);
-//                        
-//                    }
-                    try {
+            BlockingQueue inqueue = new ArrayBlockingQueue(extenderThreads);
+            BlockingQueue<List<ConnectedPairMers>> outqueue = new ArrayBlockingQueue(extenderThreads);
+            ArrayList<Future<?>> futures = new ArrayList<>(extenderThreads + 1);
+            final ExecutorService producerConsumerExecutor = new ThreadPoolExecutor(extenderThreads + 1, extenderThreads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+            //SPAWN PRODUCER
+            futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue)));
+            byte threadId = Byte.MIN_VALUE;
+            //SPAWN CONSUMER THREADS
+            for (int i = 0; i < extenderThreads; i++) {
+                PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k , DEBUG_FILE, threadId++);
+                futures.add(producerConsumerExecutor.submit(consumer));
+            }
+            //COUNT AND PRINT EXTENDED SEQUENCES, RESOLVE CONFLICTS...
+            try {
+                List<ConnectedPairMers> list;
+                while (!(list = outqueue.take()).isEmpty() || --extenderThreads > 0) {                
+//                    System.err.println(Thread.currentThread().getName() + "[M] taken " + list.size());
+                    for (ConnectedPairMers connectedPairMers : list) {
+                       clusterNumber++;
+                       try {
                         if (connectedPairMers.hasTerminalOrSingletonNode()) {
                             extendedNumber++;
 //                        System.err.println(connectedPairMers.getKeys().size() + " pairMers == " + connectedMers.length() + " bp");
-                            String connectedMers = connectedPairMers.toString(k);
+                            CharSequence connectedMers = connectedPairMers.toCharSeq(k);
                             int len = connectedMers.length();
                             extendedLength += len;
+
+                            if(connectedPairMers.isPotentialDuplicate()) {
+                                potentialDuplicate++;
+                            }
                             if (len > longest) {
                                 longest = len;
                             }
@@ -167,11 +158,13 @@ public class PairMersExtender {
                             if (len >= minLen) {
                                 longEnough++;
                                 longEnoughBp += len;
+
+                                //SYNC THIS 
                                 if (outputFasta) {
-                                    out.write(">" + namePrefix + clusterNumber + " " + len);
+                                    out.write(">" + namePrefix + clusterNumber + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
                                     out.newLine();
                                 }
-                                out.write(connectedMers);// + "\t" + SequenceOps.getReverseComplementString(connected));
+                                out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));
                                 out.newLine();
                             }
                         } else {
@@ -188,16 +181,195 @@ public class PairMersExtender {
                         }
                     } catch (StackOverflowError error) {
                         Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
-                        Reporter.report("[ERROR]", "Obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+                        Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
                         System.exit(1);
                     }
-                out.flush();
+                    out.flush();
+                       
+                    }
+//                    System.err.println(list.size()+" "+extenderThreads);
                 }
+//                System.err.println("out of lock");
+//                outqueue.put(new ArrayList<>()); //inform other threads
+                
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
+            
+           
+            producerConsumerExecutor.shutdown();
+            try {
+                for (Future<?> f : futures) {
+                    f.get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                }
+                producerConsumerExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                Reporter.report("[ERROR]", "PairMerSet populator interrupted exception!", TOOL_NAME);
+            } catch (ExecutionException ex) {
+                Reporter.report("[ERROR]", "PairMerSet populator execution exception!", TOOL_NAME);
+                ex.printStackTrace();
+
+            } catch (TimeoutException ex) {
+                Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
+                Reporter.report("[ERROR]", "PairMerSet populator timeout exception!", TOOL_NAME);
+            }
+
+//            //        Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
+//            Iterator<PairMer> it = pairMersMap.getTerminalPairMers().keySet().iterator();
+//            while (it.hasNext()) {
+//                PairMer pairMer = it.next();
+//
+//                if (pairMer != null && !pairMer.isVisited()) {
+//                    clusterNumber++;
+//                    ConnectedPairMers connectedPairMers = new ConnectedPairMers(DEBUG_FILE);
+//                    connectedPairMers.connectPairMers(pairMer, k, pairMersMap);
+//////                    if(DEBUG_FILE != null &&  connectedPairMers.isBug()) {
+////                    if(DEBUG_FILE != null) {
+////                        ArrayList<String> toReport = new ArrayList<>();
+////                        toReport.add("Cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
+////                        for (PairMer pm : connectedPairMers.getKeys()) {
+////                            toReport.add(pm.getPairMerString(k));
+////                        }
+////                        Reporter.writeToFile(DEBUG_FILE, toReport, true);
+////                        
+////                    }
+//                    try {
+//                        if (connectedPairMers.hasTerminalOrSingletonNode()) {
+//                            extendedNumber++;
+////                        System.err.println(connectedPairMers.getKeys().size() + " pairMers == " + connectedMers.length() + " bp");
+//                            CharSequence connectedMers = connectedPairMers.toCharSeq(k);
+//                            int len = connectedMers.length();
+//                            extendedLength += len;
+//
+//                            if (len > longest) {
+//                                longest = len;
+//                            }
+//                            if (len < shortest) {
+//                                shortest = len;
+//                            }
+//                            if (STATS_FILE != null) {
+//                                if (len < MAX_LENGTH_STATS) {
+//                                    extendedLengths[len]++;
+//                                } else {
+//                                    extendedLengths[0]++;
+//                                }
+//                            }
+//                            if (len >= minLen) {
+//                                longEnough++;
+//                                longEnoughBp += len;
+//
+//                                //SYNC THIS 
+//                                if (outputFasta) {
+//                                    out.write(">" + namePrefix + clusterNumber + " " + len);
+//                                    out.newLine();
+//                                }
+//                                out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));
+//                                out.newLine();
+//                            }
+//                        } else {
+//                            String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
+//                            Reporter.report("[WARNING]", message, TOOL_NAME);
+//                            if (DEBUG_FILE != null) {
+//                                ArrayList<String> toReport = new ArrayList<>();
+//                                toReport.add("No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
+//                                for (PairMer pm : connectedPairMers.getKeys()) {
+//                                    toReport.add(pm.getPairMerString(k));
+//                                }
+//                                Reporter.writeToFile(DEBUG_FILE, toReport, true);
+//                            }
+//                        }
+//                    } catch (StackOverflowError error) {
+//                        Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
+//                        Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+//                        System.exit(1);
+//                    }
+//                    out.flush();
+//                }
+//            }
+
+
+
+
+
+            Reporter.report("[INFO]", "Starting second-pass, single threaded extending", TOOL_NAME);
+            Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
+            int n = 0;
+            while (it.hasNext()) {
+                PairMer pairMer = it.next();
+                if (pairMer != null && !pairMer.isVisited()) {
+                    clusterNumber++;
+                    ConnectedPairMers connectedPairMers = new ConnectedPairMers();
+                    if(!connectedPairMers.connectPairMers(pairMer, k, pairMersMap, threadId, DEBUG_FILE, false)) {
+                        System.err.println("Failed connecting pairmers - shoukld not happen in second pass");
+                    }
+                    try {
+                        if (connectedPairMers.hasTerminalOrSingletonNode()) {
+                            extendedNumber++;
+//                        System.err.println(connectedPairMers.getKeys().size() + " pairMers == " + connectedMers.length() + " bp");
+                            CharSequence connectedMers = connectedPairMers.toCharSeq(k);
+                            int len = connectedMers.length();
+                            extendedLength += len;
+
+                            if (len > longest) {
+                                longest = len;
+                            }
+                            if (len < shortest) {
+                                shortest = len;
+                            }
+
+//                            if (len != k + 1) {
+//                                System.err.println(connectedMers);
+//                                for (PairMer pm : connectedPairMers.getKeys()) {
+//                                    System.err.println(pm.getPairMerString(k, "_"));
+//                                }
+//                            }
+//                            
+                            if (STATS_FILE != null) {
+                                if (len < MAX_LENGTH_STATS) {
+                                    extendedLengths[len]++;
+                                } else {
+                                    extendedLengths[0]++;
+                                }
+                            }
+                            if (len >= minLen) {
+                                n++;
+                                longEnough++;
+                                longEnoughBp += len;
+                                if (outputFasta) {
+                                    out.write(">" + namePrefix + clusterNumber + " " + len);
+                                    out.newLine();
+                                }
+                                out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));
+                                out.newLine();
+                            }
+                        } else {
+                            String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
+                            Reporter.report("[WARNING]", message, TOOL_NAME);
+                            if (DEBUG_FILE != null) {
+                                ArrayList<String> toReport = new ArrayList<>();
+                                toReport.add("No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
+                                for (PairMer pm : connectedPairMers.getKeys()) {
+                                    toReport.add(pm.getPairMerString(k));
+                                }
+                                Reporter.writeToFile(DEBUG_FILE, toReport, true);
+                            }
+                        }
+                    } catch (StackOverflowError error) {
+                        Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
+                        Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+                        System.exit(1);
+                    }
+                }
+            }            ;
+            Reporter.report("[INFO]", "Extended in second-pass = "+NumberFormat.getNumberInstance().format(n)+" (single threaded extending)", TOOL_NAME);
+
+
         } catch (UnsupportedEncodingException e) {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         } catch (IOException e) {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
+//        } catch (InterruptedException e) {
+//            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         }
         String longestExtMessage = "Longest extended sequence = " + NumberFormat.getNumberInstance().format(longest) + "bp";
         String totalExtendedMessage = "Number of extended sequences = " + NumberFormat.getNumberInstance().format(extendedNumber);
@@ -206,6 +378,7 @@ public class PairMersExtender {
                 + NumberFormat.getNumberInstance().format(longEnough);
         String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(shortest == Integer.MAX_VALUE ? minLen : shortest) + "bp and longer = "
                 + NumberFormat.getNumberInstance().format(longEnoughBp) + " bp";
+        String duplicatesExtMessage = "Number of potentail duplicate extensions = " + NumberFormat.getNumberInstance().format(potentialDuplicate);
         if (STATS_FILE != null) {
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", longestExtMessage, TOOL_NAME), true);
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", totalExtendedMessage, TOOL_NAME), true);
@@ -217,6 +390,8 @@ public class PairMersExtender {
         Reporter.report("[INFO]", totalExtendedMessage2, TOOL_NAME);
         Reporter.report("[INFO]", longEnoughMessage, TOOL_NAME);
         Reporter.report("[INFO]", longEnoughMessage2, TOOL_NAME);
+        Reporter.report("[INFO]", duplicatesExtMessage, TOOL_NAME);
+
     }
 
 //    public void matchAndExtendSeeds(int k, PairMersMap pairMersMap, PairMerToSeedMap pairMerToSeedMap) {

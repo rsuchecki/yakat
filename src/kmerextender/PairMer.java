@@ -15,6 +15,8 @@
  */
 package kmerextender;
 
+import java.util.ArrayList;
+import java.util.Random;
 import shared.Reporter;
 
 /**
@@ -32,8 +34,10 @@ public class PairMer {//implements Comparable<PairMer> {
     private byte storedCountLeft;
     private byte storedCountRigth;
     private boolean invalid;  //1B
-    private boolean visited;//1B
+    private boolean visited;//1B    
     //then round to multi of 8
+
+    private byte visitedBy = Byte.MAX_VALUE;
 
     //could save 7B by encoding all the fields in a single B (storedCount would not be stored exactly but the state of the other bits could indicate is count is 1,2 or more)
     //7 (sign) 
@@ -47,13 +51,14 @@ public class PairMer {//implements Comparable<PairMer> {
      * this.core)
      *
      * @param another : newly generated PairMer holding a single k-mer
-     * @param inputKmersUnique : set true if no duplicate k-mers expected
+     * @param inputKmersUnique : set true if no duplicate k-mers expected (e.g.
+     * reading pre-counted k-mers)
      * @param freq : k-mer frequency (known if input is pre-computed k-mers,
      * otherwise counting is done here)
      */
     public synchronized void addKmerSynchronized(PairMer another, boolean inputKmersUnique, int freq) {
         //if already invalid PairMer  or more than second kmer being added
-        if (isInvalid() || (inputKmersUnique && (getStoredCountLeft() > 0 && getStoredCountRigth() > 0))) { 
+        if (isInvalid() || (inputKmersUnique && (getStoredCountLeft() > 0 && getStoredCountRigth() > 0))) {
             setIsInvalid();
         } else if (!inputKmersUnique) { //i.e. k-merizing FAST[A|Q] 
             //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to take this into account       
@@ -61,21 +66,21 @@ public class PairMer {//implements Comparable<PairMer> {
                 //fine, new k-mer is identical to a k-mer already stored
 //                    System.err.println("Adding same kmer again");
             } else //it is a different k-mer
-             if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                    setIsInvalid(); //has clip at the same end but not identical 
-                } else if (!hasLeftClip() && another.hasLeftClip()) {
-                    setClipLeft(another.getClipLeft());
-                } else if (!hasRightClip() && another.hasRightClip()) {
-                    setClipRight(another.getClipRight());
-                } else {
-                    Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
-                }
+            if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
+                setIsInvalid(); //has clip at the same end but not identical 
+            } else if (!hasLeftClip() && another.hasLeftClip()) {
+                setClipLeft(another.getClipLeft());
+            } else if (!hasRightClip() && another.hasRightClip()) {
+                setClipRight(another.getClipRight());
+            } else {
+                Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
+            }
 //            incrementStoredCount(another.hasLeftClip(), freq);
         } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
             if (hasBothClips()) {
                 setIsInvalid(); //because already two different k-mers represented in this PairMer
             } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                setIsInvalid();                
+                setIsInvalid();
             } else if (!hasLeftClip() && another.hasLeftClip()) {
                 setClipLeft(another.getClipLeft());
             } else if (!hasRightClip() && another.hasRightClip()) {
@@ -84,7 +89,7 @@ public class PairMer {//implements Comparable<PairMer> {
                 Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
             }
 //            incrementStoredCount(another.hasLeftClip(), freq);
-        }        
+        }
         incrementStoredCount(another.hasLeftClip(), freq);
     }
 
@@ -166,7 +171,7 @@ public class PairMer {//implements Comparable<PairMer> {
 
     /**
      * Output PairMer String with delimiter separating {leftClip, rightClip}
-     * from core, if e.g. delimiter = "_" then  return A_TCCCTTGCT_C
+     * from core, if e.g. delimiter = "_" then return A_TCCCTTGCT_C
      *
      * @param k
      * @param delimiter
@@ -217,8 +222,42 @@ public class PairMer {//implements Comparable<PairMer> {
         return visited;
     }
 
-    public void setVisited() {
+    public synchronized boolean checkAndSetVisited() {
+        if (!visited) {
+            visited = true;
+            return false;
+        }
+        return true;
+    }
+
+    public synchronized byte checkAndSetVisitedBy(byte id) {
+        if (visitedBy == Byte.MAX_VALUE) {  //NODE NOT VISITED BEFORE
+            visitedBy = id;
+            return Byte.MAX_VALUE;
+        } else if (visitedBy == id) { //NODE ALREADY VISITED BY THE SAME THREAD
+            return id;
+        } else if (visitedBy > id) { //NODE PREVIOUSLY VISITED BY A LOWER PRIORITY THREAD
+            byte prev = visitedBy;
+            visitedBy = id;
+            return prev;
+        }
+        return visitedBy; //NODE PREVIOUSLY VISITED BY A HIGHER PRIORITY THREAD 
+    }
+
+    public synchronized void setVisited() {
         this.visited = true;
+    }
+
+    public synchronized boolean setVisitedBy(byte id) {
+        if (visitedBy > id) {
+            visitedBy = id;
+            return true;
+        }
+        return false;
+    }
+
+    public byte getVisitedBy() {
+        return visitedBy;
     }
 
     public void printPaddedEncoded() {
@@ -233,6 +272,13 @@ public class PairMer {//implements Comparable<PairMer> {
         return null;
     }
 
+    public ArrayList<PairMer> generateSpacedPairMersForMapSplitting(int k, int chunks, Random r) {
+        return null;
+    }
+
+    public PairMer luckyDipPairMer(int k, PairMer another) {
+        return null;
+    }
 //    public int[] getOtherCoreRight(int coreLength) {
 //        return null;
 //    }
@@ -240,4 +286,5 @@ public class PairMer {//implements Comparable<PairMer> {
 //    public int[] getOtherCoreRight(int coreLength) {
 //        return null;
 //    }
+
 }
