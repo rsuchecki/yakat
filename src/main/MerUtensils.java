@@ -16,6 +16,7 @@
 package main;
 
 import argparser.ParserTest;
+import fastqmatchid.FastqMatchId;
 import gbssplit.SplitGBS;
 import kexpression.KeXpression;
 import kmerextender.KmerExtender;
@@ -49,6 +50,8 @@ public class MerUtensils {
             new KmerSetMerge(args, name, "kmerge");
         } else if (args.length != 0 && args[0].matches("split(er)?")) {
             new SplitGBS(args, name, "split");
+        } else if (args.length != 0 && args[0].matches("idmatch(er)?")) {
+            new FastqMatchId(args, name, "idmatch");
         } else if (args.length != 0 && args[0].matches("pileupstats")) {
             new PileupStats(args, name, "pileup");
         } else if (args.length != 0 && args[0].matches("(p)?mpileup")) {
@@ -88,6 +91,7 @@ public class MerUtensils {
         System.out.println("   kmerge        : given sorted input, merge k-mer sets summing frequencies if available [THIS CAN NOW BE DONE USING kmc_tools complex]");
         System.out.println("                 :");
         System.out.println("   split         : split FASTQ GBS reads by barcodes, trim barcodes and adapters");
+        System.out.println("   idmatch       : match FASTQ records by id");
         System.out.println("   pmpileup      : count and call bases from mpileup");
         System.out.println("   pileupstats   : extract some stats from (m)pileup");
         System.out.println("   snpmers       : given parental SNPs and the corresponding FASTA sequences from NIKS, call F2s genotypes by overlapping their k-mers with parental SNP sequences ");
