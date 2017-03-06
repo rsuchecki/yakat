@@ -53,14 +53,14 @@ public class MatcherConsumerProducer implements Runnable {
 
     private final BlockingQueue<ArrayList<String>> inputQueue;
     private final BlockingQueue<ArrayList<String>> outputQueue;
-    private final ConcurrentSkipListSet<String> ids;
+    private final ConcurrentSkipListSet<Identifier> ids;
     private final boolean invertMatch;
     private final String TOOL_NAME;
     private final ArrayList<Message> finalMessages;
     private final int BUFFER_SIZE;
 
     public MatcherConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue, BlockingQueue<ArrayList<String>> outputQueue,
-            ConcurrentSkipListSet<String> ids, int BUFFER_SIZE, String TOOL_NAME, ArrayList<Message> finalMessages, boolean invertMatch) {
+            ConcurrentSkipListSet<Identifier> ids, int BUFFER_SIZE, String TOOL_NAME, ArrayList<Message> finalMessages, boolean invertMatch) {
         this.inputQueue = inputQueue;
         this.outputQueue = outputQueue;
         this.ids = ids;
@@ -77,21 +77,21 @@ public class MatcherConsumerProducer implements Runnable {
             ArrayList<String> list;
             ArrayList<String> buffer = new ArrayList<>(BUFFER_SIZE);
 
-            long countIn = 0;
-            long countOut = 0;
+//            long countIn = 0;
+//            long countOut = 0;
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     String toks[] = spliPattern.split(line);
-                    countIn++;
+//                    countIn++;
 //                    String replaceFirst = toks[0].replaceFirst("\\/[1-2]", "");
-                    boolean contains = ids.contains(toks[0].replaceFirst("\\/[1-2]", ""));
+                    boolean contains = ids.contains(new Identifier(toks[0].replaceFirst("\\/[1-2]", "")));
                     if (contains && !invertMatch || !contains && invertMatch) {
                         if (buffer.size() >= BUFFER_SIZE) {
                             putOneQueue(outputQueue, buffer);
                             buffer = new ArrayList<>();
                         }
                         buffer.add(line);
-                        countOut++;
+//                        countOut++;
                     }
                 }
             }
