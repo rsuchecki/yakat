@@ -43,6 +43,7 @@ public class InputReaderProducer implements Runnable {
 //    private Integer KMER_LENGTH; // ignored if <0 but not if null
     private ArrayList<String> inputFiles;
     private InFormat guessedInFormat;
+    private boolean ASSUME_GENERIC_ONE_RECORD_PER_LINE_FORMAT;
     private final int READER_BUFFER_SIZE = 8192;
 //    private MerMap map; //almost dummy object used to pass out of mem error up the chain
     //PUT READ LINES ON QUEQE AS SOON AS ONE OF THE FOLLOWING IS REACHED
@@ -58,7 +59,7 @@ public class InputReaderProducer implements Runnable {
 
     public enum InFormat {
         KMERS, PER_SAMPLE_KMERS, FASTA_SE_ONE_LINE, FASTA_PE_ONE_LINE, FASTQ_SE_ONE_LINE, FASTQ_PE_ONE_LINE, FASTA, FASTQ,
-        MPILEUP, UNSUPPORTED_OR_UNRECOGNIZED, EMPTY;
+        MPILEUP, ONE_RECORD_PER_LINE, UNSUPPORTED_OR_UNRECOGNIZED, EMPTY;
     }
 
     /**
@@ -90,7 +91,6 @@ public class InputReaderProducer implements Runnable {
      *
      * @param queue
      * @param inputFiles
-     * @param k
      * @param toolName
      * @param RECORD_NAME
      * @param RECORD_BUFFER_SIZE
@@ -103,8 +103,28 @@ public class InputReaderProducer implements Runnable {
         FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
 //        this.RECORD_NAME = RECORD_NAME;
     }
-    
-    /**    
+
+    /**
+     * Used by idmatch
+     *
+     * @param queue
+     * @param inputFile
+     * @param toolName
+     * @param RECORD_NAME
+     * @param RECORD_BUFFER_SIZE
+     */
+    public InputReaderProducer(BlockingQueue queue, String inputFile, String toolName, String RECORD_NAME, int RECORD_BUFFER_SIZE, boolean assumeInputFormat) {
+        this.queue = queue;
+        this.inputFiles = new ArrayList<>();
+        inputFiles.add(inputFile);
+        TOOL_NAME = toolName;
+        KMER_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+        FASTQ_BUFFER_SIZE = RECORD_BUFFER_SIZE;
+        ASSUME_GENERIC_ONE_RECORD_PER_LINE_FORMAT = assumeInputFormat;
+//        this.RECORD_NAME = RECORD_NAME;
+    }
+
+    /**
      *
      * @param queue
      * @param inputFiles
@@ -157,7 +177,7 @@ public class InputReaderProducer implements Runnable {
      * @param toolName
      */
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, boolean useLabelledBuffers, int reportingShift,
-        String toolName, int KMER_BUFFER_SIZE) {
+            String toolName, int KMER_BUFFER_SIZE) {
         this.queue = queue;
         this.inputFiles = inputFiles;
         this.useLabelledBuffers = useLabelledBuffers;
@@ -177,7 +197,7 @@ public class InputReaderProducer implements Runnable {
      */
 //    public InputReaderProducer(HashMap<Integer, BlockingQueue> kSizeToQueue, ArrayList<Integer> kValues,
     public InputReaderProducer(BlockingQueue queue, ArrayList<Integer> kSizes,
-        ArrayList<String> inputFiles, int RECORD_BUFFER_SIZE, String toolName) {
+            ArrayList<String> inputFiles, int RECORD_BUFFER_SIZE, String toolName) {
 //        if (kSizeToQueue.size() == 1) {
         this.queue = queue; // kSizeToQueue.values().iterator().next();
 //            this.KMER_LENGTH = kSizeToQueue.keySet().iterator().next();
@@ -228,8 +248,13 @@ public class InputReaderProducer implements Runnable {
                     }
                 }
                 //IF FORMAT SUPPORT NOT IMPLEMENTED OR UNRECOGNZED 
-                guessedInFormat = guessInputFormat(testLines);
-                Reporter.report("[INFO]", "Input format guessed: " + guessedInFormat.toString(), TOOL_NAME);
+                if (ASSUME_GENERIC_ONE_RECORD_PER_LINE_FORMAT) {
+                    guessedInFormat = InFormat.ONE_RECORD_PER_LINE;
+                    Reporter.report("[INFO]", "Input format forced: " + guessedInFormat.toString(), TOOL_NAME);
+                } else {
+                    guessedInFormat = guessInputFormat(testLines);
+                    Reporter.report("[INFO]", "Input format guessed: " + guessedInFormat.toString(), TOOL_NAME);
+                }
                 if (guessedInFormat == InFormat.EMPTY) {
                     Reporter.report("[WARNING]", "Empty input file/stream...", TOOL_NAME);
                     putOnQueue(new ArrayList<String>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING                    
@@ -246,9 +271,10 @@ public class InputReaderProducer implements Runnable {
                     readKmersPerSample(content, testLines, inputFile);
                     empty = new LabelledInputBuffer("", new ArrayList()); //making sure that the type of "done reading" flag matches the input type
                 } else if (guessedInFormat == InFormat.KMERS
-                    || (guessedInFormat == InFormat.FASTQ_PE_ONE_LINE && !kMerIsSet())
-                    || (guessedInFormat == InFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())
-                    || (guessedInFormat == InFormat.MPILEUP)) {
+                        || (guessedInFormat == InFormat.FASTQ_PE_ONE_LINE && !kMerIsSet())
+                        || (guessedInFormat == InFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())
+                        || (guessedInFormat == InFormat.MPILEUP) 
+                        || (guessedInFormat == InFormat.ONE_RECORD_PER_LINE)) {
                     //READ KMERS (or any other input that can simply be processed line by line)
                     readLines(content, testLines);
                 } else if (!kMerIsSet()) {
@@ -305,7 +331,7 @@ public class InputReaderProducer implements Runnable {
     }
 
     private void readLines(BufferedReader content, ArrayList<String> testLines)
-        throws InterruptedException, IOException {
+            throws InterruptedException, IOException {
         ArrayList<String> bufferList = new ArrayList<>(KMER_BUFFER_SIZE);
         bufferList.addAll(testLines);
         long kmerCount = 0L;
@@ -343,7 +369,7 @@ public class InputReaderProducer implements Runnable {
      * @throws IOException
      */
     private void readKmersPerSample(BufferedReader content, ArrayList<String> testLines, String inputFile)
-        throws InterruptedException, IOException {
+            throws InterruptedException, IOException {
 //        Reporter.report("[WARNING]", "readKmersPerSample() needs to be tested, particularily with multiple input files and or multiple samples per file", TOOL_NAME);
         String sampleLabel = null;
         if (!inputFile.equals("-")) { //IF NOT STDIN
@@ -404,7 +430,7 @@ public class InputReaderProducer implements Runnable {
     }
 
     private void readFastq(BufferedReader content, ArrayList<String> testLines)
-        throws InterruptedException, IOException {
+            throws InterruptedException, IOException {
         long fastqCount = 0L;
         long reportThreshold = (long) FASTQ_BUFFER_SIZE;
         int countFastqLine = 1; //WE ONLY WANT THE NUCL SEQ FROM FASTQ NOT THE OTHER THREE LINES OF EACH RECORD
