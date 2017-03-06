@@ -52,10 +52,7 @@ public class Identifier implements Comparable<Identifier>{
             return false;
         }
         final Identifier other = (Identifier) obj;
-        if (!Arrays.equals(this.ascii, other.ascii)) {
-            return false;
-        }
-        return true;
+        return Arrays.equals(this.ascii, other.ascii);
     }
     
     @Override
