@@ -26,10 +26,10 @@ import java.util.concurrent.ConcurrentSkipListSet;
  */
 public class IdSetPopulatorConsumer implements Runnable {
 
-    private final ConcurrentSkipListSet<String> ids;
+    private final ConcurrentSkipListSet<Identifier> ids;
     private final BlockingQueue<ArrayList<String>> inputQueue;
 
-    public IdSetPopulatorConsumer(ConcurrentSkipListSet<String> ids, BlockingQueue<ArrayList<String>> inputQueue) {
+    public IdSetPopulatorConsumer(ConcurrentSkipListSet<Identifier> ids, BlockingQueue<ArrayList<String>> inputQueue) {
         this.ids = ids;
         this.inputQueue = inputQueue;
     }
@@ -40,7 +40,7 @@ public class IdSetPopulatorConsumer implements Runnable {
             List<String> list;
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String id : list) {                                       
-                    ids.add(id);
+                    ids.add(new Identifier(id));
                 }
             }            
             inputQueue.put(new ArrayList<>()); //inform other threads

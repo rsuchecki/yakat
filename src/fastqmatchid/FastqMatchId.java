@@ -155,7 +155,7 @@ public class FastqMatchId {
         }
 
         //SPAWN MAP - POPULATOR THREADS
-        ConcurrentSkipListSet<String> ids = new ConcurrentSkipListSet();
+        ConcurrentSkipListSet<Identifier> ids = new ConcurrentSkipListSet();
         final ExecutorService populatorExecutorService = new ThreadPoolExecutor(MATCHER_THREADS, MATCHER_THREADS, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         ArrayList<Future<?>> populatorFutures = new ArrayList<>(MATCHER_THREADS);
         ArrayList<Message> finalMessages = new ArrayList<>(MATCHER_THREADS * 5);
@@ -185,6 +185,10 @@ public class FastqMatchId {
 
         Reporter.report("[INFO]", "Finished populating identifiers set, n=" + NumberFormat.getNumberInstance().format(ids.size()), TOOL_NAME);
 
+        
+             
+        
+        
         //NOW PROCESS INPUT READS
         String outFile = (String) optSet.getOpt("out-file").getValueOrDefault();
         BlockingQueue outputQueue = new ArrayBlockingQueue(OUT_Q_CAPACITY);
