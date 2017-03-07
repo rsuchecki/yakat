@@ -17,6 +17,8 @@ package kmerextender;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentNavigableMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import shared.Reporter;
 
 /**
@@ -134,4 +136,6 @@ public class PairMerMaps {
         return kSizes.size();
     }
 
+    
+    
 }

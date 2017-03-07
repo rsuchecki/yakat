@@ -203,6 +203,15 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         return 0;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < kmerCoreBitsArray.length; i++) {
+            sb.append(kmerCoreBitsArray[i]).append(" ");            
+        }
+        return sb.toString();
+    }
+    
     /**
      *
      * @param forward
@@ -747,14 +756,17 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //    }
 
     
-    public PairMer luckyDipPairMer(int k, PairMerIntArrEncoded another) {
+    @Override
+    public PairMer luckyDipPairMer(int k, PairMer another) {
         int[] encoded = new int[kmerCoreBitsArray.length];
-        int[] anotherEnc = another.getEncoded();
+        int[] anotherEnc = ((PairMerIntArrEncoded)another).getEncoded();
         for (int i = 0; i < encoded.length; i++) {
 //            encoded[i] = Math.min(kmerCoreBitsArray[i]+kmerCoreBitsArray[i]/2,r.nextInt(0b00111111111111111111111111111111));
 //            encoded[i] = Math.min(kmerCoreBitsArray[i]+kmerCoreBitsArray[i]/2,r.nextInt(0b00111111111111111111111111111111));
-            encoded[i] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[i]+1, anotherEnc[i]-1);
+//            encoded[i] = ThreadLocalRandom.current().nextInt(0b00111111111111111111111111111111);
         }        
+//        encoded[0] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[0]+1, anotherEnc[0]-1); //
+        encoded[0] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[0]+(anotherEnc[0]-kmerCoreBitsArray[0])/4,anotherEnc[0]-1-(anotherEnc[0]-kmerCoreBitsArray[0])/4);
         return new PairMerIntArrEncoded(encoded, k-1, false);
     }
     
