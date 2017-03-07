@@ -56,10 +56,10 @@ public class WriterConsumer implements Runnable {
             if (outFile.endsWith(".gz")) {
                 out = new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outFile)), "UTF-8"), WRITER_BUFFER_SIZE);
             } else {
-                out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile), "UTF-8"), WRITER_BUFFER_SIZE);
+                out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile), "UTF-8"), WRITER_BUFFER_SIZE);                
             }
         } catch (IOException e) {
-            Logger.getLogger(WriterConsumer.class.getName()).log(Level.SEVERE, null, e);
+            e.printStackTrace();
         }
 
         try {
@@ -72,8 +72,9 @@ public class WriterConsumer implements Runnable {
                 }
                 out.flush();
             }
+            out.close();
         } catch (InterruptedException | IOException ex) {
-            Logger.getLogger(WriterConsumer.class.getName()).log(Level.SEVERE, null, ex);
+            ex.printStackTrace();
         }
         Reporter.report("[INFO]", "Finished outputing matched (or unmatched) records, n=" + NumberFormat.getNumberInstance().format(count), TOOL_NAME);
 

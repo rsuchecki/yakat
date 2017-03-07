@@ -73,7 +73,7 @@ public class MatcherConsumerProducer implements Runnable {
     @Override
     public void run() {
         try {
-            Pattern spliPattern = Pattern.compile("\t| ");
+            Pattern spliPattern = Pattern.compile("\t| |/");
             ArrayList<String> list;
             ArrayList<String> buffer = new ArrayList<>(BUFFER_SIZE);
 
@@ -84,14 +84,13 @@ public class MatcherConsumerProducer implements Runnable {
                     String toks[] = spliPattern.split(line);
 //                    countIn++;
 //                    String replaceFirst = toks[0].replaceFirst("\\/[1-2]", "");
-                    boolean contains = ids.contains(new Identifier(toks[0].replaceFirst("\\/[1-2]", "")));
+                    boolean contains = ids.contains(new Identifier(toks[0]));//.replaceFirst("\\/[1-2]", "")));
                     if (contains && !invertMatch || !contains && invertMatch) {
                         if (buffer.size() >= BUFFER_SIZE) {
                             putOneQueue(outputQueue, buffer);
                             buffer = new ArrayList<>();
                         }
                         buffer.add(line);
-//                        countOut++;
                     }
                 }
             }

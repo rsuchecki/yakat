@@ -123,7 +123,7 @@ public class FastqMatchId {
         optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
                 + "passed to out-queue", 1024, 64, 8092).addFootnote(footId, footText2));
         optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
-                2, 1, 32).addFootnote(footId, footText2));
+                2, 1, 256).addFootnote(footId, footText2));
 
         //POSITIONAL
         optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
@@ -141,18 +141,7 @@ public class FastqMatchId {
         InputReaderProducer inputReaderProducer = new InputReaderProducer(inputIdsQueue, (String) optSet.getOpt("-I").getValueIfSingle(), TOOL_NAME, "records", IN_BUFFER_SIZE, true);
         inputIdsFutures.add(inputIdsExecutorService.submit(inputReaderProducer));
 
-        long timeStart = System.currentTimeMillis();
-        int count = 0;
-        while (inputReaderProducer.getGuessedInputFormat() == null) {
-            try {
-                //IF nothing happens after 5 seconds
-                if (System.currentTimeMillis() - timeStart > 2500 && (count++ % 25 == 0)) {
-                    Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", getClass().getSimpleName());
-                }
-                Thread.sleep(100); //wait for 1/10 of a second
-            } catch (InterruptedException ex) {
-            }
-        }
+        
 
         //SPAWN MAP - POPULATOR THREADS
         ConcurrentSkipListSet<Identifier> ids = new ConcurrentSkipListSet();
@@ -197,8 +186,25 @@ public class FastqMatchId {
         ArrayList<Future<?>> ioFutures = new ArrayList<>(2);
         final ExecutorService ioExecutorService = new ThreadPoolExecutor(2, 2, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         //READER THREAD
-        ioFutures.add(ioExecutorService.submit(new InputReaderProducer(inputQueue, inputFilenamesList, TOOL_NAME, "records", IN_BUFFER_SIZE)));
+        InputReaderProducer inputReaderProducer2 = new InputReaderProducer(inputQueue, inputFilenamesList, TOOL_NAME, "records", IN_BUFFER_SIZE);
+        ioFutures.add(ioExecutorService.submit(inputReaderProducer2));
 
+        
+        long timeStart = System.currentTimeMillis();
+        int count = 0;
+        while (inputReaderProducer2.getGuessedInputFormat() == null) {
+            try {
+                //IF nothing happens after 5 seconds
+                if (System.currentTimeMillis() - timeStart > 2500 && (count++ % 25 == 0)) {
+                    Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", getClass().getSimpleName());
+                }
+                Thread.sleep(100); //wait for 1/10 of a second
+            } catch (InterruptedException ex) {
+            }
+        }
+        
+        
+        
         //WRITER THREAD
         ioFutures.add(ioExecutorService.submit(new WriterConsumer(outputQueue, outFile, MATCHER_THREADS, TOOL_NAME)));
 //        ioFutures.add(ioExecutorService.submit(new shared.WriterConsumer(outputQueue, "MATCHED_FASTQ", TOOL_NAME)));
