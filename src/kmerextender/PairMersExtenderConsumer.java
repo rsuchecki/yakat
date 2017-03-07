@@ -55,14 +55,14 @@ public class PairMersExtenderConsumer implements Runnable {
                     ///extend, put on outqueue
                     if (!pairMer.isVisited()) {
                         ConnectedPairMers connectedPairMers = new ConnectedPairMers();
-                        if (!connectedPairMers.connectPairMers(pairMer, k, map, threadId, DEBUG_FILE, false)) {
+                        if (!connectedPairMers.connectPairMers(pairMer, k, map, threadId, DEBUG_FILE)) {
                             extensionsFailed++; //System.err.println("Failed extending pairmer "+pairMer.getPairMerString(k));
                             continue;
                         }
-                        if(connectedPairMers.size() == 0) {
-                            int x = 0;
-                            connectedPairMers.connectPairMers(pairMer, k, map, threadId, DEBUG_FILE, true);
-                        }
+//                        if(connectedPairMers.size() == 0) {
+//                            int x = 0;
+//                            connectedPairMers.connectPairMers(pairMer, k, map, threadId, DEBUG_FILE, true);
+//                        }
                         connectedPairMers.toCharSeq(k);
                         if (outBuffer.size() >= BUFFER_SIZE) {
                             putOneQueue(outqueue, outBuffer);

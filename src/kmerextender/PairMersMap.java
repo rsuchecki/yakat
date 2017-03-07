@@ -15,16 +15,10 @@
  */
 package kmerextender;
 
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.NavigableSet;
-import java.util.Random;
-import java.util.Spliterator;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import shared.Reporter;
 
 /**
@@ -42,7 +36,6 @@ public class PairMersMap extends shared.MerMap {
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
     private PairMersMap parentMap;
-    
 
 //    private boolean OutOfMemory;
     /**
@@ -62,9 +55,10 @@ public class PairMersMap extends shared.MerMap {
 
     /**
      * Constructor for exposing a subMap for multithreaded purging
+     *
      * @param k
      * @param subMap
-     * @param terminalPairMers 
+     * @param terminalPairMers
      */
     public PairMersMap(Integer k, ConcurrentNavigableMap<PairMer, PairMer> subMap, PairMersMap parentMap) {
         this.k = k;
@@ -73,8 +67,6 @@ public class PairMersMap extends shared.MerMap {
         this.parentMap = parentMap;
     }
 
-    
-    
     public boolean isEmpty() {
         return pairMersSkipListMap == null || pairMersSkipListMap.isEmpty();
     }
@@ -226,8 +218,6 @@ public class PairMersMap extends shared.MerMap {
 //        System.err.println(prefix+"\t"+ pm.getPairMerString(k) + "\t" + pm.getStoredCountLeft() + "\t" + pm.getStoredCountRigth() + "\t" + pm.isInvalid() + "\tPURGED");
 //
 //    }
-    
-
     /**
      * Removes from the Map each PairMer which (i) represents ambiguous
      * extension (>2 k-mers matching the core) or (ii) has no extensions (only
@@ -243,7 +233,7 @@ public class PairMersMap extends shared.MerMap {
      * @return the number of elements removed
      */
     public long purge(int minKmerFrequency, int threads) {
-        
+
         long count = 0L;
 
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
@@ -251,7 +241,6 @@ public class PairMersMap extends shared.MerMap {
 //        PairMer firstKey = pairMersSkipListMap.firstKey();
 //        ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
 //        ArrayList<PairMer> spacedPairMers = firstKey.generateSpacedPairMersForMapSplitting(k, 10);
-
 //        Random r = new Random();
 //        System.err.println("Running recursive map splitting");
 //        if (threads > 1) {
@@ -270,7 +259,6 @@ public class PairMersMap extends shared.MerMap {
 //            max = sizes[j] > max ? sizes[j] : max;
 //        }
 //        System.err.println(sizes.length + " chunks, tot=" + NumberFormat.getNumberInstance().format(total) + ", mean=" + total / sizes.length + ", median=" + sizes[sizes.length / 2] + ", min=" + min + ", max=" + max);
-
         while (it.hasNext()) {
             PairMer next = it.next();
 //            System.err.println(next.toString());
@@ -325,28 +313,34 @@ public class PairMersMap extends shared.MerMap {
                     otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
                     otherCoreOfKmer2.append(next.getClipRight());
                 }
-
+                PairMer encodedCoreOfKmer1 = null;
+                PairMer encodedCoreOfKmer2 = null;;
                 try {
-                    PairMer otherPairMer1 = getParentMap().get(otherCoreOfKmer1, k);
+                    encodedCoreOfKmer1 = PairMerGenerator.getPairMer(otherCoreOfKmer1, k);
+                    encodedCoreOfKmer2 = PairMerGenerator.getPairMer(otherCoreOfKmer2, k);
+                } catch (NonACGTException ex) {
+                    Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
+                }
+                synchronized (KmerExtender.class) {
+                    PairMer otherPairMer1 = getParentMap().get(encodedCoreOfKmer1);
                     if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
 //                        pairMersSkipListMap.remove(otherPairMer1);
-                        terminalPairMers.put(otherPairMer1, otherPairMer1);
+                        PairMer put = terminalPairMers.putIfAbsent(otherPairMer1, otherPairMer1);
+                        if(put != null) {
+                          int x =0;
+                        }
                     }
-                } catch (NonACGTException ex) {
-                    Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
-                }
-                try {
-                    PairMer otherPairMer2 = getParentMap().get(otherCoreOfKmer2, k);
+                    PairMer otherPairMer2 = getParentMap().get(encodedCoreOfKmer2);
                     if (otherPairMer2 != null && !otherPairMer2.isInvalid() && otherPairMer2.getStoredCountLeft() >= minKmerFrequency && otherPairMer2.getStoredCountRigth() >= minKmerFrequency) {
 //                        pairMersSkipListMap.remove(otherPairMer2);
-                        terminalPairMers.put(otherPairMer2, otherPairMer2);
+                        PairMer put = terminalPairMers.putIfAbsent(otherPairMer2, otherPairMer2);
+                        if(put != null) {
+                          int x =0;
+                        }
                     }
-                } catch (NonACGTException ex) {
-                    Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
+                    it.remove();
+                    count++;
                 }
-
-                it.remove();
-                count++;
             }
 //else if (next.getStoredCountLeft() < minKmerFrequency || next.getStoredCountRigth() < minKmerFrequency) {
 ////                System.err.println("\tpurge\tisInvalid="+next.isInvalid());
@@ -414,34 +408,31 @@ public class PairMersMap extends shared.MerMap {
 ////        }
         return count;
     }
+    //    public boolean isOutOfMemory() {
+    //        return OutOfMemory;
+    //    }
+    //
+    //    public synchronized void setOutOfMemory() {
+    //        this.OutOfMemory = true;
+    //    }
+    //    public int purgeSeedMers(PairMersMap seedMersMap) {
+    //        Iterator<PairMer> it = seedMersMap.getPairMersSkipListMap().keySet().iterator();
+    //        
+    //    }
 
-    
-    
-//    public boolean isOutOfMemory() {
-//        return OutOfMemory;
-//    }
-//
-//    public synchronized void setOutOfMemory() {
-//        this.OutOfMemory = true;
-//    }
-//    public int purgeSeedMers(PairMersMap seedMersMap) {
-//        Iterator<PairMer> it = seedMersMap.getPairMersSkipListMap().keySet().iterator();
-//        
-//    }
     public Integer getK() {
         return k;
     }
-    
+
     public PairMersMap getParentMap() {
         return parentMap == null ? this : parentMap;
     }
 
-    
-    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer,PairMer>> submaps, int minChunk, int maxChunk) {
+    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk) {
         return recursiveSplitMap(pairMersSkipListMap, submaps, minChunk, maxChunk, k);
     }
-    
-    private long recursiveSplitMap(ConcurrentNavigableMap<PairMer,PairMer> map, ArrayList<ConcurrentNavigableMap<PairMer,PairMer>> submaps, int minChunk, int maxChunk, int k) {
+
+    private long recursiveSplitMap(ConcurrentNavigableMap<PairMer, PairMer> map, ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, int k) {
         PairMer higherKey = null;
         long count = 0;
         do {

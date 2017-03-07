@@ -69,7 +69,7 @@ public class PairMersSeedExtenderConsumer implements Runnable {
                     PairMer pairMer = pairMersMap.get(seedMer);
                     if (pairMer != null && !pairMer.isVisited()) {
                         ConnectedPairMers connectedPairMers = new ConnectedPairMers();
-                        if(!connectedPairMers.connectPairMers(pairMer, k, pairMersMap, threadId, DEBUG_FILE, false)) {
+                        if(!connectedPairMers.connectPairMers(pairMer, k, pairMersMap, threadId, DEBUG_FILE)) {
                             System.err.println("Failed connecting pairmers "+this.getClass().getCanonicalName());
                         }
                         try {

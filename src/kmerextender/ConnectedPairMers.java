@@ -51,7 +51,7 @@ public class ConnectedPairMers {
      * @param threadId
      * @return
      */
-    public boolean connectPairMers(PairMer pairMer, int k, PairMersMap pairMersMap, byte threadId, String DEBUG_FILE, boolean reset) {
+    public boolean connectPairMers(PairMer pairMer, int k, PairMersMap pairMersMap, byte threadId, String DEBUG_FILE) {
 //        boolean visited;
 //        boolean visited = pairMer.checkAndSetVisited();
 //        if (!pairMer.isVisited()) {
@@ -150,7 +150,7 @@ public class ConnectedPairMers {
 //                    return false;
 //                }
 //                if (!visited) {
-                    if (!connectPairMers(otherPairMer1, k, pairMersMap, threadId, DEBUG_FILE, reset)) {
+                    if (!connectPairMers(otherPairMer1, k, pairMersMap, threadId, DEBUG_FILE)) {
                         return false;
                     }
 //                    terminalPairMer1 = addPairMerToListOfConnected(otherPairMer1, k, pairMersMap, connectedPairMers);
@@ -166,7 +166,7 @@ public class ConnectedPairMers {
                     otherPairMer2isRC = true;
                 }
 //                if (!otherPairMer2.isVisited()) {
-                    if (!connectPairMers(otherPairMer2, k, pairMersMap, threadId, DEBUG_FILE, reset)) {
+                    if (!connectPairMers(otherPairMer2, k, pairMersMap, threadId, DEBUG_FILE)) {
                         return false;
                     }
 //                }

@@ -299,7 +299,7 @@ public class PairMersExtender {
                 if (pairMer != null && !pairMer.isVisited()) {
                     clusterNumber++;
                     ConnectedPairMers connectedPairMers = new ConnectedPairMers();
-                    if(!connectedPairMers.connectPairMers(pairMer, k, pairMersMap, threadId, DEBUG_FILE, false)) {
+                    if(!connectedPairMers.connectPairMers(pairMer, k, pairMersMap, threadId, DEBUG_FILE)) {
                         System.err.println("Failed connecting pairmers - shoukld not happen in second pass");
                     }
                     try {

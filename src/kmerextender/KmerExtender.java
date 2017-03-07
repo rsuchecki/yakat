@@ -477,6 +477,20 @@ public class KmerExtender {
             ex.printStackTrace();
             Reporter.report("[ERROR]", "PairMerSet purger timeout exception!", TOOL_NAME);
         }
+        it = pairMerMaps.getkSizes().iterator();
+        while (it.hasNext()) {
+            Integer k = it.next();
+            PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
+            System.err.println(k+"=k, |terminal|=" + pairMersMap.getTerminalPairMers().size());
+            Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator(); 
+            while (iterator.hasNext()) {
+                PairMer next = iterator.next();
+                if(!pairMersMap.getPairMersMap().containsKey(next)) {
+                    System.err.println("terminal PM absent from main map = "+pairMersMap.get(next).getPairMerString(k, "_"));
+                }
+            }
+//            System.exit(1);
+        }
     }
 
     private ConcurrentHashMap<Integer, PairMerToSeedMap> populateSeedMersMaps(ArrayList<Integer> kSizes) {
