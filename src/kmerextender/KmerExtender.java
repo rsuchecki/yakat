@@ -36,6 +36,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Spliterator;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
@@ -249,6 +250,7 @@ public class KmerExtender {
         readKmersAndPopulatePairMersMaps(pairMerMaps);
         for (Integer k : kSizes) {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
+            Reporter.report("[INFO]", "Finished populating map, counting elements... ", TOOL_NAME);
             Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.size()), TOOL_NAME);
         }
 
@@ -431,7 +433,8 @@ public class KmerExtender {
         long min = Long.MAX_VALUE;
         long max = Long.MIN_VALUE;
         int[] sizes = null;
-        
+        ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
+
         //PREPARE MAPS ON QUEUE TO BE PICKED-UP BY THREADS
         Iterator<Integer> it = pairMerMaps.getkSizes().iterator();
         try {
@@ -439,24 +442,13 @@ public class KmerExtender {
                 Integer k = it.next();
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 
-                if (pairMerMaps.size() >= threads) {
+//                if (pairMerMaps.size() >= ) {
                     mapsQueue.put(pairMersMap);
-                } else { //WE HAVE MORE THREADS THAN MAPS SO LETS SPLIT THE MAPS
-                    ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
-                    Reporter.report("[EXPERIMENTAL]", "Running recursive map splitting, need boundary cases testing as it can get stuck or crash" , TOOL_NAME);
-                    long attempts = pairMersMap.recursiveSplitMap(mapChunks, pairMersMap.size() / threads / 100, pairMersMap.size() / threads / 2, mapsQueue);
-                    Reporter.report("[EXPERIMENTAL]", "Finished running recursive map splitting, total attempts = " + attempts , TOOL_NAME);                    
-                    sizes = new int[mapChunks.size()];
-                    for (int j = 0; j < mapChunks.size(); j++) {
-//            System.err.println("chunk " + j + " size = " + mapChunks.get(j).size());
-                        sizes[j] = mapChunks.get(j).size();
-                        total += mapChunks.get(j).size();
-                        min = sizes[j] < min ? sizes[j] : min;
-                        max = sizes[j] > max ? sizes[j] : max;
-//                        PairMersMap mapChunk = new PairMersMap(k, mapChunks.get(j), pairMersMap);
-//                        mapsQueue.put(mapChunk);
-                    }
-                }
+//                } else { //WE HAVE MORE THREADS THAN MAPS SO LETS SPLIT THE MAPS
+//                    Reporter.report("[EXPERIMENTAL]", "Running recursive map splitting, need boundary cases testing as it can get stuck or crash", TOOL_NAME);
+//                    long attempts = pairMersMap.recursiveSplitMap(mapChunks, pairMersMap.size() / threads / 100, pairMersMap.size() / threads / 2, mapsQueue);
+//                    Reporter.report("[EXPERIMENTAL]", "Finished running recursive map splitting, total attempts = " + attempts, TOOL_NAME);
+//                }
             }
             mapsQueue.put(new PairMersMap(null));
         } catch (InterruptedException ex) {
@@ -480,25 +472,35 @@ public class KmerExtender {
             ex.printStackTrace();
             Reporter.report("[ERROR]", "PairMerSet purger timeout exception!", TOOL_NAME);
         }
-        if(sizes != null) {
-            Reporter.report("[INFO]", "Map split into "+sizes.length + " chunks, total elements=" + NumberFormat.getNumberInstance().format(total) +  
-                    ", median=" + NumberFormat.getNumberInstance().format(CommonMaths.getMedian(sizes))  + 
-                    ", min=" + NumberFormat.getNumberInstance().format(min) + ", max=" + NumberFormat.getNumberInstance().format(max), TOOL_NAME);            
-        }
+//        sizes = new int[mapChunks.size()];
+//        for (int j = 0; j < mapChunks.size(); j++) {
+////            System.err.println("chunk " + j + " size = " + mapChunks.get(j).size());
+//            sizes[j] = mapChunks.get(j).size();
+//            total += mapChunks.get(j).size();
+//            min = sizes[j] < min ? sizes[j] : min;
+//            max = sizes[j] > max ? sizes[j] : max;
+////                        PairMersMap mapChunk = new PairMersMap(k, mapChunks.get(j), pairMersMap);
+////                        mapsQueue.put(mapChunk);
+//        }
+//        if (sizes != null) {
+//            Reporter.report("[INFO]", "Map split into " + sizes.length + " chunks, total elements=" + NumberFormat.getNumberInstance().format(total)
+//                    + ", median=" + NumberFormat.getNumberInstance().format(CommonMaths.getMedian(sizes))
+//                    + ", min=" + NumberFormat.getNumberInstance().format(min) + ", max=" + NumberFormat.getNumberInstance().format(max), TOOL_NAME);
+//        }
         it = pairMerMaps.getkSizes().iterator();
         while (it.hasNext()) {
             Integer k = it.next();
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 //            System.err.println(k+"=k, |terminal|=" + pairMersMap.getTerminalPairMers().size());
             int size = pairMersMap.size();
-            int terminals  = pairMersMap.getTerminalPairMers().size();
-            double ratio = (double) terminals /size;
-            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", |Terimnal|=" + NumberFormat.getIntegerInstance().format(terminals)+" ("+NumberFormat.getPercentInstance().format(ratio)+")" , TOOL_NAME);
-            Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator(); 
+            int terminals = pairMersMap.getTerminalPairMers().size();
+            double ratio = (double) terminals / size;
+            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", |Terimnal|=" + NumberFormat.getIntegerInstance().format(terminals) + " (" + NumberFormat.getPercentInstance().format(ratio) + ")", TOOL_NAME);
+            Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
             while (iterator.hasNext()) {
                 PairMer next = iterator.next();
-                if(!pairMersMap.getPairMersMap().containsKey(next)) {
-                    System.err.println("terminal PM absent from main map = "+pairMersMap.get(next).getPairMerString(k, "_"));
+                if (!pairMersMap.getPairMersMap().containsKey(next)) {
+                    System.err.println("terminal PM absent from main map = " + pairMersMap.get(next).getPairMerString(k, "_"));
                 }
             }
 //            System.exit(1);
@@ -565,7 +567,7 @@ public class KmerExtender {
             seedsDummyQueue.put(new ArrayList<String>());
 //            System.err.println("Finished adding elems ");
         } catch (InterruptedException ex) {
-            
+
         }
 
         //INIT THREADS

@@ -767,6 +767,8 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //        }        
         encoded[0] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[0]+1, anotherEnc[0]-1); //
 //        encoded[0] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[0]+(anotherEnc[0]-kmerCoreBitsArray[0])/4,anotherEnc[0]-1-(anotherEnc[0]-kmerCoreBitsArray[0])/4);
+//        int midPoint = (anotherEnc[0]-kmerCoreBitsArray[0])/2;
+//         encoded[0] = midPoint; //ThreadLocalRandom.current().nextInt(midPoint/2,midPoint+midPoint/2);
         return new PairMerIntArrEncoded(encoded, k-1, false);
     }
     

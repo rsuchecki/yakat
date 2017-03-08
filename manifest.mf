@@ -1,9 +1,9 @@
 Manifest-Version: 1.0
 Ant-Version: Apache Ant 1.9.7
-Created-By: 1.8.0_121-b13 (Oracle Corporation)
+Created-By: 1.8.0_101-b13 (Oracle Corporation)
 Bundle-Name: ${project.name}
 Bundle-Version: 0.6.3
-Bundle-Date: 2017-03-08 14:21:34 ACDT
-Implementation-Title: 2017-03-08 14:21:34 ACDT
+Bundle-Date: 2017-03-08 23:26:00 ACDT
+Implementation-Title: 2017-03-08 23:26:00 ACDT
 Implementation-Version: 0.6.3
 
