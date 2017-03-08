@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import shared.SequenceOps;
 import shared.Reporter;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -71,31 +72,31 @@ public class ConnectedPairMers {
 
 //        if(checkAndSetVisitedBy)
 //        if (!visited || reset) {
-            pairMer.setVisited();
+        pairMer.setVisited();
 //            pairMer.setVisitedBy(threadId);
 
-            String decodedCore = pairMer.decodeCore(k - 1);
-            StringBuilder otherCoreOfKmer1 = new StringBuilder();
-            StringBuilder otherCoreOfKmer2 = new StringBuilder();
-            if (pairMer.hasLeftClip()) {
-                otherCoreOfKmer1.append(pairMer.getClipLeft());
-                otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
-            }
-            if (pairMer.hasRightClip()) {
-                otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
-                otherCoreOfKmer2.append(pairMer.getClipRight());
-            }
-            PairMer otherPairMer1 = null;
-            PairMer otherPairMer2 = null;
+        String decodedCore = pairMer.decodeCore(k - 1);
+        StringBuilder otherCoreOfKmer1 = new StringBuilder();
+        StringBuilder otherCoreOfKmer2 = new StringBuilder();
+        if (pairMer.hasLeftClip()) {
+            otherCoreOfKmer1.append(pairMer.getClipLeft());
+            otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
+        }
+        if (pairMer.hasRightClip()) {
+            otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
+            otherCoreOfKmer2.append(pairMer.getClipRight());
+        }
+        PairMer otherPairMer1 = null;
+        PairMer otherPairMer2 = null;
 
-            try {
-                otherPairMer1 = pairMersMap.get(otherCoreOfKmer1, k);
-                otherPairMer2 = pairMersMap.get(otherCoreOfKmer2, k);
-            } catch (NonACGTException ex) {
-                Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
-            }
+        try {
+            otherPairMer1 = pairMersMap.get(otherCoreOfKmer1, k);
+            otherPairMer2 = pairMersMap.get(otherCoreOfKmer2, k);
+        } catch (NonACGTException ex) {
+            Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
+        }
 
-            //SWITCH TO bit-level RC
+        //SWITCH TO bit-level RC
 //            PairMer otherPairMer1 = pairMer.getOtherPairmerCoreLeft(k);
 //            PairMer otherPairMer2 = pairMer.getOtherPairmerCoreRight(k);
 //            
@@ -126,16 +127,16 @@ public class ConnectedPairMers {
 ////                System.err.println(pairMer1.getClipLeft()+"_"+pairMer1.getTmpCore()+"_"+pairMer1.getClipRight());
 ////            }
 //            }
-            boolean otherPairMer1isRC = false;
-            if (otherPairMer1 != null) {
+        boolean otherPairMer1isRC = false;
+        if (otherPairMer1 != null) {
 
 //                System.err.println(wrapper.getOtherCoreOfKmer1() + "\tk1otherCore");
 //                System.err.println(SequenceOps.getReverseComplementString(wrapper.getOtherCoreOfKmer1()) + "\tk1otherCoreRC");
 //                if (!otherCoreOfKmer1.equals(otherPairMer1.decodeCore(k - 1))) {
-                if (!otherCoreOfKmer1.toString().equals(otherPairMer1.decodeCore(k - 1))) {
-                    otherPairMer1isRC = true;
+            if (!otherCoreOfKmer1.toString().equals(otherPairMer1.decodeCore(k - 1))) {
+                otherPairMer1isRC = true;
 //                    System.err.println("blah!!!!");
-                }
+            }
 
 //                //recycling variables visited, visitedBy
 //                visitedBy = otherPairMer1.checkAndSetVisitedBy(threadId);
@@ -150,28 +151,28 @@ public class ConnectedPairMers {
 //                    return false;
 //                }
 //                if (!visited) {
-                    if (!connectPairMers(otherPairMer1, k, pairMersMap, threadId, DEBUG_FILE)) {
-                        return false;
-                    }
+            if (!connectPairMers(otherPairMer1, k, pairMersMap, threadId, DEBUG_FILE)) {
+                return false;
+            }
 //                    terminalPairMer1 = addPairMerToListOfConnected(otherPairMer1, k, pairMersMap, connectedPairMers);
 //                }
-            }
-            boolean otherPairMer2isRC = false;
+        }
+        boolean otherPairMer2isRC = false;
 //            System.err.println(wrapper.getKmer2String() + "\tk2");
 //            System.err.println(SequenceOps.getReverseComplementString(wrapper.getKmer2String()) + "\tk2 RC");
-            if (otherPairMer2 != null) {
+        if (otherPairMer2 != null) {
 //                System.err.println(wrapper.getOtherCoreOfKmer2() + "\tk2otherCore");
 //                System.err.println(SequenceOps.getReverseComplementString(wrapper.getOtherCoreOfKmer2()) + "\tk2otherCoreRC");
-                if (!otherCoreOfKmer2.toString().equals(otherPairMer2.decodeCore(k - 1))) {
-                    otherPairMer2isRC = true;
-                }
-//                if (!otherPairMer2.isVisited()) {
-                    if (!connectPairMers(otherPairMer2, k, pairMersMap, threadId, DEBUG_FILE)) {
-                        return false;
-                    }
-//                }
+            if (!otherCoreOfKmer2.toString().equals(otherPairMer2.decodeCore(k - 1))) {
+                otherPairMer2isRC = true;
             }
-            add(pairMer, otherPairMer1, otherPairMer1isRC, otherPairMer2, otherPairMer2isRC, k, DEBUG_FILE);
+//                if (!otherPairMer2.isVisited()) {
+            if (!connectPairMers(otherPairMer2, k, pairMersMap, threadId, DEBUG_FILE)) {
+                return false;
+            }
+//                }
+        }
+        add(pairMer, otherPairMer1, otherPairMer1isRC, otherPairMer2, otherPairMer2isRC, k, DEBUG_FILE);
 //        }
         return true;
     }
@@ -261,7 +262,12 @@ public class ConnectedPairMers {
             if (singletonNode != null) {
                 extendedString = singletonNode.getPairMer().getPairMerString(k);
             } else if (!hasTerminalOrSingletonNode()) {
-                Reporter.report("[WARNING]", "No terminal PairMerNodes ", getClass().getSimpleName());
+                Reporter.report("[WARNING]", "No terminal PairMerNodes ", getClass().getSimpleName() + " " + Thread.currentThread().getName());
+//                for (Map.Entry<PairMer, PairMerNode> entry : pairMerNodes.entrySet()) {
+//                    PairMer key = entry.getKey();
+//                    PairMerNode value = entry.getValue();
+//                    System.err.println(key.getPairMerString(45, "_"));
+//                }               
                 return null;
             } else if (terminal1 != null) {
                 extendedString = traverse(terminal1, k, true, null);
@@ -280,8 +286,6 @@ public class ConnectedPairMers {
         return potentialDuplicate;
     }
 
-    
-    
     /**
      * If a non-empty set of connected PairMers has no terminal nodes, it
      * indicates that it represents a circular molecule. In most contexts it

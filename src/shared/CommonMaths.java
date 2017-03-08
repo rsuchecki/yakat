@@ -19,6 +19,7 @@ import java.io.Serializable;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Random;
@@ -76,22 +77,43 @@ public class CommonMaths implements Serializable {
         return df.format(number).toLowerCase();
     }
     
-    public static double getMedian(ArrayList<Short> nonZeroValues) {
-        if (nonZeroValues.isEmpty()) {
+    public static double getMedian(int[] intarr) {
+        if (intarr.length == 0) {
             return 0;
         } else {
-            Collections.sort(nonZeroValues);
-            int size = nonZeroValues.size();
+            Arrays.sort(intarr);
+            int size = intarr.length;
             if (size == 1) {
-                return (double) nonZeroValues.get(0);
+                return (double) intarr[0];
             } else if (size % 2 == 0) {
                 int middle = size / 2;
-                int sum = nonZeroValues.get(middle - 1) + nonZeroValues.get(middle);
+                int sum = intarr[middle - 1] + intarr[middle];
                 return ((double) (sum)) / 2;
             } else {
                 int middle = size / 2;
-                return (double) nonZeroValues.get(middle);
+                return (double) intarr[middle];
             }
         }
     }
+    
+    public static double getMedian(ArrayList listOfNumbers) {
+        if (listOfNumbers.isEmpty()) {
+            return 0;
+        } else {
+            Collections.sort(listOfNumbers);
+            int size = listOfNumbers.size();
+            if (size == 1) {
+                return (double) listOfNumbers.get(0);
+            } else if (size % 2 == 0) {
+                int middle = size / 2;
+                int sum = (int)listOfNumbers.get(middle - 1) + (int)listOfNumbers.get(middle);
+                return ((double) (sum)) / 2;
+            } else {
+                int middle = size / 2;
+                return (double) listOfNumbers.get(middle);
+            }
+        }
+    }
+
+
 }

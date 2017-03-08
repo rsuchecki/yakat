@@ -17,8 +17,11 @@ package kmerextender;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import shared.Reporter;
 
 /**
@@ -321,7 +324,7 @@ public class PairMersMap extends shared.MerMap {
                 } catch (NonACGTException ex) {
                     Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
                 }
-                synchronized (KmerExtender.class) {
+//                synchronized (KmerExtender.class) {
                     PairMer otherPairMer1 = getParentMap().get(encodedCoreOfKmer1);
                     if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
 //                        pairMersSkipListMap.remove(otherPairMer1);
@@ -338,9 +341,9 @@ public class PairMersMap extends shared.MerMap {
                           int x =0;
                         }
                     }
-                    it.remove();
+                    getParentMap().remove(next);
                     count++;
-                }
+//                }
             }
 //else if (next.getStoredCountLeft() < minKmerFrequency || next.getStoredCountRigth() < minKmerFrequency) {
 ////                System.err.println("\tpurge\tisInvalid="+next.isInvalid());
@@ -423,16 +426,21 @@ public class PairMersMap extends shared.MerMap {
     public Integer getK() {
         return k;
     }
+    
+    public boolean remove(PairMer pm) {
+        return pairMersSkipListMap.remove(pm) != null;
+    }
 
     public PairMersMap getParentMap() {
         return parentMap == null ? this : parentMap;
     }
 
-    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk) {
-        return recursiveSplitMap(pairMersSkipListMap, submaps, minChunk, maxChunk, k);
+    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, ArrayBlockingQueue<PairMersMap> mapsQueue) {
+        return recursiveSplitMap(pairMersSkipListMap, submaps, minChunk, maxChunk, k, mapsQueue, this);
     }
 
-    private long recursiveSplitMap(ConcurrentNavigableMap<PairMer, PairMer> map, ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, int k) {
+    private long recursiveSplitMap(ConcurrentNavigableMap<PairMer, PairMer> map, ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, int k, 
+            ArrayBlockingQueue<PairMersMap> mapsQueue, PairMersMap masterMap) {
         PairMer higherKey = null;
         long count = 0;
         do {
@@ -459,16 +467,27 @@ public class PairMersMap extends shared.MerMap {
 //        System.err.println("Tried " + count + " keys, |HeadMap|=" + headMap.size() + " |TailMap|=" + tailMap.size() + " |submaps|=" + submaps.size());
 
         if (headMap.size() <= maxChunk) {
+            try {
+                mapsQueue.put(new PairMersMap(k, headMap, masterMap));
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
             submaps.add(headMap);
         } else {
-            count += recursiveSplitMap(headMap, submaps, minChunk, maxChunk, k);
+            count += recursiveSplitMap(headMap, submaps, minChunk, maxChunk, k, mapsQueue, masterMap);
         }
 
         if (tailMap.size() <= maxChunk) {
+            try {
+                mapsQueue.put(new PairMersMap(k, tailMap, masterMap));
+            } catch (InterruptedException ex) {
+                ex.printStackTrace();
+            }
             submaps.add(tailMap);
         } else {
-            count += recursiveSplitMap(tailMap, submaps, minChunk, maxChunk, k);
+            count += recursiveSplitMap(tailMap, submaps, minChunk, maxChunk, k, mapsQueue, masterMap);
         }
         return count;
     }
+    
 }

@@ -18,6 +18,7 @@ package kmerextender;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
+import shared.Reporter;
 
 /**
  *
@@ -29,19 +30,21 @@ public class PairMersExtenderConsumer implements Runnable {
     private final BlockingQueue<List<PairMer>> inqueue;
     private final BlockingQueue<List<ConnectedPairMers>> outqueue;
     private String DEBUG_FILE = null;
+    private final String TOOL_NAME;
     private int k;
     private int BUFFER_SIZE = 10000;
     private final byte threadId;
     private int extensionsFailed = 0;
 
     public PairMersExtenderConsumer(PairMersMap map, BlockingQueue<List<PairMer>> inqueue, BlockingQueue<List<ConnectedPairMers>> outqueue,
-            int k, String DEBUG_FILE, byte threadId) {
+            int k, String DEBUG_FILE, byte threadId, String TOOL_NAME) {
         this.map = map;
         this.inqueue = inqueue;
         this.outqueue = outqueue;
         this.DEBUG_FILE = DEBUG_FILE;
         this.k = k;
         this.threadId = threadId;
+        this.TOOL_NAME = TOOL_NAME;
     }
 
     @Override
@@ -77,7 +80,8 @@ public class PairMersExtenderConsumer implements Runnable {
             }
             putOneQueue(outqueue, new ArrayList<>(0)); //inform other threads
             putOneQueue(inqueue, new ArrayList<>()); //inform other threads
-            System.err.println(extensionsFailed + " failed extensions by thread "+ threadId);
+            Reporter.report("[WARNING]", "Thread "+threadId+" failed extensions = "+extensionsFailed, TOOL_NAME + " " + Thread.currentThread().getName());
+
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -90,8 +94,4 @@ public class PairMersExtenderConsumer implements Runnable {
 //        System.err.println(Thread.currentThread().getName() + "[PC] puts " + buffer.size() + " on " + q.hashCode() + " done");
     }
 
-
-   
-    
-    
 }

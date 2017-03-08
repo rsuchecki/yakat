@@ -121,7 +121,7 @@ public class PairMersExtender {
             byte threadId = Byte.MIN_VALUE;
             //SPAWN CONSUMER THREADS
             for (int i = 0; i < extenderThreads; i++) {
-                PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k , DEBUG_FILE, threadId++);
+                PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k , DEBUG_FILE, threadId++, TOOL_NAME);
                 futures.add(producerConsumerExecutor.submit(consumer));
             }
             //COUNT AND PRINT EXTENDED SEQUENCES, RESOLVE CONFLICTS...
