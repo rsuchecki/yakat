@@ -429,11 +429,12 @@ public class KmerExtender {
         }
 
         //STATS OF MAP SPLITTING FOR MULTITHREADED PURGING
-        long total = 0;
-        long min = Long.MAX_VALUE;
-        long max = Long.MIN_VALUE;
-        int[] sizes = null;
-        ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
+//        long total = 0;
+//        long min = Long.MAX_VALUE;
+//        long max = Long.MIN_VALUE;
+//        int[] sizes = null;
+//        ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
+        int BUFFER_SIZE = 100000;
 
         //PREPARE MAPS ON QUEUE TO BE PICKED-UP BY THREADS
         Iterator<Integer> it = pairMerMaps.getkSizes().iterator();
@@ -442,13 +443,33 @@ public class KmerExtender {
                 Integer k = it.next();
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 
-//                if (pairMerMaps.size() >= ) {
+                if (pairMerMaps.size() >= threads) {
                     mapsQueue.put(pairMersMap);
-//                } else { //WE HAVE MORE THREADS THAN MAPS SO LETS SPLIT THE MAPS
+                } else { //WE HAVE MORE THREADS THAN MAPS SO LETS SPLIT THE MAPS
 //                    Reporter.report("[EXPERIMENTAL]", "Running recursive map splitting, need boundary cases testing as it can get stuck or crash", TOOL_NAME);
 //                    long attempts = pairMersMap.recursiveSplitMap(mapChunks, pairMersMap.size() / threads / 100, pairMersMap.size() / threads / 2, mapsQueue);
 //                    Reporter.report("[EXPERIMENTAL]", "Finished running recursive map splitting, total attempts = " + attempts, TOOL_NAME);
-//                }
+                    Iterator<PairMer> pairMersIterator = pairMersMap.getPairMersMap().keySet().iterator();
+                    PairMer head = null;
+                    PairMer tail = null;
+                    long counter = 0;
+                    if (pairMersIterator.hasNext()) {
+                        head = pairMersIterator.next();
+                        counter++;
+                    }
+                    while (pairMersIterator.hasNext()) {
+                        if (counter++ % BUFFER_SIZE == 0) {
+                            tail = pairMersIterator.next();
+                            ConcurrentNavigableMap subMap = pairMersMap.getPairMersMap().subMap(head, tail);
+                            mapsQueue.put(new PairMersMap(k, subMap, pairMersMap));
+                            head = tail;                                 
+                        } else {
+                            pairMersIterator.next();
+                        }
+                    }
+                    ConcurrentNavigableMap tailMap = pairMersMap.getPairMersMap().tailMap(head);
+                    mapsQueue.put(new PairMersMap(k, tailMap, pairMersMap));                    
+                }
             }
             mapsQueue.put(new PairMersMap(null));
         } catch (InterruptedException ex) {

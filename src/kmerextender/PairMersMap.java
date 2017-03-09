@@ -242,15 +242,15 @@ public class PairMersMap extends shared.MerMap {
 
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
                             
-        Reporter.report("[WARNING]", "Pointless map traversal started", getClass().getCanonicalName());
-        long c = 0;
-        while (it.hasNext()) {
-            PairMer next = it.next();
-            c++;
-        }
-        Reporter.report("[WARNING]", "Pointless map traversal finished, n="+NumberFormat.getInstance().format(c), getClass().getCanonicalName());
+//        Reporter.report("[WARNING]", "Pointless map traversal started", getClass().getCanonicalName());
+//        long c = 0;
+//        while (it.hasNext()) {
+//            PairMer next = it.next();
+//            c++;
+//        }
+//        Reporter.report("[WARNING]", "Pointless map traversal finished, n="+NumberFormat.getInstance().format(c), getClass().getCanonicalName());
         
-        it = pairMersSkipListMap.keySet().iterator();
+//        it = pairMersSkipListMap.keySet().iterator();
 
 //        PairMer firstKey = pairMersSkipListMap.firstKey();
 //        ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
@@ -446,60 +446,60 @@ public class PairMersMap extends shared.MerMap {
         return parentMap == null ? this : parentMap;
     }
 
-    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, ArrayBlockingQueue<PairMersMap> mapsQueue) {
-        return recursiveSplitMap(pairMersSkipListMap, submaps, minChunk, maxChunk, k, mapsQueue, this);
-    }
-
-    private long recursiveSplitMap(ConcurrentNavigableMap<PairMer, PairMer> map, ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, int k,
-            ArrayBlockingQueue<PairMersMap> mapsQueue, PairMersMap masterMap) {
-        PairMer higherKey = null;
-        long count = 0;
-        ConcurrentNavigableMap<PairMer, PairMer> headMap;
-        ConcurrentNavigableMap<PairMer, PairMer> tailMap;
-        do {
-//            do {
-                try {
-                    PairMer luckyDipPairMer = map.firstKey().luckyDipPairMer(k, map.lastKey());
-                    count++;
-//                System.err.println(luckyDipPairMer.toString()+ "<- lucky dip");                
-                    higherKey = map.higherKey(luckyDipPairMer);
-                    if (higherKey == null) {
-                        int x = 0;
-//                    System.err.println(higherKey.toString()+ " <- higher");
-                    }
-                } catch (NullPointerException e) {
-
-                }
-            } while (higherKey == null);
-            System.err.println("Tried " + NumberFormat.getNumberInstance().format(count));
-
-            headMap = map.headMap(higherKey, false);
-            tailMap = map.tailMap(higherKey, true);
-//        } while (headMap.size() < minChunk || tailMap.size() < minChunk);
-//        System.err.println("Tried " + count + " keys, |HeadMap|=" + headMap.size() + " |TailMap|=" + tailMap.size() + " |submaps|=" + submaps.size());
-
-        if (headMap.size() <= maxChunk) {
-            try {
-                mapsQueue.put(new PairMersMap(k, headMap, masterMap));
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-            }
-            submaps.add(headMap);
-        } else {
-            count += recursiveSplitMap(headMap, submaps, minChunk, maxChunk, k, mapsQueue, masterMap);
-        }
-
-        if (tailMap.size() <= maxChunk) {
-            try {
-                mapsQueue.put(new PairMersMap(k, tailMap, masterMap));
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-            }
-            submaps.add(tailMap);
-        } else {
-            count += recursiveSplitMap(tailMap, submaps, minChunk, maxChunk, k, mapsQueue, masterMap);
-        }
-        return count;
-    }
+//    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, ArrayBlockingQueue<PairMersMap> mapsQueue) {
+//        return recursiveSplitMap(pairMersSkipListMap, submaps, minChunk, maxChunk, k, mapsQueue, this);
+//    }
+//
+//    private long recursiveSplitMap(ConcurrentNavigableMap<PairMer, PairMer> map, ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, int k,
+//            ArrayBlockingQueue<PairMersMap> mapsQueue, PairMersMap masterMap) {
+//        PairMer higherKey = null;
+//        long count = 0;
+//        ConcurrentNavigableMap<PairMer, PairMer> headMap;
+//        ConcurrentNavigableMap<PairMer, PairMer> tailMap;
+//        do {
+////            do {
+//                try {
+//                    PairMer luckyDipPairMer = map.firstKey().luckyDipPairMer(k, map.lastKey());
+//                    count++;
+////                System.err.println(luckyDipPairMer.toString()+ "<- lucky dip");                
+//                    higherKey = map.higherKey(luckyDipPairMer);
+//                    if (higherKey == null) {
+//                        int x = 0;
+////                    System.err.println(higherKey.toString()+ " <- higher");
+//                    }
+//                } catch (NullPointerException e) {
+//
+//                }
+//            } while (higherKey == null);
+//            System.err.println("Tried " + NumberFormat.getNumberInstance().format(count));
+//
+//            headMap = map.headMap(higherKey, false);
+//            tailMap = map.tailMap(higherKey, true);
+////        } while (headMap.size() < minChunk || tailMap.size() < minChunk);
+////        System.err.println("Tried " + count + " keys, |HeadMap|=" + headMap.size() + " |TailMap|=" + tailMap.size() + " |submaps|=" + submaps.size());
+//
+//        if (headMap.size() <= maxChunk) {
+//            try {
+//                mapsQueue.put(new PairMersMap(k, headMap, masterMap));
+//            } catch (InterruptedException ex) {
+//                ex.printStackTrace();
+//            }
+//            submaps.add(headMap);
+//        } else {
+//            count += recursiveSplitMap(headMap, submaps, minChunk, maxChunk, k, mapsQueue, masterMap);
+//        }
+//
+//        if (tailMap.size() <= maxChunk) {
+//            try {
+//                mapsQueue.put(new PairMersMap(k, tailMap, masterMap));
+//            } catch (InterruptedException ex) {
+//                ex.printStackTrace();
+//            }
+//            submaps.add(tailMap);
+//        } else {
+//            count += recursiveSplitMap(tailMap, submaps, minChunk, maxChunk, k, mapsQueue, masterMap);
+//        }
+//        return count;
+//    }
 
 }

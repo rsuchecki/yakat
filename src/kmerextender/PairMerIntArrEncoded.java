@@ -756,23 +756,23 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //    }
 
     
-    @Override
-    public PairMer luckyDipPairMer(int k, PairMer another) {
-        int[] encoded = new int[kmerCoreBitsArray.length];
-        int[] anotherEnc = ((PairMerIntArrEncoded)another).getEncoded();
-//        for (int i = 0; i < encoded.length; i++) {
-//            encoded[i] = Math.min(kmerCoreBitsArray[i]+kmerCoreBitsArray[i]/2,r.nextInt(0b00111111111111111111111111111111));
-//            encoded[i] = Math.min(kmerCoreBitsArray[i]+kmerCoreBitsArray[i]/2,r.nextInt(0b00111111111111111111111111111111));
-//            encoded[i] = ThreadLocalRandom.current().nextInt(0b00111111111111111111111111111111);
-//        }        
-        encoded[0] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[0]+1, anotherEnc[0]-1); //
-//        encoded[0] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[0]+(anotherEnc[0]-kmerCoreBitsArray[0])/4,anotherEnc[0]-1-(anotherEnc[0]-kmerCoreBitsArray[0])/4);
-//        int midPoint = (anotherEnc[0]-kmerCoreBitsArray[0])/2;
-//         encoded[0] = midPoint; //ThreadLocalRandom.current().nextInt(midPoint/2,midPoint+midPoint/2);
-        return new PairMerIntArrEncoded(encoded, k-1, false);
-    }
-    
-    public int[] getEncoded() {
-        return kmerCoreBitsArray;
-    }
+//    @Override
+//    public PairMer luckyDipPairMer(int k, PairMer another) {
+//        int[] encoded = new int[kmerCoreBitsArray.length];
+//        int[] anotherEnc = ((PairMerIntArrEncoded)another).getEncoded();
+////        for (int i = 0; i < encoded.length; i++) {
+////            encoded[i] = Math.min(kmerCoreBitsArray[i]+kmerCoreBitsArray[i]/2,r.nextInt(0b00111111111111111111111111111111));
+////            encoded[i] = Math.min(kmerCoreBitsArray[i]+kmerCoreBitsArray[i]/2,r.nextInt(0b00111111111111111111111111111111));
+////            encoded[i] = ThreadLocalRandom.current().nextInt(0b00111111111111111111111111111111);
+////        }        
+//        encoded[0] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[0]+1, anotherEnc[0]-1); //
+////        encoded[0] = ThreadLocalRandom.current().nextInt(kmerCoreBitsArray[0]+(anotherEnc[0]-kmerCoreBitsArray[0])/4,anotherEnc[0]-1-(anotherEnc[0]-kmerCoreBitsArray[0])/4);
+////        int midPoint = (anotherEnc[0]-kmerCoreBitsArray[0])/2;
+////         encoded[0] = midPoint; //ThreadLocalRandom.current().nextInt(midPoint/2,midPoint+midPoint/2);
+//        return new PairMerIntArrEncoded(encoded, k-1, false);
+//    }
+//    
+//    public int[] getEncoded() {
+//        return kmerCoreBitsArray;
+//    }
 }
