@@ -17,8 +17,6 @@ package kmerextender;
 
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentNavigableMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import shared.Reporter;
 
 /**
@@ -31,6 +29,7 @@ public class PairMerMaps {
     private final ArrayList<Integer> kSizes;
     private final String TOOL_NAME;
     private long totalPairMersGenerated;
+    private PairMersMap singleMap;
 
     public PairMerMaps(ArrayList<Integer> kSizes, String TOOL_NAME) {
         this.TOOL_NAME = TOOL_NAME;
@@ -48,14 +47,18 @@ public class PairMerMaps {
      * @param k
      * @return
      */
-    public synchronized PairMersMap getPairMersMap(int k) {
+    public PairMersMap getPairMersMap(int k) {
         PairMersMap map = kSizeToPairMersMap.get(k);
         if (map == null) {
             map = new PairMersMap(k);
-            PairMersMap previous = kSizeToPairMersMap.putIfAbsent(k, map);
-            if (previous == null) { 
-                addKValue(k);
-            }
+//            synchronized (this) {
+                PairMersMap previous = kSizeToPairMersMap.putIfAbsent(k, map);
+                if (previous == null) {
+                    addKValue(k);
+                } else { //another thread just beat us to putting this one in
+                    return previous; 
+                }
+//            }
         }
         return map;
     }
@@ -67,9 +70,7 @@ public class PairMerMaps {
     public long getTotalPairMersGenerated() {
         return totalPairMersGenerated;
     }
-    
-    
-    
+
     private synchronized void addKValue(int k) {
         if (!kSizes.contains(k)) { //might have been added by input reader, 
 ////            System.err.print("\n" + kSizes.size() + " kSizes:");
@@ -136,6 +137,4 @@ public class PairMerMaps {
         return kSizes.size();
     }
 
-    
-    
 }
