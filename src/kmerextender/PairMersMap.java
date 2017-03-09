@@ -188,8 +188,15 @@ public class PairMersMap extends shared.MerMap {
         return pairMersSkipListMap.get(anotherPairMer);
     }
 
-    public int size() {
-        return pairMersSkipListMap.size();
+    public long size() {
+        long count = 0;
+        Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
+        while (it.hasNext()) {
+            it.next();
+            count++;
+        }
+        return (count >= Long.MAX_VALUE) ? Long.MAX_VALUE : count;
+//        return pairMersSkipListMap.size();
     }
 
     /**
@@ -241,7 +248,7 @@ public class PairMersMap extends shared.MerMap {
         long count = 0L;
 
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
-                            
+
 //        Reporter.report("[WARNING]", "Pointless map traversal started", getClass().getCanonicalName());
 //        long c = 0;
 //        while (it.hasNext()) {
@@ -249,9 +256,7 @@ public class PairMersMap extends shared.MerMap {
 //            c++;
 //        }
 //        Reporter.report("[WARNING]", "Pointless map traversal finished, n="+NumberFormat.getInstance().format(c), getClass().getCanonicalName());
-        
 //        it = pairMersSkipListMap.keySet().iterator();
-
 //        PairMer firstKey = pairMersSkipListMap.firstKey();
 //        ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
 //        ArrayList<PairMer> spacedPairMers = firstKey.generateSpacedPairMersForMapSplitting(k, 10);
@@ -501,5 +506,4 @@ public class PairMersMap extends shared.MerMap {
 //        }
 //        return count;
 //    }
-
 }
