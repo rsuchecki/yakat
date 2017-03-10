@@ -197,7 +197,7 @@ public class KmerExtender {
 //        optSet.addOpt(new Opt('M', "min-frequency", "[IMPLEMENTING]", 1).setMinValue(1).setMaxValue((int)Byte.MAX_VALUE).setDefaultValue(1));        
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of records (k-mers or FASTQ reads or pairs depending on input) "
                 + "passed to in-queue", 1024, 1, 8092));
-        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
+        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for populator threads to pick-up",
                 2, 1, 256));
 //        optSet.addOpt(new Opt('m', "min-frequency", "....", 1,1,Integer.MAX_VALUE));
         int footId = 1;
@@ -212,7 +212,7 @@ public class KmerExtender {
 //        optSet.addOpt(new Opt(null, "k-values", "Explicitly set k values to be explored", 2).setMinValue(1).setDefaultValue(2).addFootnote(footId, foot));
         //RUNTIME
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
-        optSet.addOpt(new Opt('t', "threads", "Number threads for populating a set of implicitly connected k-mers",
+        optSet.addOpt(new Opt('t', "threads", "Number of worker threads, at various stages of program execution additional 1-3 threads may be running",
                 1, 1, Math.min(Runtime.getRuntime().availableProcessors(), 255), 1, 1)); //max 255 threads as w use a byte to store thread id on visited pairmers with Byte.MAX_VALUE reserved as intial value representing not visited
 
         //OUTPUT
@@ -222,8 +222,8 @@ public class KmerExtender {
         optSet.addOpt(new Opt('p', "fasta-id-prefix", "Prefix each FASTA identifier with <arg> ", 1));
         optSet.addOpt(new Opt('o', "out-file", "Print extended sequences to <arg> file", 1).setDefaultValue("/dev/stdout"));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
-        optSet.addOpt(new Opt('s', "stats-file", "Write extension stats to this file", 1));
-        optSet.addOpt(new Opt('d', "debug-file", "Write unkosher extensions details to this file", 1));
+        optSet.addOpt(new Opt('s', "stats-file", "Write extension stats to this file [TO BE RE-IMPLEMENTED - not much output here]", 1));
+        optSet.addOpt(new Opt('d', "debug-file", "Write unkosher extensions details to this file - in practice these are just lists of k-mers for the unextended palindromic/circular sequences", 1));
         optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
 
         //POSITIONAL
@@ -429,11 +429,12 @@ public class KmerExtender {
         }
 
         //STATS OF MAP SPLITTING FOR MULTITHREADED PURGING
-        long total = 0;
-        long min = Long.MAX_VALUE;
-        long max = Long.MIN_VALUE;
-        int[] sizes = null;
-        ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
+//        long total = 0;
+//        long min = Long.MAX_VALUE;
+//        long max = Long.MIN_VALUE;
+//        int[] sizes = null;
+//        ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> mapChunks = new ArrayList<>();
+        int BUFFER_SIZE = 100000;
 
         //PREPARE MAPS ON QUEUE TO BE PICKED-UP BY THREADS
         Iterator<Integer> it = pairMerMaps.getkSizes().iterator();
@@ -442,13 +443,33 @@ public class KmerExtender {
                 Integer k = it.next();
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 
-//                if (pairMerMaps.size() >= ) {
+                if (pairMerMaps.size() >= threads) {
                     mapsQueue.put(pairMersMap);
-//                } else { //WE HAVE MORE THREADS THAN MAPS SO LETS SPLIT THE MAPS
+                } else { //WE HAVE MORE THREADS THAN MAPS SO LETS SPLIT THE MAPS
 //                    Reporter.report("[EXPERIMENTAL]", "Running recursive map splitting, need boundary cases testing as it can get stuck or crash", TOOL_NAME);
 //                    long attempts = pairMersMap.recursiveSplitMap(mapChunks, pairMersMap.size() / threads / 100, pairMersMap.size() / threads / 2, mapsQueue);
 //                    Reporter.report("[EXPERIMENTAL]", "Finished running recursive map splitting, total attempts = " + attempts, TOOL_NAME);
-//                }
+                    Iterator<PairMer> pairMersIterator = pairMersMap.getPairMersMap().keySet().iterator();
+                    PairMer head = null;
+                    PairMer tail = null;
+                    long counter = 0;
+                    if (pairMersIterator.hasNext()) {
+                        head = pairMersIterator.next();
+                        counter++;
+                    }
+                    while (pairMersIterator.hasNext()) {
+                        if (counter++ % BUFFER_SIZE == 0) {
+                            tail = pairMersIterator.next();
+                            ConcurrentNavigableMap subMap = pairMersMap.getPairMersMap().subMap(head, tail);
+                            mapsQueue.put(new PairMersMap(k, subMap, pairMersMap));
+                            head = tail;                                 
+                        } else {
+                            pairMersIterator.next();
+                        }
+                    }
+                    ConcurrentNavigableMap tailMap = pairMersMap.getPairMersMap().tailMap(head);
+                    mapsQueue.put(new PairMersMap(k, tailMap, pairMersMap));                    
+                }
             }
             mapsQueue.put(new PairMersMap(null));
         } catch (InterruptedException ex) {
@@ -492,7 +513,7 @@ public class KmerExtender {
             Integer k = it.next();
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 //            System.err.println(k+"=k, |terminal|=" + pairMersMap.getTerminalPairMers().size());
-            int size = pairMersMap.size();
+            long size = pairMersMap.size();
             int terminals = pairMersMap.getTerminalPairMers().size();
             double ratio = (double) terminals / size;
             Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", |Terimnal|=" + NumberFormat.getIntegerInstance().format(terminals) + " (" + NumberFormat.getPercentInstance().format(ratio) + ")", TOOL_NAME);

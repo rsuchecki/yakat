@@ -378,7 +378,7 @@ public class PairMersExtender {
                 + NumberFormat.getNumberInstance().format(longEnough);
         String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(shortest == Integer.MAX_VALUE ? minLen : shortest) + "bp and longer = "
                 + NumberFormat.getNumberInstance().format(longEnoughBp) + " bp";
-        String duplicatesExtMessage = "Number of potentail duplicate extensions = " + NumberFormat.getNumberInstance().format(potentialDuplicate);
+//        String duplicatesExtMessage = "Number of potentail duplicate extensions = " + NumberFormat.getNumberInstance().format(potentialDuplicate);
         if (STATS_FILE != null) {
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", longestExtMessage, TOOL_NAME), true);
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", totalExtendedMessage, TOOL_NAME), true);
@@ -390,7 +390,7 @@ public class PairMersExtender {
         Reporter.report("[INFO]", totalExtendedMessage2, TOOL_NAME);
         Reporter.report("[INFO]", longEnoughMessage, TOOL_NAME);
         Reporter.report("[INFO]", longEnoughMessage2, TOOL_NAME);
-        Reporter.report("[INFO]", duplicatesExtMessage, TOOL_NAME);
+//        Reporter.report("[INFO]", duplicatesExtMessage, TOOL_NAME);
 
     }
 
