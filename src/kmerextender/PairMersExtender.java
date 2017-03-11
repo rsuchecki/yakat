@@ -374,14 +374,14 @@ public class PairMersExtender {
 //        } catch (InterruptedException e) {
 //            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         }
-        String longestExtMessage = "Longest extended sequence = " + NumberFormat.getNumberInstance().format(longest) + "bp";
+        String longestExtMessage = "Longest extended sequence = " + NumberFormat.getNumberInstance().format(longest) + " bp";
         String totalExtendedMessage = "Number of extended sequences = " + NumberFormat.getNumberInstance().format(extendedNumber);
         String totalExtendedMessage2 = "Total length of extended sequences = " + NumberFormat.getNumberInstance().format(extendedLength) + " bp";
-        String longEnoughMessage = "Number of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + "bp or longer = "
+        String longEnoughMessage = "Number of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + " bp or longer = "
                 + NumberFormat.getNumberInstance().format(longEnough);
-        String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + "bp or longer = "
+        String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + " bp or longer = "
                 + NumberFormat.getNumberInstance().format(longEnoughBp) + " bp";
-//        String duplicatesExtMessage = "Number of potentail duplicate extensions = " + NumberFormat.getNumberInstance().format(potentialDuplicate);
+        String duplicatesExtMessage = "Number of potentail duplicate extensions = " + NumberFormat.getNumberInstance().format(potentialDuplicate);
         if (STATS_FILE != null) {
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", longestExtMessage, TOOL_NAME), true);
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", totalExtendedMessage, TOOL_NAME), true);

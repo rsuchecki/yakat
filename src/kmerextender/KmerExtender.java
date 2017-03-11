@@ -516,7 +516,10 @@ public class KmerExtender {
             long size = pairMersMap.size();
             int terminals = pairMersMap.getTerminalPairMers().size();
             double ratio = (double) terminals / size;
-            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", |Terimnal|=" + NumberFormat.getIntegerInstance().format(terminals) + " (" + NumberFormat.getPercentInstance().format(ratio) + ")", TOOL_NAME);
+            NumberFormat perc = NumberFormat.getPercentInstance();
+            perc.setMaximumFractionDigits(2);
+            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", detected |Terimnal|=" + NumberFormat.getIntegerInstance().format(terminals) 
+                    + " (" + perc.format(ratio) + ")", TOOL_NAME);
             Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
             while (iterator.hasNext()) {
                 PairMer next = iterator.next();
