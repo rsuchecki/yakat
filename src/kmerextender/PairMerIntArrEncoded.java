@@ -147,6 +147,10 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             boolean storedInForwardOrient = encodeCoreCanonical(sequence, coreStart, coreEnd);
 //            int[] coreInRC = encodeCoreRC(sequence, coreStart, coreEnd);
 
+            // TODO 
+            // instead of canonical encoding simply iterate through sub-seq from both directions and return the canonical strand prior to encoding
+
+
             if (storedInForwardOrient) {
                 if (frontClip) {
                     setClipLeft(sequence.charAt(from));
