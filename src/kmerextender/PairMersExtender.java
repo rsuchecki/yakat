@@ -88,7 +88,6 @@ public class PairMersExtender {
         if (!namePrefix.isEmpty() && !namePrefix.endsWith("_")) {
             namePrefix += "_";
         }
-        
 
         long clusterNumber = 0; //Connected-component in the de-bruijn graph
         long extendedNumber = 0;
@@ -121,85 +120,97 @@ public class PairMersExtender {
             byte threadId = Byte.MIN_VALUE;
             //SPAWN CONSUMER THREADS
             for (int i = 0; i < extenderThreads; i++) {
-                PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k , DEBUG_FILE, threadId++, TOOL_NAME);
+                PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k, DEBUG_FILE, threadId++, TOOL_NAME);
                 futures.add(producerConsumerExecutor.submit(consumer));
             }
             //COUNT AND PRINT EXTENDED SEQUENCES, RESOLVE CONFLICTS...
             try {
                 List<ConnectedPairMers> list;
-                while (!(list = outqueue.take()).isEmpty() || --extenderThreads > 0) {                
+                long pickedFromOutqueue = 0;
+                long reportThreshold = (long) 1000;
+                
+                while (!(list = outqueue.take()).isEmpty() || --extenderThreads > 0) {
 //                    System.err.println(Thread.currentThread().getName() + "[M] taken " + list.size());
+                    pickedFromOutqueue += list.size();
+                    if (pickedFromOutqueue % reportThreshold == 0) {
+                        if (reportThreshold < 1e6) {
+//                                    reportThreshold *= 10;
+//                                    reportThreshold *= KMER_REPORTING_MULTIPLY;
+                            reportThreshold <<= 1; // *= 2
+                        }
+                        Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(pickedFromOutqueue) + " extended so far...", TOOL_NAME);
+                    }
                     for (ConnectedPairMers connectedPairMers : list) {
-                       clusterNumber++;
-                       try {
-                        if (connectedPairMers.hasTerminalOrSingletonNode()) {
-                            extendedNumber++;
+                        clusterNumber++;
+                        try {
+                            if (connectedPairMers.hasTerminalOrSingletonNode()) {
+                                extendedNumber++;
 //                        System.err.println(connectedPairMers.getKeys().size() + " pairMers == " + connectedMers.length() + " bp");
-                            CharSequence connectedMers = connectedPairMers.toCharSeq(k);
-                            int len = connectedMers.length();
-                            extendedLength += len;
+                                CharSequence connectedMers = connectedPairMers.toCharSeq(k);
+                                int len = connectedMers.length();
+                                extendedLength += len;
 
-                            if(connectedPairMers.isPotentialDuplicate()) {
-                                potentialDuplicate++;
-                            }
-                            if (len > longest) {
-                                longest = len;
-                            }
-                            if (len < shortest) {
-                                shortest = len;
-                            }
-                            if (STATS_FILE != null) {
-                                if (len < MAX_LENGTH_STATS) {
-                                    extendedLengths[len]++;
-                                } else {
-                                    extendedLengths[0]++;
+                                if (connectedPairMers.isPotentialDuplicate()) {
+                                    potentialDuplicate++;
                                 }
-                            }
-                            if (len >= minLen) {
-                                longEnough++;
-                                longEnoughBp += len;
+                                if (len > longest) {
+                                    longest = len;
+                                }
+                                if (len < shortest) {
+                                    shortest = len;
+                                }
+                                if (STATS_FILE != null) {
+                                    if (len < MAX_LENGTH_STATS) {
+                                        extendedLengths[len]++;
+                                    } else {
+                                        extendedLengths[0]++;
+                                    }
+                                }
+                                if (len >= minLen) {
+                                    longEnough++;
+                                    longEnoughBp += len;
 
-                                //SYNC THIS 
-                                if (outputFasta) {
-                                    out.write(">" + namePrefix + clusterNumber + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
+                                    //SYNC THIS 
+                                    if (outputFasta) {
+                                        out.write(">" + namePrefix + clusterNumber + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
+                                        out.newLine();
+                                    }
+                                    out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));
                                     out.newLine();
-                                }
-                                out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));
-                                out.newLine();
 //                            } else {
 //                                System.err.println("too short at "+len+" "+connectedMers.toString()+" given minlen = "+minLen);
-                            }
-                            
-                        } else {
-                            String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
-                            Reporter.report("[WARNING]", message, TOOL_NAME);
-                            if (DEBUG_FILE != null) {
-                                ArrayList<String> toReport = new ArrayList<>();
-                                toReport.add("No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
-                                for (PairMer pm : connectedPairMers.getKeys()) {
-                                    toReport.add(pm.getPairMerString(k));
                                 }
-                                Reporter.writeToFile(DEBUG_FILE, toReport, true);
+
+                            } else {
+                                String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
+                                Reporter.report("[WARNING]", message, TOOL_NAME);
+                                if (DEBUG_FILE != null) {
+                                    ArrayList<String> toReport = new ArrayList<>();
+                                    toReport.add("No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k + " PairMers in cluster:");
+                                    for (PairMer pm : connectedPairMers.getKeys()) {
+                                        toReport.add(pm.getPairMerString(k));
+                                    }
+                                    Reporter.writeToFile(DEBUG_FILE, toReport, true);
+                                }
                             }
+                        } catch (StackOverflowError error) {
+                            Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
+                            Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+                            System.exit(1);
                         }
-                    } catch (StackOverflowError error) {
-                        Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
-                        Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
-                        System.exit(1);
-                    }
-                    out.flush();
-                       
+                        out.flush();
+
                     }
 //                    System.err.println(list.size()+" "+extenderThreads);
                 }
+                Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(pickedFromOutqueue) + " extended multithreaded", TOOL_NAME);
 //                System.err.println("out of lock");
 //                outqueue.put(new ArrayList<>()); //inform other threads
-                
+
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-            
-           
+
             producerConsumerExecutor.shutdown();
             try {
                 for (Future<?> f : futures) {
@@ -289,11 +300,6 @@ public class PairMersExtender {
 //                    out.flush();
 //                }
 //            }
-
-
-
-
-
             Reporter.report("[INFO]", "Starting second-pass, single threaded extending", TOOL_NAME);
             Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
             int extendedInSecondPass = 0;
@@ -302,7 +308,7 @@ public class PairMersExtender {
                 if (pairMer != null && !pairMer.isVisited()) {
                     clusterNumber++;
                     ConnectedPairMers connectedPairMers = new ConnectedPairMers();
-                    if(!connectedPairMers.connectPairMers(pairMer, k, pairMersMap, threadId, DEBUG_FILE)) {
+                    if (!connectedPairMers.connectPairMers(pairMer, k, pairMersMap, threadId, DEBUG_FILE)) {
                         System.err.println("Failed connecting pairmers - shoukld not happen in second pass");
                     }
                     try {
@@ -363,9 +369,8 @@ public class PairMersExtender {
                         System.exit(1);
                     }
                 }
-            }            ;
-            Reporter.report("[INFO]", "Extended in second-pass = "+NumberFormat.getNumberInstance().format(extendedInSecondPass)+" (single threaded extending)", TOOL_NAME);
-
+            };
+            Reporter.report("[INFO]", "Extended in second-pass = " + NumberFormat.getNumberInstance().format(extendedInSecondPass) + " (single threaded extending)", TOOL_NAME);
 
         } catch (UnsupportedEncodingException e) {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
