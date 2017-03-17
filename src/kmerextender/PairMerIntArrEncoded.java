@@ -20,8 +20,6 @@ import java.util.ArrayList;
 import shared.SequenceOps;
 import shared.Reporter;
 import java.util.Arrays;
-import java.util.Random;
-import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * Proof of concept structure to hold up to 2 k-mers paired
@@ -71,6 +69,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
     public PairMerIntArrEncoded(CharSequence kmerCoreOnly) throws NonACGTException {
 //        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
         encodeCoreCanonical(kmerCoreOnly, 0, kmerCoreOnly.length() - 1);
+//        System.err.println(kmerCoreOnly+" isCanonical="+SequenceOps.isCanonical(kmerCoreOnly));
 //        tmpCore = SequenceOps.getCanonical(kmerCoreOnly);
     }
 
@@ -94,6 +93,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      *
      * @param encodedKmerCoreOnly
      * @param coreLen
+     * @param canonical
      */
     public PairMerIntArrEncoded(int[] encodedKmerCoreOnly, int coreLen, boolean canonical) {
 //        String decodeCore = decodeCore(coreLen, encodedKmerCoreOnly);
@@ -145,6 +145,10 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             int coreEnd = frontClip ? to : to - 1;
 
             boolean storedInForwardOrient = encodeCoreCanonical(sequence, coreStart, coreEnd);
+//            if(storedInForwardOrient && !SequenceOps.isCanonical(sequence, from, to)) {
+//                System.err.println(sequence+" isCanonical="+SequenceOps.isCanonical(sequence,from,to));
+//                
+//            }
 //            int[] coreInRC = encodeCoreRC(sequence, coreStart, coreEnd);
 
             // TODO 
