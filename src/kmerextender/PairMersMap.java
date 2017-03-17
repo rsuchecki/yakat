@@ -185,6 +185,9 @@ public class PairMersMap extends shared.MerMap {
 
     
     public long size() {
+        if(pairMersSkipListMap.size() < Integer.MAX_VALUE) {
+            return pairMersSkipListMap.size();
+        }
         long count = 0;
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
         while (it.hasNext()) {
