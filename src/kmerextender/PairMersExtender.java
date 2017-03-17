@@ -111,13 +111,13 @@ public class PairMersExtender {
                 out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outFile), "UTF-8"), WRITER_BUFFER_SIZE);
             }
 
+            byte threadId = Byte.MIN_VALUE;
             BlockingQueue inqueue = new ArrayBlockingQueue(extenderThreads);
             BlockingQueue<List<ConnectedPairMers>> outqueue = new ArrayBlockingQueue(extenderThreads);
             ArrayList<Future<?>> futures = new ArrayList<>(extenderThreads + 1);
             final ExecutorService producerConsumerExecutor = new ThreadPoolExecutor(extenderThreads + 1, extenderThreads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
             //SPAWN PRODUCER
             futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue)));
-            byte threadId = Byte.MIN_VALUE;
             //SPAWN CONSUMER THREADS
             for (int i = 0; i < extenderThreads; i++) {
                 PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k, DEBUG_FILE, threadId++, TOOL_NAME);

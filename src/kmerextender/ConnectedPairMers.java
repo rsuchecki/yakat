@@ -72,7 +72,7 @@ public class ConnectedPairMers {
 
 //        if(checkAndSetVisitedBy)
 //        if (!visited || reset) {
-        pairMer.setVisited();
+//        pairMer.setVisited();
 //            pairMer.setVisitedBy(threadId);
 
         String decodedCore = pairMer.decodeCore(k - 1);
