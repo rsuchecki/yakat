@@ -15,14 +15,9 @@
  */
 package kmerextender;
 
-import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import shared.Reporter;
 
 /**
@@ -188,7 +183,11 @@ public class PairMersMap extends shared.MerMap {
         return pairMersSkipListMap.get(anotherPairMer);
     }
 
+    
     public long size() {
+        if(pairMersSkipListMap.size() < Integer.MAX_VALUE) {
+            return pairMersSkipListMap.size();
+        }
         long count = 0;
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
         while (it.hasNext()) {
