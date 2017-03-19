@@ -166,7 +166,10 @@ public class PairMersExtender {
                                 }
                                 out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));
                                 out.newLine();
+//                            } else {
+//                                System.err.println("too short at "+len+" "+connectedMers.toString()+" given minlen = "+minLen);
                             }
+                            
                         } else {
                             String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
                             Reporter.report("[WARNING]", message, TOOL_NAME);
@@ -293,7 +296,7 @@ public class PairMersExtender {
 
             Reporter.report("[INFO]", "Starting second-pass, single threaded extending", TOOL_NAME);
             Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
-            int n = 0;
+            int extendedInSecondPass = 0;
             while (it.hasNext()) {
                 PairMer pairMer = it.next();
                 if (pairMer != null && !pairMer.isVisited()) {
@@ -332,7 +335,7 @@ public class PairMersExtender {
                                 }
                             }
                             if (len >= minLen) {
-                                n++;
+                                extendedInSecondPass++;
                                 longEnough++;
                                 longEnoughBp += len;
                                 if (outputFasta) {
@@ -361,7 +364,7 @@ public class PairMersExtender {
                     }
                 }
             }            ;
-            Reporter.report("[INFO]", "Extended in second-pass = "+NumberFormat.getNumberInstance().format(n)+" (single threaded extending)", TOOL_NAME);
+            Reporter.report("[INFO]", "Extended in second-pass = "+NumberFormat.getNumberInstance().format(extendedInSecondPass)+" (single threaded extending)", TOOL_NAME);
 
 
         } catch (UnsupportedEncodingException e) {
@@ -371,14 +374,14 @@ public class PairMersExtender {
 //        } catch (InterruptedException e) {
 //            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         }
-        String longestExtMessage = "Longest extended sequence = " + NumberFormat.getNumberInstance().format(longest) + "bp";
+        String longestExtMessage = "Longest extended sequence = " + NumberFormat.getNumberInstance().format(longest) + " bp";
         String totalExtendedMessage = "Number of extended sequences = " + NumberFormat.getNumberInstance().format(extendedNumber);
         String totalExtendedMessage2 = "Total length of extended sequences = " + NumberFormat.getNumberInstance().format(extendedLength) + " bp";
-        String longEnoughMessage = "Number of reported sequences " + NumberFormat.getNumberInstance().format(shortest == Integer.MAX_VALUE ? minLen : shortest) + "bp and longer = "
+        String longEnoughMessage = "Number of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + " bp or longer = "
                 + NumberFormat.getNumberInstance().format(longEnough);
-        String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(shortest == Integer.MAX_VALUE ? minLen : shortest) + "bp and longer = "
+        String longEnoughMessage2 = "Total length of reported sequences " + NumberFormat.getNumberInstance().format(minLen) + " bp or longer = "
                 + NumberFormat.getNumberInstance().format(longEnoughBp) + " bp";
-//        String duplicatesExtMessage = "Number of potentail duplicate extensions = " + NumberFormat.getNumberInstance().format(potentialDuplicate);
+        String duplicatesExtMessage = "Number of potentail duplicate extensions = " + NumberFormat.getNumberInstance().format(potentialDuplicate);
         if (STATS_FILE != null) {
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", longestExtMessage, TOOL_NAME), true);
             Reporter.writeToFile(STATS_FILE, Reporter.formatReport("[STATS]", totalExtendedMessage, TOOL_NAME), true);
