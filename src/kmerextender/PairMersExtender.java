@@ -117,7 +117,7 @@ public class PairMersExtender {
             ArrayList<Future<?>> futures = new ArrayList<>(extenderThreads + 1);
             final ExecutorService producerConsumerExecutor = new ThreadPoolExecutor(extenderThreads + 1, extenderThreads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
             //SPAWN PRODUCER
-            int BUFFER_SIZE = (int) Math.min(1000, pairMersMap.sizeTerminals()/extenderThreads);
+            int BUFFER_SIZE = (int) Math.min(1024, pairMersMap.sizeTerminals()/extenderThreads);
             futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue, BUFFER_SIZE)));
             //SPAWN CONSUMER THREADS
             for (int i = 0; i < extenderThreads; i++) {

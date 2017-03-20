@@ -427,7 +427,7 @@ public class KmerExtender {
         //INIT PURGER THREADS        
         ArrayBlockingQueue<PairMersMap> mapsQueue = new ArrayBlockingQueue(Math.max(pairMerMaps.size(), threads) + 1);
         for (int i = 0; i < threads; i++) {
-            futures.add(purgeMapsExecutorService.submit(new PairMerMapPurger(mapsQueue, TOOL_NAME, MIN_KMER_FREQUENCY, threads)));
+            futures.add(purgeMapsExecutorService.submit(new PairMerMapPurger(mapsQueue, TOOL_NAME, MIN_KMER_FREQUENCY)));
         }
 
         //STATS OF MAP SPLITTING FOR MULTITHREADED PURGING

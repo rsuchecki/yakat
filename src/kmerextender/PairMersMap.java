@@ -57,7 +57,7 @@ public class PairMersMap extends shared.MerMap {
      *
      * @param k
      * @param subMap
-     * @param terminalPairMers
+     * @param parentMap
      */
     public PairMersMap(Integer k, ConcurrentNavigableMap<PairMer, PairMer> subMap, PairMersMap parentMap) {
         this.k = k;
@@ -183,15 +183,14 @@ public class PairMersMap extends shared.MerMap {
         return pairMersSkipListMap.get(anotherPairMer);
     }
 
-    
     public long size() {
         return size(pairMersSkipListMap);
     }
-    
+
     public long sizeTerminals() {
         return size(terminalPairMers);
     }
-    
+
     private long size(ConcurrentNavigableMap map) {
         if (map.size() < Integer.MAX_VALUE) {
             return map.size();
@@ -250,7 +249,7 @@ public class PairMersMap extends shared.MerMap {
      * @param threads
      * @return the number of elements removed
      */
-    public long purge(int minKmerFrequency, int threads) {
+    public long purge(int minKmerFrequency) {
 
         long count = 0L;
 
@@ -326,54 +325,53 @@ public class PairMersMap extends shared.MerMap {
 //                it.remove();
 //                count++;
             if (next.isInvalid() || next.getStoredCountLeft() == 0 || next.getStoredCountRigth() == 0) {
-
 //                //PM removed either due to ambig or holding just one k-mer, any valid adjacent k-mer present in map must be a terminal one
                 try {
                     String decodedCore = next.decodeCore(k - 1);
-//                    System.err.println(decodedCore + "\t DECODED CORE");
                     if (next.hasLeftClip()) {
                         StringBuilder otherCoreOfKmer1 = new StringBuilder();
                         otherCoreOfKmer1.append(next.getClipLeft());
                         otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
-//                        System.err.println(otherCoreOfKmer1.toString() + "\t CREATED FROM DECODED CORE (1)");
-                        PairMer encodedCoreOfKmer1 = PairMerGenerator.getPairMer(otherCoreOfKmer1, k);
-                        PairMer otherPairMer1 = getParentMap().get(encodedCoreOfKmer1);
-                        if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
-                            //                        pairMersSkipListMap.remove(otherPairMer1);
-//                            System.err.println(otherPairMer1.getPairMerString(k) + "\tADDING TO TERMINAL");
-                            PairMer put = terminalPairMers.putIfAbsent(otherPairMer1, otherPairMer1);
-                            if (put != null) {
-//                                System.err.println(otherPairMer1.getPairMerString(k) + "\t - already in");
-                                int x = 0;
-                            }
-                        }
+                        addTerminal(otherCoreOfKmer1, minKmerFrequency);
+
                     }
                     if (next.hasRightClip()) {
                         StringBuilder otherCoreOfKmer2 = new StringBuilder();
                         otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
                         otherCoreOfKmer2.append(next.getClipRight());
-                        PairMer encodedCoreOfKmer2 = null;;
-                        encodedCoreOfKmer2 = PairMerGenerator.getPairMer(otherCoreOfKmer2, k);
-//                        System.err.println(otherCoreOfKmer2.toString() + "\t CREATED FROM DECODED CORE (2)");
-//                synchronized (KmerExtender.class) {
-//                        System.err.println(next.getPairMerString(k) + "\tREMOVING");
-
-                        PairMer otherPairMer2 = getParentMap().get(encodedCoreOfKmer2);
-                        if (otherPairMer2 != null && !otherPairMer2.isInvalid() && otherPairMer2.getStoredCountLeft() >= minKmerFrequency && otherPairMer2.getStoredCountRigth() >= minKmerFrequency) {
-//                        pairMersSkipListMap.remove(otherPairMer2);
-//                            System.err.println(otherPairMer2.getPairMerString(k) + "\tADDING TO TERMINAL");
-                            PairMer put = terminalPairMers.putIfAbsent(otherPairMer2, otherPairMer2);
-                            if (put != null) {
-//                                System.err.println(otherPairMer2.getPairMerString(k) + "\t - already in");
-                                int x = 0;
-                            }
-                        }
+                        addTerminal(otherCoreOfKmer2, minKmerFrequency);
                     }
                 } catch (NonACGTException ex) {
                     Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
                 }
                 getParentMap().remove(next);
                 count++;
+//                }
+//            } else if (!terminalPairMers.containsKey(next)) { //if not already marked as terminal
+//                try {
+//                    String decodedCore = next.decodeCore(k - 1);
+//                    if (next.hasLeftClip()) {
+//                        StringBuilder otherCoreOfKmer1 = new StringBuilder();
+//                        otherCoreOfKmer1.append(next.getClipLeft());
+//                        otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
+//                        PairMer merInMap = get(PairMerGenerator.getPairMer(otherCoreOfKmer1, k));
+//                        if(merInMap == null) {
+//                            terminalPairMers.putIfAbsent(next, next);
+//                            continue; //so that we dont compute the other core just to place it among terminal pair mers again if is singleton
+//                        }
+//
+//                    }
+//                    if (next.hasRightClip()) {
+//                        StringBuilder otherCoreOfKmer2 = new StringBuilder();
+//                        otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
+//                        otherCoreOfKmer2.append(next.getClipRight());
+//                        PairMer merInMap = get(PairMerGenerator.getPairMer(otherCoreOfKmer2, k));
+//                        if(merInMap == null) {
+//                            terminalPairMers.putIfAbsent(next, next);
+//                        }                        
+//                    }
+//                } catch (NonACGTException ex) {
+//                    Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
 //                }
             }
 //else if (next.getStoredCountLeft() < minKmerFrequency || next.getStoredCountRigth() < minKmerFrequency) {
@@ -442,6 +440,33 @@ public class PairMersMap extends shared.MerMap {
 ////        }
         return count;
     }
+
+    private boolean addTerminal(CharSequence pairMerCore, int minKmerFrequency) throws NonACGTException {
+        //                        PairMer encodedCoreOfKmer2 = PairMerGenerator.getPairMer(otherCoreOfKmer2, k);
+////                        System.err.println(otherCoreOfKmer2.toString() + "\t CREATED FROM DECODED CORE (2)");
+////                synchronized (KmerExtender.class) {
+////                        System.err.println(next.getPairMerString(k) + "\tREMOVING");
+//
+//                        PairMer otherPairMer2 = getParentMap().get(encodedCoreOfKmer2);
+//                        if (otherPairMer2 != null && !otherPairMer2.isInvalid() && otherPairMer2.getStoredCountLeft() >= minKmerFrequency && otherPairMer2.getStoredCountRigth() >= minKmerFrequency) {
+////                        pairMersSkipListMap.remove(otherPairMer2);
+////                            System.err.println(otherPairMer2.getPairMerString(k) + "\tADDING TO TERMINAL");
+//                            PairMer put = terminalPairMers.putIfAbsent(otherPairMer2, otherPairMer2);
+//                            if (put != null) {
+////                                System.err.println(otherPairMer2.getPairMerString(k) + "\t - already in");
+//                                int x = 0;
+//                            }
+//                        }
+        PairMer encodedCoreOfKmer1 = PairMerGenerator.getPairMer(pairMerCore, k);
+        PairMer otherPairMer1 = getParentMap().get(encodedCoreOfKmer1);
+        if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
+            //                        pairMersSkipListMap.remove(otherPairMer1);
+//                            System.err.println(otherPairMer1.getPairMerString(k) + "\tADDING TO TERMINAL");
+            return terminalPairMers.putIfAbsent(otherPairMer1, otherPairMer1) != null;
+        }
+        return false;
+    }
+
     //    public boolean isOutOfMemory() {
     //        return OutOfMemory;
     //    }
@@ -453,7 +478,6 @@ public class PairMersMap extends shared.MerMap {
     //        Iterator<PairMer> it = seedMersMap.getPairMersSkipListMap().keySet().iterator();
     //        
     //    }
-
     public Integer getK() {
         return k;
     }

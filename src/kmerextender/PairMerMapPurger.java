@@ -28,13 +28,11 @@ public class PairMerMapPurger implements Runnable {
     private final BlockingQueue<PairMersMap> queue;
     private final String TOOL_NAME;
     private final Integer MIN_KMER_FREQUENCY;
-    private final int THREADS_PER_PURGER;
 
-    public PairMerMapPurger(BlockingQueue<PairMersMap> queue, String toolName, Integer minFrequency, int threadsPerPurger) {
+    public PairMerMapPurger(BlockingQueue<PairMersMap> queue, String toolName, Integer minFrequency) {
         this.queue = queue;
         this.TOOL_NAME = toolName;
         this.MIN_KMER_FREQUENCY = minFrequency;
-        this.THREADS_PER_PURGER = threadsPerPurger;
     }
     
     
@@ -44,7 +42,7 @@ public class PairMerMapPurger implements Runnable {
         try {
             PairMersMap map;
             while (!(map = queue.take()).isEmpty()) {
-                long purged = map.purge(MIN_KMER_FREQUENCY, THREADS_PER_PURGER);
+                long purged = map.purge(MIN_KMER_FREQUENCY);
                 if (purged > 100000) {
                     gc(3, 500); //force GC 
                 }
