@@ -34,7 +34,7 @@ public class PairMer {//implements Comparable<PairMer> {
     private byte storedCountLeft;
     private byte storedCountRigth;
     private boolean invalid;  //1B
-    private boolean visited;//1B    
+//    private boolean visited;//1B    
     //then round to multi of 8
 
     private byte visitedBy = Byte.MAX_VALUE;
@@ -219,16 +219,16 @@ public class PairMer {//implements Comparable<PairMer> {
     }
 
     public boolean isVisited() {
-        return visited;
+        return visitedBy != Byte.MAX_VALUE;
     }
 
-    public synchronized boolean checkAndSetVisited() {
-        if (!visited) {
-            visited = true;
-            return false;
-        }
-        return true;
-    }
+//    public synchronized boolean checkAndSetVisited() {
+//        if (!visited) {
+//            visited = true;
+//            return false;
+//        }
+//        return true;
+//    }
 
     public synchronized byte checkAndSetVisitedBy(byte id) {
         if (visitedBy == Byte.MAX_VALUE) {  //NODE NOT VISITED BEFORE
@@ -244,17 +244,17 @@ public class PairMer {//implements Comparable<PairMer> {
         return visitedBy; //NODE PREVIOUSLY VISITED BY A HIGHER PRIORITY THREAD 
     }
 
-    public synchronized void setVisited() {
-        this.visited = true;
-    }
+//    public synchronized void setVisited() {
+//        this.visited = true;
+//    }
 
-    public synchronized boolean setVisitedBy(byte id) {
-        if (visitedBy > id) {
-            visitedBy = id;
-            return true;
-        }
-        return false;
-    }
+//    public synchronized boolean setVisitedBy(byte id) {
+//        if (visitedBy > id) {
+//            visitedBy = id;
+//            return true;
+//        }
+//        return false;
+//    }
 
     public byte getVisitedBy() {
         return visitedBy;

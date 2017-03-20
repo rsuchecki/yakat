@@ -91,6 +91,31 @@ public class SequenceOps {
         return sb;
     }
     
+    /**
+     * 
+     * @param sequence
+     * @param from inclusive
+     * @param to inclusive
+     * @return 
+     */
+    public static boolean isCanonical(CharSequence sequence, int from, int to) {        
+        int j = to;
+        for (int i = from; i <= to ; i++) {
+            int diff = sequence.charAt(i) - complement(sequence.charAt(j--));
+            if(diff < 0) {
+                return true;
+            } else if (diff > 0) {
+                return false;
+            }            
+        }
+        return true; //is canonical when palindromic ()
+    }
+    
+    public static boolean isCanonical(CharSequence sequence) {        
+        return isCanonical(sequence, 0, sequence.length()-1);
+    }
+    
+    
 
     
 }

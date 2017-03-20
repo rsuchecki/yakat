@@ -59,7 +59,9 @@ public class PairMersExtenderConsumer implements Runnable {
                     if (!pairMer.isVisited()) {
                         ConnectedPairMers connectedPairMers = new ConnectedPairMers();
                         if (!connectedPairMers.connectPairMers(pairMer, k, map, threadId, DEBUG_FILE)) {
-                            extensionsFailed++; //System.err.println("Failed extending pairmer "+pairMer.getPairMerString(k));
+                            extensionsFailed++; 
+//                            Reporter.report("[INFO]", "Thread "+threadId+" duplicate extension detected for "+pairMer.getPairMerString(k, "_"), TOOL_NAME);
+//                            System.err.println("Failed extending pairmer "+pairMer.getPairMerString(k));
                             continue;
                         }
 //                        if(connectedPairMers.size() == 0) {

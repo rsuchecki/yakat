@@ -183,9 +183,8 @@ public class PairMersMap extends shared.MerMap {
         return pairMersSkipListMap.get(anotherPairMer);
     }
 
-    
     public long size() {
-        if(pairMersSkipListMap.size() < Integer.MAX_VALUE) {
+        if (pairMersSkipListMap.size() < Integer.MAX_VALUE) {
             return pairMersSkipListMap.size();
         }
         long count = 0;
@@ -320,41 +319,49 @@ public class PairMersMap extends shared.MerMap {
             if (next.isInvalid() || next.getStoredCountLeft() == 0 || next.getStoredCountRigth() == 0) {
 
 //                //PM removed either due to ambig or holding just one k-mer, any valid adjacent k-mer present in map must be a terminal one
-                String decodedCore = next.decodeCore(k - 1);
-                StringBuilder otherCoreOfKmer1 = new StringBuilder();
-                StringBuilder otherCoreOfKmer2 = new StringBuilder();
-                if (next.hasLeftClip()) {
-                    otherCoreOfKmer1.append(next.getClipLeft());
-                    otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
-                }
-                if (next.hasRightClip()) {
-                    otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
-                    otherCoreOfKmer2.append(next.getClipRight());
-                }
-                PairMer encodedCoreOfKmer1 = null;
-                PairMer encodedCoreOfKmer2 = null;;
                 try {
-                    encodedCoreOfKmer1 = PairMerGenerator.getPairMer(otherCoreOfKmer1, k);
-                    encodedCoreOfKmer2 = PairMerGenerator.getPairMer(otherCoreOfKmer2, k);
+                    String decodedCore = next.decodeCore(k - 1);
+//                    System.err.println(decodedCore + "\t DECODED CORE");
+                    if (next.hasLeftClip()) {
+                        StringBuilder otherCoreOfKmer1 = new StringBuilder();
+                        otherCoreOfKmer1.append(next.getClipLeft());
+                        otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
+//                        System.err.println(otherCoreOfKmer1.toString() + "\t CREATED FROM DECODED CORE (1)");
+                        PairMer encodedCoreOfKmer1 = PairMerGenerator.getPairMer(otherCoreOfKmer1, k);
+                        PairMer otherPairMer1 = getParentMap().get(encodedCoreOfKmer1);
+                        if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
+                            //                        pairMersSkipListMap.remove(otherPairMer1);
+//                            System.err.println(otherPairMer1.getPairMerString(k) + "\tADDING TO TERMINAL");
+                            PairMer put = terminalPairMers.putIfAbsent(otherPairMer1, otherPairMer1);
+                            if (put != null) {
+//                                System.err.println(otherPairMer1.getPairMerString(k) + "\t - already in");
+                                int x = 0;
+                            }
+                        }
+                    }
+                    if (next.hasRightClip()) {
+                        StringBuilder otherCoreOfKmer2 = new StringBuilder();
+                        otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
+                        otherCoreOfKmer2.append(next.getClipRight());
+                        PairMer encodedCoreOfKmer2 = null;;
+                        encodedCoreOfKmer2 = PairMerGenerator.getPairMer(otherCoreOfKmer2, k);
+//                        System.err.println(otherCoreOfKmer2.toString() + "\t CREATED FROM DECODED CORE (2)");
+//                synchronized (KmerExtender.class) {
+//                        System.err.println(next.getPairMerString(k) + "\tREMOVING");
+
+                        PairMer otherPairMer2 = getParentMap().get(encodedCoreOfKmer2);
+                        if (otherPairMer2 != null && !otherPairMer2.isInvalid() && otherPairMer2.getStoredCountLeft() >= minKmerFrequency && otherPairMer2.getStoredCountRigth() >= minKmerFrequency) {
+//                        pairMersSkipListMap.remove(otherPairMer2);
+//                            System.err.println(otherPairMer2.getPairMerString(k) + "\tADDING TO TERMINAL");
+                            PairMer put = terminalPairMers.putIfAbsent(otherPairMer2, otherPairMer2);
+                            if (put != null) {
+//                                System.err.println(otherPairMer2.getPairMerString(k) + "\t - already in");
+                                int x = 0;
+                            }
+                        }
+                    }
                 } catch (NonACGTException ex) {
                     Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
-                }
-//                synchronized (KmerExtender.class) {
-                PairMer otherPairMer1 = getParentMap().get(encodedCoreOfKmer1);
-                if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
-//                        pairMersSkipListMap.remove(otherPairMer1);
-                    PairMer put = terminalPairMers.putIfAbsent(otherPairMer1, otherPairMer1);
-                    if (put != null) {
-                        int x = 0;
-                    }
-                }
-                PairMer otherPairMer2 = getParentMap().get(encodedCoreOfKmer2);
-                if (otherPairMer2 != null && !otherPairMer2.isInvalid() && otherPairMer2.getStoredCountLeft() >= minKmerFrequency && otherPairMer2.getStoredCountRigth() >= minKmerFrequency) {
-//                        pairMersSkipListMap.remove(otherPairMer2);
-                    PairMer put = terminalPairMers.putIfAbsent(otherPairMer2, otherPairMer2);
-                    if (put != null) {
-                        int x = 0;
-                    }
                 }
                 getParentMap().remove(next);
                 count++;

@@ -58,6 +58,7 @@ public class ConnectedPairMers {
 //        if (!pairMer.isVisited()) {
 //            pairMer.setVisited();
         byte visitedBy = pairMer.checkAndSetVisitedBy(threadId);
+        //????
         if (visitedBy == Byte.MAX_VALUE) { //NODE NOT VISITED BEFORE -> keep going
 //            visited = false;
         } else if (visitedBy > threadId) { //NODE PREVIOUSLY VISITED BY A LOWER PRIORITY THREAD -> keep going, but tag result as a posiible duplicate
@@ -72,7 +73,7 @@ public class ConnectedPairMers {
 
 //        if(checkAndSetVisitedBy)
 //        if (!visited || reset) {
-        pairMer.setVisited();
+//        pairMer.setVisited();
 //            pairMer.setVisitedBy(threadId);
 
         String decodedCore = pairMer.decodeCore(k - 1);

@@ -255,7 +255,7 @@ public class KmerExtender {
         }
 
         //PURGING ALSO IDENTIFIES MOST TERMINAl PAIRMERS -> ALLOWING EFFICIENT MULTI-THREADED TRAVERSAL
-        Reporter.report("[INFO]", "Now purging...", TOOL_NAME);
+        Reporter.report("[INFO]", "Purging map and identifying terminal PairMers...", TOOL_NAME);
         purgePopulatedPairMersMaps(pairMerMaps);
 
         ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers = null;
@@ -268,7 +268,7 @@ public class KmerExtender {
         }
 
         String outFile = (String) optSet.getOpt("out-file").getValueOrDefault();
-        Reporter.report("[INFO]", "Now try extending for each k", TOOL_NAME);
+        Reporter.report("[INFO]", "Now extending...", TOOL_NAME);
         //EXTEND - CAN BE PARALLELIZED IF NO INTENTION TO GENERATE CROSS-k-EXTENSIONS 
         if (seedSequences == null) {
             for (Integer k : kSizes) {
@@ -517,14 +517,15 @@ public class KmerExtender {
             int terminals = pairMersMap.getTerminalPairMers().size();
             double ratio = (double) terminals / size;
             NumberFormat perc = NumberFormat.getPercentInstance();
-            perc.setMaximumFractionDigits(2);
-            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", detected |Terimnal|=" + NumberFormat.getIntegerInstance().format(terminals) 
-                    + " (" + perc.format(ratio) + ")", TOOL_NAME);
+            perc.setMaximumFractionDigits(4);
+            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", identified " + NumberFormat.getIntegerInstance().format(terminals) 
+                    + " terminal PairMers (" + perc.format(ratio) + ")", TOOL_NAME);
             Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
             while (iterator.hasNext()) {
                 PairMer next = iterator.next();
+//                    System.err.println("terminal PM " + pairMersMap.get(next).getPairMerString(k, "_"));
                 if (!pairMersMap.getPairMersMap().containsKey(next)) {
-                    System.err.println("terminal PM absent from main map = " + pairMersMap.get(next).getPairMerString(k, "_"));
+                    System.err.println("terminal PM absent from main map = " + pairMersMap.getTerminalPairMers().get(next).getPairMerString(k, "_"));
                 }
             }
 //            System.exit(1);
