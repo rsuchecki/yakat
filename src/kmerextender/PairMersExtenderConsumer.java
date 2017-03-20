@@ -34,7 +34,7 @@ public class PairMersExtenderConsumer implements Runnable {
     private int k;
     private final int BUFFER_SIZE = 1024;
     private final byte threadId;
-    private int extensionsFailed = 0;
+    private int extensionsTerminated = 0;
 
     public PairMersExtenderConsumer(PairMersMap map, BlockingQueue<List<PairMer>> inqueue, BlockingQueue<List<ConnectedPairMers>> outqueue,
             int k, String DEBUG_FILE, byte threadId, String TOOL_NAME) {
@@ -59,7 +59,7 @@ public class PairMersExtenderConsumer implements Runnable {
                     if (!pairMer.isVisited()) {
                         ConnectedPairMers connectedPairMers = new ConnectedPairMers();
                         if (!connectedPairMers.connectPairMers(pairMer, k, map, threadId, DEBUG_FILE)) {
-                            extensionsFailed++; 
+                            extensionsTerminated++; 
 //                            Reporter.report("[INFO]", "Thread "+threadId+" duplicate extension detected for "+pairMer.getPairMerString(k, "_"), TOOL_NAME);
 //                            System.err.println("Failed extending pairmer "+pairMer.getPairMerString(k));
                             continue;
@@ -82,7 +82,7 @@ public class PairMersExtenderConsumer implements Runnable {
             }
             putOneQueue(outqueue, new ArrayList<>(0)); //inform other threads
             putOneQueue(inqueue, new ArrayList<>()); //inform other threads
-//            Reporter.report("[WARNING]", "Thread "+threadId+" failed extensions = "+extensionsFailed, TOOL_NAME + " " + Thread.currentThread().getName());
+            Reporter.report("[WARNING]", "Thread "+threadId+" terminated extensions = "+extensionsTerminated, TOOL_NAME + " " + Thread.currentThread().getName());
 
         } catch (InterruptedException e) {
             e.printStackTrace();

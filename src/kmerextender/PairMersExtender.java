@@ -133,7 +133,7 @@ public class PairMersExtender {
                 while (!(list = outqueue.take()).isEmpty() || --extenderThreads > 0) {
 //                    System.err.println(Thread.currentThread().getName() + "[M] taken " + list.size());
                     if(list.isEmpty()) { //A thread finished 
-                        Reporter.report("[INFO]", "Extending thread finished...", TOOL_NAME);
+                        Reporter.report("[INFO]", "Extending thread finished...???", TOOL_NAME);
                         continue;
                     }
                     pickedFromOutqueue += list.size();
