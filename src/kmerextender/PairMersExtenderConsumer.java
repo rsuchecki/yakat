@@ -32,7 +32,7 @@ public class PairMersExtenderConsumer implements Runnable {
     private String DEBUG_FILE = null;
     private final String TOOL_NAME;
     private int k;
-    private int BUFFER_SIZE = 10000;
+    private int BUFFER_SIZE = 1000;
     private final byte threadId;
     private int extensionsFailed = 0;
 
@@ -44,7 +44,7 @@ public class PairMersExtenderConsumer implements Runnable {
         this.DEBUG_FILE = DEBUG_FILE;
         this.k = k;
         this.threadId = threadId;
-        this.TOOL_NAME = TOOL_NAME;
+        this.TOOL_NAME = TOOL_NAME;        
     }
 
     @Override

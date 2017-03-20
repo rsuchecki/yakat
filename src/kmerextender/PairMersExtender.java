@@ -117,7 +117,8 @@ public class PairMersExtender {
             ArrayList<Future<?>> futures = new ArrayList<>(extenderThreads + 1);
             final ExecutorService producerConsumerExecutor = new ThreadPoolExecutor(extenderThreads + 1, extenderThreads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
             //SPAWN PRODUCER
-            futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue)));
+            int BUFFER_SIZE = (int) Math.min(1000, pairMersMap.sizeTerminals()/extenderThreads);
+            futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue, BUFFER_SIZE)));
             //SPAWN CONSUMER THREADS
             for (int i = 0; i < extenderThreads; i++) {
                 PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k, DEBUG_FILE, threadId++, TOOL_NAME);
@@ -132,7 +133,7 @@ public class PairMersExtender {
                 while (!(list = outqueue.take()).isEmpty() || --extenderThreads > 0) {
 //                    System.err.println(Thread.currentThread().getName() + "[M] taken " + list.size());
                     pickedFromOutqueue += list.size();
-                    if (pickedFromOutqueue % reportThreshold == 0) {
+                    if (pickedFromOutqueue % reportThreshold == 0 && pickedFromOutqueue != 0) {
                         if (reportThreshold < 1e6) {
 //                                    reportThreshold *= 10;
 //                                    reportThreshold *= KMER_REPORTING_MULTIPLY;

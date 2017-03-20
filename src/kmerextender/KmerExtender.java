@@ -32,6 +32,7 @@ import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +72,7 @@ public class KmerExtender {
     private int MAX_THREADS;
     private int INPUT_BUFFER_SIZE;
     private int INPUT_QUEUE_SIZE;
+    private int EXTENDER_BUFFER_MAX = 1000;
 
     private boolean OUTPUT_FASTA = false;
     private String NAME_PREFIX = "";
@@ -251,7 +253,7 @@ public class KmerExtender {
         for (Integer k : kSizes) {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
             Reporter.report("[INFO]", "Finished populating map, counting elements... ", TOOL_NAME);
-            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.size()), TOOL_NAME);
+            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getNumberInstance().format(pairMersMap.size()), TOOL_NAME);
         }
 
         //PURGING ALSO IDENTIFIES MOST TERMINAl PAIRMERS -> ALLOWING EFFICIENT MULTI-THREADED TRAVERSAL

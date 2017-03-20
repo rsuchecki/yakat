@@ -28,11 +28,12 @@ public class PairMersExtenderProducer implements Runnable {
 
     private final PairMersMap map;
     private final BlockingQueue<List<PairMer>> queue;
-    private final int BUFFER_SIZE = 10000;
+    private final int BUFFER_SIZE;
 
-    public PairMersExtenderProducer(PairMersMap map, BlockingQueue<List<PairMer>> outqueue) {
+    public PairMersExtenderProducer(PairMersMap map, BlockingQueue<List<PairMer>> outqueue, int BUFFER_SIZE) {
         this.map = map;
         this.queue = outqueue;
+        this.BUFFER_SIZE = BUFFER_SIZE;
     }
 
     @Override
