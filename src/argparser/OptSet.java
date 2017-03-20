@@ -456,7 +456,7 @@ public class OptSet {
         return mutuallyExclusiveGroups.get(group);
     }
 
-    public void printUserSettings(String TOOL_NAME) {
+    public void printUserSettings(String TOOL_NAME) {        
         int currentListingGroup = -1;
         for (Opt o : getOptsList()) {
             if (o.getListingGroup() > currentListingGroup) {

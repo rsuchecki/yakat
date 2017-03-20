@@ -32,7 +32,7 @@ public class PairMersExtenderConsumer implements Runnable {
     private String DEBUG_FILE = null;
     private final String TOOL_NAME;
     private int k;
-    private int BUFFER_SIZE = 1000;
+    private final int BUFFER_SIZE = 1024;
     private final byte threadId;
     private int extensionsFailed = 0;
 

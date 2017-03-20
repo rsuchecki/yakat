@@ -117,7 +117,7 @@ public class PairMersExtender {
             ArrayList<Future<?>> futures = new ArrayList<>(extenderThreads + 1);
             final ExecutorService producerConsumerExecutor = new ThreadPoolExecutor(extenderThreads + 1, extenderThreads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
             //SPAWN PRODUCER
-            int BUFFER_SIZE = (int) Math.min(1024, pairMersMap.sizeTerminals()/extenderThreads);
+            int BUFFER_SIZE = Math.max(1, (int) Math.min(1024, pairMersMap.sizeTerminals()/extenderThreads/4));
             futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue, BUFFER_SIZE)));
             //SPAWN CONSUMER THREADS
             for (int i = 0; i < extenderThreads; i++) {
@@ -132,6 +132,10 @@ public class PairMersExtender {
 
                 while (!(list = outqueue.take()).isEmpty() || --extenderThreads > 0) {
 //                    System.err.println(Thread.currentThread().getName() + "[M] taken " + list.size());
+                    if(list.isEmpty()) { //A thread finished 
+                        Reporter.report("[INFO]", "Extending thread finished...", TOOL_NAME);
+                        continue;
+                    }
                     pickedFromOutqueue += list.size();
                     if (pickedFromOutqueue % reportThreshold == 0 && pickedFromOutqueue != 0) {
                         if (reportThreshold < 1e6) {
