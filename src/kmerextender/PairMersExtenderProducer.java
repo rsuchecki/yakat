@@ -42,11 +42,8 @@ public class PairMersExtenderProducer implements Runnable {
         try {
             Iterator<PairMer> it = map.getTerminalPairMers().keySet().iterator();
             ArrayList<PairMer> buffer = new ArrayList<>(BUFFER_SIZE);
-            int c = 0;
-            int v = 0;
             while (it.hasNext()) {
                 PairMer pairMer = it.next();
-                c++;
                 if (!pairMer.isVisited()) {
                     if (buffer.size() >= BUFFER_SIZE) {
                         putOneQueue(queue, buffer);

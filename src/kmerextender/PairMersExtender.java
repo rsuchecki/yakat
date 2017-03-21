@@ -112,16 +112,17 @@ public class PairMersExtender {
             }
 
             byte threadId = Byte.MIN_VALUE;
-            BlockingQueue inqueue = new ArrayBlockingQueue(extenderThreads);
+            BlockingQueue inqueue = new ArrayBlockingQueue(extenderThreads + 1);
             BlockingQueue<List<ConnectedPairMers>> outqueue = new ArrayBlockingQueue(extenderThreads);
             ArrayList<Future<?>> futures = new ArrayList<>(extenderThreads + 1);
             final ExecutorService producerConsumerExecutor = new ThreadPoolExecutor(extenderThreads + 1, extenderThreads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
+            int BUFFER_SIZE = Math.max(1, (int) Math.min(1024, pairMersMap.sizeTerminals() / extenderThreads / 10));
+            Reporter.report("[INFO]", "Passing "+NumberFormat.getNumberInstance().format(BUFFER_SIZE) + " terminal PairMers per buffer to each extender thread", TOOL_NAME);
             //SPAWN PRODUCER
-            int BUFFER_SIZE = Math.max(1, (int) Math.min(1024, pairMersMap.sizeTerminals()/extenderThreads/4));
             futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue, BUFFER_SIZE)));
             //SPAWN CONSUMER THREADS
             for (int i = 0; i < extenderThreads; i++) {
-                PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k, DEBUG_FILE, threadId++, TOOL_NAME);
+                PairMersExtenderConsumer consumer = new PairMersExtenderConsumer(pairMersMap, inqueue, outqueue, k, DEBUG_FILE, threadId++, TOOL_NAME, BUFFER_SIZE);
                 futures.add(producerConsumerExecutor.submit(consumer));
             }
             //COUNT AND PRINT EXTENDED SEQUENCES, RESOLVE CONFLICTS...
@@ -132,8 +133,8 @@ public class PairMersExtender {
 
                 while (!(list = outqueue.take()).isEmpty() || --extenderThreads > 0) {
 //                    System.err.println(Thread.currentThread().getName() + "[M] taken " + list.size());
-                    if(list.isEmpty()) { //A thread finished 
-                        Reporter.report("[INFO]", "Extending thread finished...???", TOOL_NAME);
+                    if (list.isEmpty()) { //A thread finished 
+//                        Reporter.report("[INFO]", "Extending thread finished...???", TOOL_NAME);
                         continue;
                     }
                     pickedFromOutqueue += list.size();
@@ -223,14 +224,20 @@ public class PairMersExtender {
                 }
                 producerConsumerExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
             } catch (InterruptedException e) {
-                Reporter.report("[ERROR]", "PairMerSet populator interrupted exception!", TOOL_NAME);
+                Reporter.report("[ERROR]", "PairMer extender interrupted exception!", TOOL_NAME);
             } catch (ExecutionException ex) {
-                Reporter.report("[ERROR]", "PairMerSet populator execution exception!", TOOL_NAME);
+                Reporter.report("[ERROR]", "PairMer extender execution exception!", TOOL_NAME);
                 ex.printStackTrace();
 
             } catch (TimeoutException ex) {
-                Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
-                Reporter.report("[ERROR]", "PairMerSet populator timeout exception!", TOOL_NAME);
+                Reporter.report("[ERROR]", "PairMer extender timeout exception!", TOOL_NAME);
+            } catch (Exception e) {
+                Reporter.report("[ERROR]", "PairMer extender StackOverflow exception!", TOOL_NAME);
+                e.printStackTrace();
+            } catch (StackOverflowError error) {
+                Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
+                Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+                System.exit(1);
             }
 
             Reporter.report("[INFO]", "Starting second-pass, single threaded extending", TOOL_NAME);
@@ -312,13 +319,17 @@ public class PairMersExtender {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
 //        } catch (InterruptedException e) {
 //            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
+        } catch (StackOverflowError error) {
+            Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
+            Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+            System.exit(1);
         } finally {
             try {
                 if (out != null) {
                     out.close();
                 }
             } catch (IOException ex) {
-                Reporter.report("[ERROR]", ex.getMessage(), TOOL_NAME);                
+                Reporter.report("[ERROR]", ex.getMessage(), TOOL_NAME);
             }
 
         }
@@ -341,7 +352,7 @@ public class PairMersExtender {
         Reporter.report("[INFO]", totalExtendedMessage2, TOOL_NAME);
         Reporter.report("[INFO]", longEnoughMessage, TOOL_NAME);
         Reporter.report("[INFO]", longEnoughMessage2, TOOL_NAME);
-        Reporter.report("[WARNING]", duplicatesExtMessage, TOOL_NAME);
+        Reporter.report("[INFO]", duplicatesExtMessage, TOOL_NAME);
 
     }
 

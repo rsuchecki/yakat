@@ -52,7 +52,7 @@ public class ConnectedPairMers {
      * @param threadId
      * @return
      */
-    public boolean connectPairMers(PairMer pairMer, int k, PairMersMap pairMersMap, byte threadId, String DEBUG_FILE) {
+    public boolean connectPairMers(PairMer pairMer, int k, PairMersMap pairMersMap, byte threadId, String DEBUG_FILE) throws StackOverflowError {
 //        boolean visited;
 //        boolean visited = pairMer.checkAndSetVisited();
 //        if (!pairMer.isVisited()) {
