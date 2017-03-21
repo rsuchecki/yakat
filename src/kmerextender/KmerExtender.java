@@ -451,7 +451,7 @@ public class KmerExtender {
 //                    Reporter.report("[EXPERIMENTAL]", "Running recursive map splitting, need boundary cases testing as it can get stuck or crash", TOOL_NAME);
 //                    long attempts = pairMersMap.recursiveSplitMap(mapChunks, pairMersMap.size() / threads / 100, pairMersMap.size() / threads / 2, mapsQueue);
 //                    Reporter.report("[EXPERIMENTAL]", "Finished running recursive map splitting, total attempts = " + attempts, TOOL_NAME);
-                    Iterator<PairMer> pairMersIterator = pairMersMap.getPairMersMap().keySet().iterator();
+                    Iterator<PairMer> pairMersIterator = pairMersMap.iterator();
                     PairMer head = null;
                     PairMer tail = null;
                     long counter = 0;
@@ -516,7 +516,7 @@ public class KmerExtender {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 //            System.err.println(k+"=k, |terminal|=" + pairMersMap.getTerminalPairMers().size());
             long size = pairMersMap.size();
-            int terminals = pairMersMap.getTerminalPairMers().size();
+            long terminals = pairMersMap.sizeTerminals();
             double ratio = (double) terminals / size;
             NumberFormat perc = NumberFormat.getPercentInstance();
             perc.setMaximumFractionDigits(4);
@@ -526,7 +526,7 @@ public class KmerExtender {
             while (iterator.hasNext()) {
                 PairMer next = iterator.next();
 //                    System.err.println("terminal PM " + pairMersMap.get(next).getPairMerString(k, "_"));
-                if (!pairMersMap.getPairMersMap().containsKey(next)) {
+                if (!pairMersMap.contains(next)) {
                     System.err.println("terminal PM absent from main map = " + pairMersMap.getTerminalPairMers().get(next).getPairMerString(k, "_"));
                 }
             }
@@ -624,12 +624,12 @@ public class KmerExtender {
         for (Integer k : kSizes) {
 //            Reporter.report("[INFO]", "Seed-mers map populated, k=" + k, TOOL_NAME);
 
-            Iterator<PairMer> it = trimmedSeedPairMerMaps.getPairMersMap(k).getPairMersMap().keySet().iterator();
+            Iterator<PairMer> it = trimmedSeedPairMerMaps.getPairMersMap(k).iterator();
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 
             long removedCount = 0L;
             while (it.hasNext()) {
-                if (pairMersMap.getPairMersMap().remove(it.next()) != null) {
+                if (pairMersMap.remove(it.next())) {
                     removedCount++;
                 }
             }

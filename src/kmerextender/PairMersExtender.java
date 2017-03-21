@@ -241,7 +241,7 @@ public class PairMersExtender {
             }
 
             Reporter.report("[INFO]", "Starting second-pass, single threaded extending", TOOL_NAME);
-            Iterator<PairMer> it = pairMersMap.getPairMersMap().keySet().iterator();
+            Iterator<PairMer> it = pairMersMap.iterator();
             int extendedInSecondPass = 0;
             while (it.hasNext()) {
                 PairMer pairMer = it.next();

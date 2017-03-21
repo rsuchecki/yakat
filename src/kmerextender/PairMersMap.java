@@ -15,6 +15,7 @@
  */
 package kmerextender;
 
+//import gnu.trove..set.hash.THashSet;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -29,14 +30,15 @@ import shared.Reporter;
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class PairMersMap extends shared.MerMap {
-//    private final Object LOCK;
 
-    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
+//    private final Object LOCK;
+        private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private ConcurrentSkipListMap<PairMer, PairMer> terminalPairMers;
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
     private PairMersMap parentMap;
-    private AtomicLong size = new AtomicLong();
+    private AtomicLong size;
+    private AtomicLong sizeTerminal = new AtomicLong();
 
 //    private boolean OutOfMemory;
     /**
@@ -45,6 +47,8 @@ public class PairMersMap extends shared.MerMap {
      * @param k
      */
     public PairMersMap(Integer k) {
+        this.size = new AtomicLong();
+        this.sizeTerminal = new AtomicLong();
         if (k != null) {
             pairMersSkipListMap = new ConcurrentSkipListMap<>();
             terminalPairMers = new ConcurrentSkipListMap<>();
@@ -65,9 +69,23 @@ public class PairMersMap extends shared.MerMap {
         this.k = k;
         this.pairMersSkipListMap = new ConcurrentSkipListMap<>(subMap);
         this.terminalPairMers = parentMap.getTerminalPairMers();
+        this.sizeTerminal = parentMap.getSizeTerminal();
+        this.size = parentMap.getSize();
         this.parentMap = parentMap;
     }
 
+    public AtomicLong getSize() {
+        return size;
+    }
+    
+    
+
+    public AtomicLong getSizeTerminal() {
+        return sizeTerminal;
+    }
+
+    
+    
     public boolean isEmpty() {
         return pairMersSkipListMap == null || pairMersSkipListMap.isEmpty();
     }
@@ -134,8 +152,9 @@ public class PairMersMap extends shared.MerMap {
 //            pairMersSkipListSet.
 
             //Atomic operation START                    
-            PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
+            PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);            
             //Atomic operation END
+            
 
             if (previousStoredPairMer == null) {
                 size.incrementAndGet();
@@ -160,22 +179,18 @@ public class PairMersMap extends shared.MerMap {
         return pairMersSkipListMap.get(PairMerGenerator.getPairMer(core, k));
     }
 
-    /**
-     * Given a core string, retrieves the matching PairMer from the list of
-     * identified terminal PMs
-     *
-     * @param core, which will be converted to its canonical form
-     * @param k
-     * @return PairMer if present in Map, null otherwise
-     * @throws kmerextender.NonACGTException
-     */
-    public PairMer getTerminal(CharSequence core, int k) throws NonACGTException {
-        return terminalPairMers.get(PairMerGenerator.getPairMer(core, k));
-    }
-
-    public void removeTerminal(PairMer terminal) {
-        terminalPairMers.remove(terminal);
-    }
+//    /**
+//     * Given a core string, retrieves the matching PairMer from the list of
+//     * identified terminal PMs
+//     *
+//     * @param core, which will be converted to its canonical form
+//     * @param k
+//     * @return PairMer if present in Map, null otherwise
+//     * @throws kmerextender.NonACGTException
+//     */
+//    public PairMer getTerminal(CharSequence core, int k) throws NonACGTException {
+//        return terminalPairMers.get(PairMerGenerator.getPairMer(core, k));
+//    }
 
     /**
      * Retrieve a PairMer with a matching core
@@ -192,21 +207,15 @@ public class PairMersMap extends shared.MerMap {
     }
 
     public long sizeTerminals() {
-        return size(terminalPairMers);
+        return sizeTerminal.longValue();
     }
 
-    private long size(ConcurrentNavigableMap map) {
-        if (map.size() < Integer.MAX_VALUE) {
-            return map.size();
+    public boolean remove(PairMer elem) {
+        if(pairMersSkipListMap.remove(elem) != null) {            
+            size.decrementAndGet();
+            return true;
         }
-        long count = 0;
-        Iterator it = map.keySet().iterator();
-        while (it.hasNext()) {
-            it.next();
-            count++;
-        }
-        return (count >= Long.MAX_VALUE) ? Long.MAX_VALUE : count;
-//        return pairMersSkipListMap.size();
+        return false;
     }
 
     /**
@@ -215,6 +224,14 @@ public class PairMersMap extends shared.MerMap {
      */
     public ConcurrentSkipListMap getPairMersMap() {
         return pairMersSkipListMap;
+    }
+    
+    public boolean contains(PairMer key) {
+        return pairMersSkipListMap.containsKey(key);
+    }
+    
+    public Iterator<PairMer> iterator() {
+        return pairMersSkipListMap.keySet().iterator();
     }
 
     public ConcurrentSkipListMap<PairMer, PairMer> getTerminalPairMers() {
@@ -242,7 +259,7 @@ public class PairMersMap extends shared.MerMap {
     /**
      * Removes from the Map each PairMer which (i) represents ambiguous
      * extension (>2 k-mers matching the core) or (ii) has no extensions (only
-     * one k-mer matching the core) or (iii) represents 2 conflicting k-mers
+     * one k-mer matching the core) or (iii) represents 2 or more conflicting k-mers
      * (matching core, but both extending in the same direction) Run only after
      * the set/map is fully populated.
      *
@@ -336,19 +353,24 @@ public class PairMersMap extends shared.MerMap {
                         StringBuilder otherCoreOfKmer1 = new StringBuilder();
                         otherCoreOfKmer1.append(next.getClipLeft());
                         otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
-                        addTerminal(otherCoreOfKmer1, minKmerFrequency);
+                        if (addTerminal(otherCoreOfKmer1, minKmerFrequency)) {
+                            sizeTerminal.incrementAndGet();
+                        }
 
                     }
                     if (next.hasRightClip()) {
                         StringBuilder otherCoreOfKmer2 = new StringBuilder();
                         otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
                         otherCoreOfKmer2.append(next.getClipRight());
-                        addTerminal(otherCoreOfKmer2, minKmerFrequency);
+                        if (addTerminal(otherCoreOfKmer2, minKmerFrequency)) {
+                            sizeTerminal.incrementAndGet();
+                        }
                     }
                 } catch (NonACGTException ex) {
                     Reporter.report("[WARNING]", "Unexpected NonACGTException caught", getClass().getCanonicalName());
                 }
                 getParentMap().remove(next);
+                size.decrementAndGet();
                 count++;
 //                }
 //            } else if (!terminalPairMers.containsKey(next)) { //if not already marked as terminal
@@ -466,7 +488,7 @@ public class PairMersMap extends shared.MerMap {
         if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
             //                        pairMersSkipListMap.remove(otherPairMer1);
 //                            System.err.println(otherPairMer1.getPairMerString(k) + "\tADDING TO TERMINAL");
-            return terminalPairMers.putIfAbsent(otherPairMer1, otherPairMer1) != null;
+            return terminalPairMers.putIfAbsent(otherPairMer1, otherPairMer1) == null;
         }
         return false;
     }
@@ -486,9 +508,7 @@ public class PairMersMap extends shared.MerMap {
         return k;
     }
 
-    public boolean remove(PairMer pm) {
-        return pairMersSkipListMap.remove(pm) != null;
-    }
+
 
     public PairMersMap getParentMap() {
         return parentMap == null ? this : parentMap;
