@@ -252,7 +252,7 @@ public class KmerExtender {
         readKmersAndPopulatePairMersMaps(pairMerMaps);
         for (Integer k : kSizes) {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-            Reporter.report("[INFO]", "Finished populating map, counting elements... ", TOOL_NAME);
+//            Reporter.report("[INFO]", "Finished populating map, counting elements... ", TOOL_NAME);
             Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getNumberInstance().format(pairMersMap.size()), TOOL_NAME);
         }
 

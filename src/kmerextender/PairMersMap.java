@@ -18,6 +18,7 @@ package kmerextender;
 import java.util.Iterator;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.atomic.AtomicLong;
 import shared.Reporter;
 
 /**
@@ -35,6 +36,7 @@ public class PairMersMap extends shared.MerMap {
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
     private PairMersMap parentMap;
+    private AtomicLong size = new AtomicLong();
 
 //    private boolean OutOfMemory;
     /**
@@ -135,7 +137,9 @@ public class PairMersMap extends shared.MerMap {
             PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
             //Atomic operation END
 
-            if (previousStoredPairMer != null) {
+            if (previousStoredPairMer == null) {
+                size.incrementAndGet();
+            } else {
                 //TODO!!!! If rc of a seq == seq we don't wan't duplciates i.e. 2 clipmers derived from a single kmer[checking the underlying kmer not just the clipped part]
                 previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique, freq);
             }
@@ -184,7 +188,7 @@ public class PairMersMap extends shared.MerMap {
     }
 
     public long size() {
-        return size(pairMersSkipListMap);
+        return size.longValue();
     }
 
     public long sizeTerminals() {

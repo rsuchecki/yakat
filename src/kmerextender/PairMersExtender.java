@@ -129,7 +129,7 @@ public class PairMersExtender {
             try {
                 List<ConnectedPairMers> list;
                 long pickedFromOutqueue = 0;
-                long reportThreshold = (long) 1000;
+                long reportThreshold = (long) BUFFER_SIZE;
 
                 while (!(list = outqueue.take()).isEmpty() || --extenderThreads > 0) {
 //                    System.err.println(Thread.currentThread().getName() + "[M] taken " + list.size());
@@ -311,7 +311,7 @@ public class PairMersExtender {
                 }
             }
             out.close();
-            Reporter.report("[INFO]", "Extended in second-pass = " + NumberFormat.getNumberInstance().format(extendedInSecondPass) + " (single threaded extending)", TOOL_NAME);
+            Reporter.report("[INFO]",  NumberFormat.getNumberInstance().format(extendedInSecondPass) +  " extended in second-pass (single threaded extending)", TOOL_NAME);
 
         } catch (UnsupportedEncodingException e) {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
