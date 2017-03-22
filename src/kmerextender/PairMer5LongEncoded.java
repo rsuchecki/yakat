@@ -93,7 +93,7 @@ public final void addFirstKmer(char leftClip, String core, char rightClip, int f
     }
     
     private void encodeCore(String kmerCoreOnly) {
-        long[] encodeCoreLong = CoreCoder.encodeCoreLong(kmerCoreOnly);
+        long[] encodeCoreLong = CoreCoder.encodeCoreLongArray(kmerCoreOnly);
         if(encodeCoreLong.length != 5) {
             Reporter.report("[BUG?]", " 3*long values expected from core encoding", getClass().getSimpleName());
         } else {

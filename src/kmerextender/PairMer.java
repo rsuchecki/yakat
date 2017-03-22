@@ -26,7 +26,7 @@ import shared.Reporter;
  */
 public class PairMer {//implements Comparable<PairMer> {
 
-    //Object overhead 8 B
+    //Object overhead 8 B 
 //    private int[] kmerCoreBitsArray;  //12B + len*4 Bytes 
     private char clipLeft = '#';   //2B                     ///*TODO*/: encode to 2-3b if sticking to int array
     private char clipRight = '#';  //2B                     //TODO: encode to 2-3b
@@ -229,7 +229,6 @@ public class PairMer {//implements Comparable<PairMer> {
 //        }
 //        return true;
 //    }
-
     public synchronized byte checkAndSetVisitedBy(byte id) {
         if (visitedBy == Byte.MAX_VALUE) {  //NODE NOT VISITED BEFORE
             visitedBy = id;
@@ -247,7 +246,6 @@ public class PairMer {//implements Comparable<PairMer> {
 //    public synchronized void setVisited() {
 //        this.visited = true;
 //    }
-
 //    public synchronized boolean setVisitedBy(byte id) {
 //        if (visitedBy > id) {
 //            visitedBy = id;
@@ -255,7 +253,6 @@ public class PairMer {//implements Comparable<PairMer> {
 //        }
 //        return false;
 //    }
-
     public byte getVisitedBy() {
         return visitedBy;
     }
@@ -272,19 +269,8 @@ public class PairMer {//implements Comparable<PairMer> {
         return null;
     }
 
-    public ArrayList<PairMer> generateSpacedPairMersForMapSplitting(int k, int chunks, Random r) {
+    public PairMer getNextPairMer() {
         return null;
     }
-
-    public PairMer luckyDipPairMer(int k, PairMer another) {
-        return null;
-    }
-//    public int[] getOtherCoreRight(int coreLength) {
-//        return null;
-//    }
-//
-//    public int[] getOtherCoreRight(int coreLength) {
-//        return null;
-//    }
 
 }

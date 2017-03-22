@@ -32,7 +32,7 @@ import shared.Reporter;
 public class PairMersMap extends shared.MerMap {
 
 //    private final Object LOCK;
-        private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
+    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private ConcurrentSkipListMap<PairMer, PairMer> terminalPairMers;
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
@@ -40,13 +40,17 @@ public class PairMersMap extends shared.MerMap {
     private AtomicLong size;
     private AtomicLong sizeTerminal = new AtomicLong();
 
-//    private boolean OutOfMemory;
+    
+    
+    private PairMer[] prefixToPairMers;
+    
     /**
      * Instantiate the Map
      *
      * @param k
      */
     public PairMersMap(Integer k) {
+        prefixToPairMers = new PairMer[16777216];
         this.size = new AtomicLong();
         this.sizeTerminal = new AtomicLong();
         if (k != null) {
@@ -77,15 +81,11 @@ public class PairMersMap extends shared.MerMap {
     public AtomicLong getSize() {
         return size;
     }
-    
-    
 
     public AtomicLong getSizeTerminal() {
         return sizeTerminal;
     }
 
-    
-    
     public boolean isEmpty() {
         return pairMersSkipListMap == null || pairMersSkipListMap.isEmpty();
     }
@@ -152,9 +152,8 @@ public class PairMersMap extends shared.MerMap {
 //            pairMersSkipListSet.
 
             //Atomic operation START                    
-            PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);            
+            PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
             //Atomic operation END
-            
 
             if (previousStoredPairMer == null) {
                 size.incrementAndGet();
@@ -191,7 +190,6 @@ public class PairMersMap extends shared.MerMap {
 //    public PairMer getTerminal(CharSequence core, int k) throws NonACGTException {
 //        return terminalPairMers.get(PairMerGenerator.getPairMer(core, k));
 //    }
-
     /**
      * Retrieve a PairMer with a matching core
      *
@@ -211,7 +209,7 @@ public class PairMersMap extends shared.MerMap {
     }
 
     public boolean remove(PairMer elem) {
-        if(pairMersSkipListMap.remove(elem) != null) {            
+        if (pairMersSkipListMap.remove(elem) != null) {
             size.decrementAndGet();
             return true;
         }
@@ -225,11 +223,11 @@ public class PairMersMap extends shared.MerMap {
     public ConcurrentSkipListMap getPairMersMap() {
         return pairMersSkipListMap;
     }
-    
+
     public boolean contains(PairMer key) {
         return pairMersSkipListMap.containsKey(key);
     }
-    
+
     public Iterator<PairMer> iterator() {
         return pairMersSkipListMap.keySet().iterator();
     }
@@ -259,9 +257,9 @@ public class PairMersMap extends shared.MerMap {
     /**
      * Removes from the Map each PairMer which (i) represents ambiguous
      * extension (>2 k-mers matching the core) or (ii) has no extensions (only
-     * one k-mer matching the core) or (iii) represents 2 or more conflicting k-mers
-     * (matching core, but both extending in the same direction) Run only after
-     * the set/map is fully populated.
+     * one k-mer matching the core) or (iii) represents 2 or more conflicting
+     * k-mers (matching core, but both extending in the same direction) Run only
+     * after the set/map is fully populated.
      *
      * Could be parallelized by applying the purge method to subsets see
      * .subSet()
@@ -507,8 +505,6 @@ public class PairMersMap extends shared.MerMap {
     public Integer getK() {
         return k;
     }
-
-
 
     public PairMersMap getParentMap() {
         return parentMap == null ? this : parentMap;

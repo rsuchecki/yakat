@@ -111,7 +111,7 @@ public class PairMer4LongEncoded extends PairMer implements Comparable<PairMer4L
     }
 
     private void encodeCore(String kmerCoreOnly) {
-        long[] encodeCoreLong = CoreCoder.encodeCoreLong(kmerCoreOnly);
+        long[] encodeCoreLong = CoreCoder.encodeCoreLongArray(kmerCoreOnly);
         if (encodeCoreLong.length != 4) {
             Reporter.report("[BUG?]", " 3*long values expected from core encoding", getClass().getSimpleName());
         } else {
