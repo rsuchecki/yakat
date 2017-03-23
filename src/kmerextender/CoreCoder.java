@@ -15,6 +15,11 @@
  */
 package kmerextender;
 
+import argparser.ArgParser;
+import argparser.Opt;
+import argparser.OptSet;
+import argparser.PositionalOpt;
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
@@ -27,6 +32,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import shared.InputReaderProducer;
 import shared.Reporter;
+import shared.SequenceOps;
 
 /**
  * CAREFUL! - using all bits in signed fields, may cause errors if used for
@@ -39,20 +45,21 @@ import shared.Reporter;
  */
 public class CoreCoder {
 
-    public static int[] encodeCoreIntArray(String kmerString) {
+    public static int[] encodeCoreIntArray(CharSequence kmerSequence) {
         int INT_LENGTH = 32; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
-        int stringLength = kmerString.length();
+        int stringLength = kmerSequence.length();
         int intsNeeded = (int) Math.ceil((double) stringLength * 2 / INT_LENGTH); //number of ints needed to store this String 
 //        System.out.println("Need "+intsNeeded+" "+ INT_LENGTH +" bit word(s) to encode "+kmerString.length()+ " nucl sequence");
         int currentInt = 0;
         int position = 0;
         int positionInInt = intsNeeded * INT_LENGTH - stringLength * 2;
         int kmerCoreBitsArray[] = new int[intsNeeded];
-        char[] kmerCharArray = kmerString.toCharArray();
+//        char[] kmerCharArray = kmerSequence.toCharArray();
         while (position < stringLength) {
             while ((positionInInt < INT_LENGTH) && (position < stringLength)) {
                 kmerCoreBitsArray[currentInt] <<= 1;
-                switch (kmerCharArray[position]) {
+//                switch (kmerCharArray[position]) {
+                switch (kmerSequence.charAt(position)) {
                     case 'A':
                     case 'a':
                         //if A : 00
@@ -79,8 +86,8 @@ public class CoreCoder {
                         break;
                     default:
                         System.err.println("Failed ecoding kmerstring to int array....");
-                        System.err.println("Offending char: " + kmerCharArray[position]);
-                        System.err.println("in " + kmerString);
+                        System.err.println("Offending char: " + kmerSequence.charAt(position));
+                        System.err.println("in " + kmerSequence);
                         System.err.println("....exiting");
                         System.exit(1);
                 }
@@ -330,92 +337,191 @@ public class CoreCoder {
         return kmerCoreBits;
     }
 
-    public static void main(String args[]) {
-//        String input = "CACCCGGTTAATATAT";        
-//        System.err.println(input+" len="+input.length());
-//        int encodeCore = encodeCore(input);
-//        System.err.println(decodeCore(input.length(), encodeCore));
-//        int x =0;
-        new CoreCoder();
+    private OptSet populateOptSet() {
+        OptSet optSet = new OptSet();
+        //INPUT
+        optSet.setListingGroupLabel("[Input settings]");
+//        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGAT"));
+//        optSet.addOpt(new Opt(null, "adapter-prefix-length", "Length of the adapter prefix used to identify 3' read-through", 1).setDefaultValue(9));
+//        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
+//        optSet.addOpt(new Opt('U', "in-buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
+//            + "passed to in-queue", 1024, 128, 8092));
+//        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",
+//            2, 1, 256));
+//        //TRIMMING AND LENGTH
+//        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Trimming and length settings]");
+//        optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
+//        optSet.addOpt(new Opt('a', "keep-adapters", "Do not trim adapters found next to PstI and MspI sites "));
+//        optSet.addOpt(new Opt('p', "keep-non-PstI-starting", "Keep reads (or pairs) which do not start with 'barcodeTGCAG'"));
+//
+//        int footId = 1;
+//        String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
+        optSet.addOpt(new Opt(null, "prefix-len", "Will determine the number of separate arrays to hold mers", 2, 1, 15, 1, 1));
+        optSet.addOpt(new Opt(null, "postfix-len", "Will determine the number slots per array", 2, 1, 15, 1, 1));
+//        optSet.addOpt(new Opt('e', "min-length-pair-each", "Only output a read pair if length of each is no less than <arg> bp, otherwise process as single", 1, 1, null, 1, 1).addFootnote(footId, footText1));
+//        optSet.addOpt(new Opt('s', "min-length-pair-sum", "Only output a read pair if combined length is no less than <arg> bp, otherwise process as single", 2, 2, null, 1, 1).addFootnote(footId, footText1));
+//        //RUNTIME
+//        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
+//        optSet.addOpt(new Opt('c', "only-count", "Do not output reads"));
+//        optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
+//            + "i/o is the likely bottleneck and a writing thread will be spawned per each sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+//        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
+//
+//        //OUTPUT
+//        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
+//        optSet.addOpt(new Opt('o', "out-dir", "Output directory", 1).setDefaultValue("out_split"));
+//        optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
+//        optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
+//        optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
+//        optSet.addOpt(new Opt(null, "append", "If output file(s) exist(s) for a given sample, append"));
+//        optSet.addOpt(new Opt(null, "force", "If output file(s) exist(s) for a given sample, force overwrite"));
+//        optSet.addOpt(new Opt('M', "[TODO] matchless-output", "Output reads with unmatched barcodes to R1/R2/SE file(s) prefixed with <arg>. If not set, these reads will be discarded", 1));
+//        footId++;
+//        String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if encountering 'out of memory' errors.";
+//        optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
+//            + "passed to out-queue", 1024, 64, 8092).addFootnote(footId, footText2));
+//        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
+//            2, 1, 32).addFootnote(footId, footText2));
+//
+//        //POSITIONAL
+        optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
+        return optSet;
     }
 
-    public CoreCoder() {
+    private void addMer(PairMer[][] arr, int prefixLen, int postfixLen, String coreReminder, char clip, boolean left, Long[] stats) {
+        int prefix = encodeCore(coreReminder.subSequence(0, prefixLen));
+        int prefixp = encodeCore(coreReminder.subSequence(prefixLen, prefixLen + postfixLen));
 
-        int prefixLen = 2;
-        int prefixMax = (int) Math.pow(4, prefixLen);
-        int prefixpLen = 2;
-        int prefixpMax = (int) Math.pow(4, prefixpLen);
-
-        PairMer[][] arr = new PairMer[prefixMax][prefixpMax];
-        Random random = new Random();
-        long count = 0;
-        long dups = 0;
-        long diffs = 0;
-        int randomInts = prefixMax * prefixpMax;
-
-        for (int i = 0; i < randomInts; i++) {
-//            CharSequence kmerSequence = decodeCore(16, random.nextInt(1024));
-            CharSequence kmerSequence = decodeCore(16, random.nextInt());
-            int prefix = encodeCore(kmerSequence.subSequence(0, prefixLen));
-            int prefixp = encodeCore(kmerSequence.subSequence(prefixLen, prefixLen + prefixpLen));
-            CharSequence suffixString = kmerSequence.subSequence(prefixLen + prefixpLen, kmerSequence.length());
-//            int suffix = encodeCore(kmerSequence.subSequence(prefixLen + prefixpLen, kmerSequence.length()));
-            //elem not seen before, store
-            find:
-            if (arr[prefix][prefixp] == null) {
-                try {
-                    arr[prefix][prefixp] = new PairMerIntArrEncoded(kmerSequence, prefixLen + prefixpLen, kmerSequence.length()-1, false, 1);                    
-                    count++;
-                } catch (NonACGTException ex) {
-                    ex.printStackTrace();
+        find:
+        if (arr[prefix][prefixp] == null) {
+            try {
+//                    arr[prefix][prefixp] = new PairMerIntArrEncoded(inputKmerSequence, prefixLen + postfixLen, inputKmerSequence.length()-1, false, 1);                    
+                arr[prefix][prefixp] = new NewPairMerIntArrEncoded(coreReminder, clip, left, 1);
+                stats[0]++;
+            } catch (NonACGTException ex) {
+                ex.printStackTrace();
+            }
+        } else {
+            PairMer previous = arr[prefix][prefixp];
+            while ((previous = previous.getNextPairMer()) != null) {
+                if (previous.decodeCore(coreReminder.length()).equals(coreReminder)) {
+                    //same core - TODO - add PM to core                    
+                    stats[1]++;
+                    break find;
+                } else {
+//                        System.err.println(previous.decodeCore(coreReminder.length()) + " != " + coreReminder);
                 }
-            } else {
-                PairMer previous = arr[prefix][prefixp];
-                do {
-                    if (previous.decodeCore(16-prefixLen-prefixpLen).equals(suffixString)) {
-                        //same core - TODO - add PM to core                    
-                        dups++;
-                        break find;
-                    } else {
-//                        System.err.println(previous.getSuffix() + " != " + suffix);
-                    }
-
-                } while ((previous = previous.getNextPairMer()) != null);
-                try {
-                    //replace first elem in linked list
-                    arr[prefix][prefixp] = new PairMerIntArrEncodedWithRef(kmerSequence, prefixLen + prefixpLen, kmerSequence.length()-1, false, 1, arr[prefix][prefixp]);
-                    diffs++;
-                } catch (NonACGTException ex) {
-                    ex.printStackTrace();
-                }
+            } 
+            try {
+                //replace first elem in linked list
+//                PairMer stored = arr[prefix][prefixp];                
+//                NewPairMerIntArrEncodedWithRef toStore = new NewPairMerIntArrEncodedWithRef(coreReminder, clip, left, 1, arr[prefix][prefixp]);
+                arr[prefix][prefixp] = new NewPairMerIntArrEncodedWithRef(coreReminder, clip, left, 1, arr[prefix][prefixp]);
+                stats[2]++;
+            } catch (NonACGTException ex) {
+                ex.printStackTrace();
             }
         }
-        System.err.println(randomInts + " tried, loaded " + count + ", " + dups + " duplicated and " + diffs + " different at given prefix, total = " + (count + dups + diffs));
+    }
 
+    public CoreCoder(String[] args, String callerName, String toolName) {
+        String TOOL_NAME = callerName + " " + toolName;
+        int HELP_WIDTH = 150;
+        OptSet optSet = populateOptSet();
+        ArgParser argParser = new ArgParser();
+        argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
+//        readArgValues(optSet);
+
+        int prefixLen = (int) optSet.getOpt("prefix-len").getValueOrDefault();;
+        int prefixMax = (int) Math.pow(4, prefixLen);
+        int postfixLen = (int) optSet.getOpt("postfix-len").getValueOrDefault();;
+        int postfixpMax = (int) Math.pow(4, postfixLen);
+
+        PairMer[][] arr = new PairMer[prefixMax][postfixpMax];
+        Random random = new Random();
+//        Long count = 0L;
+//        Long dups = 0L;
+//        Long diffs = 0L;
+        Long stats[] = new Long[]{0L,0L,0L};
+        
+        int randomInts = prefixMax * postfixpMax*100;
+
+        
+        
+        
+        
+        for (int i = 0; i < randomInts; i++) {
+//            CharSequence kmerSequence = decodeCore(16, random.nextInt(1024));
+            CharSequence inputKmerSequence = decodeCore(16, random.nextInt());
+
+            //Process both paiMers separately
+            //Separate left clip+core            
+            char leftClip = inputKmerSequence.charAt(0);
+            CharSequence core1 = inputKmerSequence.subSequence(1, inputKmerSequence.length());
+            boolean is1rc = false;
+            if (!SequenceOps.isCanonical(core1)) {
+                core1 = SequenceOps.getReverseComplement(core1);
+                leftClip = SequenceOps.complement(leftClip);
+                is1rc = true;
+            }
+            addMer(arr, prefixLen, postfixLen, core1.toString(), leftClip, !is1rc, stats);
+
+            //Separate core+right clip
+            CharSequence core2 = inputKmerSequence.subSequence(0, inputKmerSequence.length() - 1);
+            char rightClip = inputKmerSequence.charAt(inputKmerSequence.length() - 1);
+            boolean is2rc = false;
+            if (!SequenceOps.isCanonical(core2)) {
+                core2 = SequenceOps.getReverseComplement(core2);
+                rightClip = SequenceOps.complement(rightClip);
+                is2rc = true;
+            }
+            addMer(arr, prefixLen, postfixLen, core2.toString(), rightClip, is2rc, stats);
+
+            //elem not seen before, store
+        }
+        Reporter.report("[INFO]", randomInts + " input kmers", TOOL_NAME);
+        Reporter.report("[INFO]", stats[0] + " loaded PairMers" , TOOL_NAME);
+        Reporter.report("[INFO]", stats[1] + " duplicated PairMers", TOOL_NAME);
+        Reporter.report("[INFO]", stats[2] + " different PairMers at given prefix", TOOL_NAME);
+        Reporter.report("[INFO]", (stats[0] + stats[1] + stats[2])+" total PairMers ", TOOL_NAME);
+//        Reporter.report("[INFO]", "Load level 1 = " +  perc.format(((double) lev1load) / arr.length), TOOL_NAME);
+
+        //get some stats
         int lev1load = 0;
         long lev2load = 0;
+        long totalSlots = 0;
+        long occupiedSlotsTotal = 0;
+
         for (int i = 0; i < arr.length; i++) {
             CharSequence prefixSeq = decodeCore(prefixLen, i);
             if (arr[i] != null) {
                 lev1load++;
                 int localCount = 0;
                 for (int j = 0; j < arr[i].length; j++) {
-                    CharSequence prefixpSeq = decodeCore(prefixpLen, j);
+//                    CharSequence prefixpSeq = decodeCore(postfixLen, j);
                     if (arr[i][j] != null) {
+                        totalSlots++;
                         lev2load++;
                         localCount++;
                         int local = 0;
                         PairMer p = arr[i][j];
                         do {
                             local++;
-                        }while ((p = p.getNextPairMer()) != null);
-                        System.err.println(prefixSeq+"_"+prefixpSeq+"_"+arr[i][j].decodeCore(16-prefixLen-prefixpLen)+" "+local);                        
+                        } while ((p = p.getNextPairMer()) != null);
+//                        System.err.println(prefixSeq+"_"+prefixpSeq+"_"+arr[i][j].decodeCore(16-prefixLen-postfixLen)+" "+local);                        
+                        occupiedSlotsTotal += local;
                     }
                 }
-                System.err.println(prefixSeq+ " total "+localCount);
+                System.err.println(prefixSeq + " total " + localCount);
             }
         }
-        System.err.println("load level1 = " + ((double) lev1load) / arr.length + " load level2 = " + (double) lev2load / arr[0].length / arr.length);
+        NumberFormat perc = NumberFormat.getPercentInstance();
+        perc.setMaximumFractionDigits(4);
+        NumberFormat numInstance = NumberFormat.getInstance();
+        numInstance.setMaximumFractionDigits(2);
+        Reporter.report("[INFO]", "Occupied level 1 = " + perc.format(((double) lev1load) / arr.length), TOOL_NAME);
+        Reporter.report("[INFO]", "Occupied level 2 = " + perc.format(((double) lev2load / arr[0].length / arr.length)), TOOL_NAME);
+        Reporter.report("[INFO]", "Mean non empty occupancy level 2 = " + numInstance.format(((double) occupiedSlotsTotal / totalSlots)), TOOL_NAME);
     }
 
 //    private class PMO {

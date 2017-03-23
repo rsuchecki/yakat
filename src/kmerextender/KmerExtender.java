@@ -135,7 +135,7 @@ public class KmerExtender {
         }
 
         if (optSet.getOpt("seed-file").isUsed()) {
-            seedSequences = new SeedSequences((String) optSet.getOpt("seed-file").getValueOrDefault());
+            seedSequences = new SeedSequences((String) optSet.getOpt("seed-file").getValueOrDefault(), optSet.getOpt("purged-input").isUsed());
             if (seedSequences.getSeedSequences().isEmpty()) {
                 Reporter.report("[ERROR]", "No seeds found in " + (String) optSet.getOpt("seed-file").getValueOrDefault() + ", proceeding without...", TOOL_NAME);
                 if (KMER_LENGTH_MIN != KMER_LENGTH_MAX) {
@@ -208,6 +208,7 @@ public class KmerExtender {
                 + "as it is done in parallel to avoid excessive I/O and to preserve stdin handling";
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Variable k-mer size for longest extension of a seed]");
         optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing \"seeds\" to be extended", 1));
+        optSet.addOpt(new Opt(null, "purged-input", "The input k-mers do not contain any of the seed-mers"));        
         optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-step", "", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, foot));
@@ -262,8 +263,10 @@ public class KmerExtender {
 
         ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers = null;
         if (seedSequences != null) {
-            //PURGE NON-TERMINAL SeedPairMers FROM PairMerMaps 
-            purgeSeedMersFromPaierMersMaps(kSizes, pairMerMaps);
+             if (!optSet.getOpt("purged-input").isUsed()) {
+                //PURGE NON-TERMINAL SeedPairMers FROM PairMerMaps 
+                purgeSeedMersFromPairMersMaps(kSizes, pairMerMaps);
+             }
             //CREATE PairMers REPRESENTING SEED-ENDS 
             Reporter.report("[INFO]", "Now populate seedMersMap", TOOL_NAME);
             kToSeedMers = populateSeedMersMaps(kSizes);
@@ -286,7 +289,6 @@ public class KmerExtender {
 //            pairMersExtender.matchAndExtendSeeds(k, pairMersMap, kToSeedMers.get(k));
         } else {
             extendSeedsParallel(kSizes, pairMerMaps, kToSeedMers, optSet);
-
         }
 
         //SELECT LONGEST EXTENSION
@@ -572,7 +574,7 @@ public class KmerExtender {
         return kToSeeds;
     }
 
-    private void purgeSeedMersFromPaierMersMaps(ArrayList<Integer> kSizes, PairMerMaps pairMerMaps) {
+    private void purgeSeedMersFromPairMersMaps(ArrayList<Integer> kSizes, PairMerMaps pairMerMaps) {
         //PREPARE EXECUTOR SERVICE        
         int threads = MAX_THREADS;
         ArrayList<Future<?>> futures = new ArrayList<>(threads);

@@ -28,24 +28,23 @@ import shared.Reporter;
  * @author rad
  */
 public class SeedSequences {
+
     private ArrayList<SeedSequence> seedSequences;
     private ArrayList<String> seedSequenceStrings;
 
-    public SeedSequences(String fastaFileName) {
-        listOfSequencesFromFasta(fastaFileName);        
+    public SeedSequences(String fastaFileName, boolean expectingPurgedInput) {
+        listOfSequencesFromFasta(fastaFileName, expectingPurgedInput);
     }
 
     public ArrayList<SeedSequence> getSeedSequences() {
         return seedSequences;
-    }                
+    }
 
     public ArrayList<String> getSeedSequenceStrings() {
         return seedSequenceStrings;
     }
-    
-    
-    
-    private void listOfSequencesFromFasta(String fastaFileName) {
+
+    private void listOfSequencesFromFasta(String fastaFileName, boolean expectingPurgedInput) {
         seedSequences = new ArrayList<>();
         seedSequenceStrings = new ArrayList<>();
         File newFile = new File(fastaFileName);
@@ -61,7 +60,9 @@ public class SeedSequences {
                     if (seqBuilder.length() > 0) {
                         String seqString = seqBuilder.toString();
                         seedSequences.add(new SeedSequence(id, seqString));
-                        seedSequenceStrings.add(seqString);
+                        if (!expectingPurgedInput) {
+                            seedSequenceStrings.add(seqString);
+                        }
                         seqBuilder = new StringBuilder();
                     }
                     id = line.substring(1); //get rid of ">"
@@ -76,7 +77,9 @@ public class SeedSequences {
 //                String identifierString[] = id.split(" ");
                 String seqString = seqBuilder.toString();
                 seedSequences.add(new SeedSequence(id, seqString));
-                seedSequenceStrings.add(seqString);
+                if (!expectingPurgedInput) {
+                    seedSequenceStrings.add(seqString);
+                }
             }
 
         } catch (FileNotFoundException ex) {

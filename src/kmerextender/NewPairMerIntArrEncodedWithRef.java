@@ -21,12 +21,12 @@ package kmerextender;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class PairMerIntArrEncodedWithRef extends PairMerIntArrEncoded {
+public class NewPairMerIntArrEncodedWithRef extends NewPairMerIntArrEncoded {
 
     private final PairMer next;
 
-    public PairMerIntArrEncodedWithRef(CharSequence sequence, int from, int to, boolean frontClip, int freq, PairMer next) throws NonACGTException {
-        super(sequence, from, to, frontClip, freq);
+    public NewPairMerIntArrEncodedWithRef(CharSequence canonicalCoreReminder, char clip, boolean frontClip, int freq, PairMer next) throws NonACGTException {
+         super(canonicalCoreReminder, clip, frontClip, freq);
         this.next = next;
     }
 
