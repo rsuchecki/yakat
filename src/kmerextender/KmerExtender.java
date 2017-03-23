@@ -524,6 +524,7 @@ public class KmerExtender {
             perc.setMaximumFractionDigits(4);
             Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", identified " + NumberFormat.getIntegerInstance().format(terminals) 
                     + " terminal PairMers (" + perc.format(ratio) + ")", TOOL_NAME);
+            Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(pairMersMap.getAmbiguous()) + " ambiguous extensions found", TOOL_NAME);
             Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
             while (iterator.hasNext()) {
                 PairMer next = iterator.next();

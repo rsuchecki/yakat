@@ -89,7 +89,7 @@ public class PairMersExtenderConsumer implements Runnable {
             }
             putOneQueue(outqueue, new ArrayList<>(0)); //inform other threads
             putOneQueue(inqueue, new ArrayList<>()); //inform other threads
-            Reporter.report("[INFO]", "Thread " + threadId + "finished, terminated extensions = " + extensionsTerminated, TOOL_NAME + " " + Thread.currentThread().getName());
+            Reporter.report("[INFO]", "Thread " + threadId + " finished, terminated extensions = " + extensionsTerminated, TOOL_NAME + " " + Thread.currentThread().getName());
 
         } catch (InterruptedException e) {
             e.printStackTrace();

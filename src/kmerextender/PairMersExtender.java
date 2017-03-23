@@ -139,7 +139,7 @@ public class PairMersExtender {
                     }
                     pickedFromOutqueue += list.size();
                     if (pickedFromOutqueue % reportThreshold == 0 && pickedFromOutqueue != 0) {
-                        if (reportThreshold < 1e6) {
+                        if (reportThreshold < 1e7) {
 //                                    reportThreshold *= 10;
 //                                    reportThreshold *= KMER_REPORTING_MULTIPLY;
                             reportThreshold <<= 1; // *= 2

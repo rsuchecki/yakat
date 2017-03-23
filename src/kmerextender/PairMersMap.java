@@ -37,6 +37,7 @@ public class PairMersMap extends shared.MerMap {
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
     private PairMersMap parentMap;
+    private AtomicLong ambiguous;
     private AtomicLong size;
     private AtomicLong sizeTerminal = new AtomicLong();
 
@@ -52,6 +53,7 @@ public class PairMersMap extends shared.MerMap {
     public PairMersMap(Integer k) {
         prefixToPairMers = new PairMer[16777216];
         this.size = new AtomicLong();
+        this.ambiguous = new AtomicLong();
         this.sizeTerminal = new AtomicLong();
         if (k != null) {
             pairMersSkipListMap = new ConcurrentSkipListMap<>();
@@ -74,9 +76,16 @@ public class PairMersMap extends shared.MerMap {
         this.pairMersSkipListMap = new ConcurrentSkipListMap<>(subMap);
         this.terminalPairMers = parentMap.getTerminalPairMers();
         this.sizeTerminal = parentMap.getSizeTerminal();
+        this.ambiguous = parentMap.getAmbiguous();
         this.size = parentMap.getSize();
         this.parentMap = parentMap;
     }
+
+    public AtomicLong getAmbiguous() {
+        return ambiguous;
+    }
+    
+    
 
     public AtomicLong getSize() {
         return size;
@@ -345,6 +354,9 @@ public class PairMersMap extends shared.MerMap {
 //                count++;
             if (next.isInvalid() || next.getStoredCountLeft() == 0 || next.getStoredCountRigth() == 0) {
 //                //PM removed either due to ambig or holding just one k-mer, any valid adjacent k-mer present in map must be a terminal one
+                if(next.isInvalid()) {
+                    ambiguous.incrementAndGet();
+                }
                 try {
                     String decodedCore = next.decodeCore(k - 1);
                     if (next.hasLeftClip()) {
