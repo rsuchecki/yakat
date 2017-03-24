@@ -144,6 +144,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
             int coreStart = frontClip ? from + 1 : from;
             int coreEnd = frontClip ? to : to - 1;
 
+            
             boolean storedInForwardOrient = encodeCoreCanonical(sequence, coreStart, coreEnd);
 //            if(storedInForwardOrient && !SequenceOps.isCanonical(sequence, from, to)) {
 //                System.err.println(sequence+" isCanonical="+SequenceOps.isCanonical(sequence,from,to));

@@ -128,20 +128,20 @@ public class CoreCoder {
         return sb.toString();
     }
 
-    public static long[] encodeCoreLongArray(String coreString) {
+    public static long[] encodeCoreLongArray(CharSequence coreSequence) {
         int LONG_LENGTH = 64; //64 - sign bit -1 to make even as 2 bits stored per nucleotide
-        int stringLength = coreString.length();
+        int stringLength = coreSequence.length();
         int longsNeeded = (int) Math.ceil((double) stringLength * 2 / LONG_LENGTH); //number of ints needed to store this String 
 //        System.out.println("Need "+intsNeeded+" "+ INT_LENGTH +" bit word(s) to encode "+kmerString.length()+ " nucl sequence");
         int currentInt = 0;
         int position = 0;
         int positionInInt = longsNeeded * LONG_LENGTH - stringLength * 2;
         long kmerCoreBitsArray[] = new long[longsNeeded];
-        char[] kmerCharArray = coreString.toCharArray();
+//        char[] kmerCharArray = coreSeq.toCharArray();
         while (position < stringLength) {
             while ((positionInInt < LONG_LENGTH) && (position < stringLength)) {
                 kmerCoreBitsArray[currentInt] <<= 1;
-                switch (kmerCharArray[position]) {
+                switch (coreSequence.charAt(position)) {
                     case 'A':
                     case 'a':
                         //if A : 00
@@ -168,8 +168,8 @@ public class CoreCoder {
                         break;
                     default:
                         System.err.println("Failed ecoding kmerstring to int array....");
-                        System.err.println("Offending char: " + kmerCharArray[position]);
-                        System.err.println("in " + coreString);
+                        System.err.println("Offending char: " + coreSequence.charAt(position));
+                        System.err.println("in " + coreSequence);
                         System.err.println("....exiting");
                         System.exit(1);
                 }
@@ -233,10 +233,15 @@ public class CoreCoder {
     public static int compareCores(long[] core, long[] anotherCore) {
         for (int i = 0; i < core.length; i++) {
             try {
-                if (core[i] < anotherCore[i]) {
-                    return -1;
-                } else if (core[i] > anotherCore[i]) {
+//                if (core[i] < anotherCore[i]) {
+//                (longA < longB) ^ (longA < 0) ^ (longB< 0) ? 1 : -1;
+                //tryuing unisgned comparison to use all bits
+                if (core[i] == anotherCore[i]) {
+                    //keep going
+                } else if ((core[i] < anotherCore[i]) ^ (core[i] < 0) ^ (anotherCore[i] < 0)) {
                     return 1;
+                } else {
+                    return -1;
                 }
             } catch (IndexOutOfBoundsException e) {
                 System.err.println(e.getMessage());

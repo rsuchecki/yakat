@@ -19,7 +19,7 @@ import shared.SequenceOps;
 import shared.Reporter;
 
 /**
- * Proof of concept structure to hold up to 2 k-mers paired
+ * Storing PairMer core in 3 long fields
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
@@ -32,22 +32,34 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
     /**
      * Proper constructor
      *
-     * @param leftClip
-     * @param core
-     * @param rightClip
+     * @param sequence
+     * @param from
+     * @param to
+     * @param frontClip
+     * @param freq
      */
-    public PairMer3LongEncoded(char leftClip, String core, char rightClip, int freq) {
-        addFirstKmer(leftClip, core, rightClip, freq);
+    public PairMer3LongEncoded(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
+        addFirstKmer(sequence, from, to, frontClip, freq);
     }
 
-    public final void addFirstKmer(char leftClip, String core, char rightClip, int freq) {
+    public final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-            encodeCore(core);
-            if (leftClip != '#') {
-                setClipLeft(leftClip);
-            }
-            if (rightClip != '#') {
-                setClipRight(rightClip);
+            int coreStart = frontClip ? from + 1 : from;
+            int coreEnd = frontClip ? to : to - 1;
+            if (SequenceOps.isCanonical(sequence.subSequence(coreStart, coreEnd+1))) {
+                encodeCore(sequence.subSequence(coreStart, coreEnd+1));
+                if (frontClip) {
+                    setClipLeft(sequence.charAt(from));
+                } else {
+                    setClipRight(sequence.charAt(to));
+                }
+            } else {
+                encodeCore(SequenceOps.getReverseComplement(sequence.subSequence(coreStart, coreEnd+1)));
+                if (frontClip) {
+                    setClipRight(SequenceOps.complement(sequence.charAt(from)));
+                } else {
+                    setClipLeft(SequenceOps.complement(sequence.charAt(to)));
+                }
             }
             incrementStoredCount(hasLeftClip(), freq);
         } else {
@@ -56,12 +68,16 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
     }
 
     /**
-     * Does not generate a complete PairMer, just the core, for Set/Maps lookups
+     * Does not generate a complete PairMer, just the core, for Set/Map lookups
      *
      * @param kmerCoreOnly
      */
-    public PairMer3LongEncoded(String kmerCoreOnly) {
-        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
+    public PairMer3LongEncoded(CharSequence kmerCoreOnly) {
+        if (SequenceOps.isCanonical(kmerCoreOnly)) {
+            encodeCore(kmerCoreOnly);
+        } else {
+            encodeCore(SequenceOps.getReverseComplement(kmerCoreOnly));
+        }
     }
 
     @Override
@@ -90,7 +106,7 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
         return CoreCoder.decodeCore(coreLength, bitsArray);
     }
 
-    private void encodeCore(String kmerCoreOnly) {
+    private void encodeCore(CharSequence kmerCoreOnly) {
         long[] encodeCoreLong = CoreCoder.encodeCoreLongArray(kmerCoreOnly);
         if (encodeCoreLong.length != 3) {
             Reporter.report("[BUG?]", " 3*long values expected from core encoding", getClass().getSimpleName());
@@ -99,8 +115,9 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
             kmerCoreBits2 = encodeCoreLong[1];
             kmerCoreBits3 = encodeCoreLong[2];
         }
+//        //Sanity check
 //        String decodeCore = decodeCore(kmerCoreOnly.length());
-//        if(!decodeCore.equals(kmerCoreOnly)) {
+//        if(!decodeCore.equals(kmerCoreOnly.toString())) {
 //            System.err.println("error");
 //            System.err.println(kmerCoreOnly);
 //            System.err.println(decodeCore);

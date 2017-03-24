@@ -19,42 +19,45 @@ import shared.SequenceOps;
 import shared.Reporter;
 
 /**
- * Proof of concept structure to hold up to 2 k-mers paired
+ * Storing PairMer core in 2 long fields
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1LongEncoded> {
 
-    private long kmerCoreBits;
+    private long kmerCoreBits1;
 
     /**
      * Proper constructor
      *
-     * @param leftClip
-     * @param core
-     * @param rightClip
+     * @param sequence
+     * @param from
+     * @param to
+     * @param frontClip
+     * @param freq
      */
-    public PairMer1LongEncoded(char leftClip, String core, char rightClip, int freq) {
-        addFirstKmer(leftClip, core, rightClip, freq);
+    public PairMer1LongEncoded(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
+        addFirstKmer(sequence, from, to, frontClip, freq);
     }
 
-    /**
-     * Does not generate a complete PairMer, just the core, for Set/Maps lookups
-     *
-     * @param kmerCoreOnly
-     */
-    public PairMer1LongEncoded(String kmerCoreOnly) {
-        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
-    }
-
-    public final void addFirstKmer(char leftClip, String core, char rightClip, int freq) {
+    public final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-            encodeCore(core);
-            if (leftClip != '#') {
-                setClipLeft(leftClip);
-            }
-            if (rightClip != '#') {
-                setClipRight(rightClip);
+            int coreStart = frontClip ? from + 1 : from;
+            int coreEnd = frontClip ? to : to - 1;
+            if (SequenceOps.isCanonical(sequence.subSequence(coreStart, coreEnd+1))) {
+                encodeCore(sequence.subSequence(coreStart, coreEnd+1));
+                if (frontClip) {
+                    setClipLeft(sequence.charAt(from));
+                } else {
+                    setClipRight(sequence.charAt(to));
+                }
+            } else {
+                encodeCore(SequenceOps.getReverseComplement(sequence.subSequence(coreStart, coreEnd+1)));
+                if (frontClip) {
+                    setClipRight(SequenceOps.complement(sequence.charAt(from)));
+                } else {
+                    setClipLeft(SequenceOps.complement(sequence.charAt(to)));
+                }
             }
             incrementStoredCount(hasLeftClip(), freq);
         } else {
@@ -62,40 +65,19 @@ public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1L
         }
     }
 
-//    /**
-//     * Add first kmer (encoded as a SplitMer)
-//     *
-//     * @param split : SplitMer representation of a k-mer
-//     */
-//    private void addFirstKmer(SplitMer split) {
-//        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-//
-//            encodeCore(split.getCore());
-//            if (!split.getLeftClip().isEmpty()) {
-//                setClipLeft(split.getLeftClipChar());
-//            }
-//            if (!split.getRightClip().isEmpty()) {
-//                setClipRight(split.getRightClipChar());
-//            }
-//            incrementStoredCount();
-//        } else {
-//            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName() );
-//        }
-//    }
-//    private void addFirstKmer(char leftClip, String core, char rightClip) {
-//        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-//            encodeCore(core);
-//            if (leftClip != ' ') {
-//                setClipLeft(leftClip);
-//            }
-//            if (rightClip != ' ') {
-//                setClipRight(rightClip);
-//            }
-//            incrementStoredCount();
-//        } else {
-//            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName() );
-//        }
-//    }
+    /**
+     * Does not generate a complete PairMer, just the core, for Set/Map lookups
+     *
+     * @param kmerCoreOnly
+     */
+    public PairMer1LongEncoded(CharSequence kmerCoreOnly) {
+        if (SequenceOps.isCanonical(kmerCoreOnly)) {
+            encodeCore(kmerCoreOnly);
+        } else {
+            encodeCore(SequenceOps.getReverseComplement(kmerCoreOnly));
+        }
+    }
+
     @Override
     public boolean equals(Object anotherKmer) {
         return compareTo((PairMer1LongEncoded) anotherKmer) == 0;
@@ -103,127 +85,39 @@ public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1L
 
     @Override
     public int hashCode() {
-//        int hash = 3;
-//        hash = 79 * hash + Long.valueOf(kmerCoreBits).hashCode();
-//        return hash;
-        return (int) (kmerCoreBits ^ (kmerCoreBits >>> 32)); //as in java Long hashCode()
+        return CoreCoder.computeHash(getBitFields());
     }
 
     @Override
     public int compareTo(PairMer1LongEncoded anotherKmer) {
-        long bitsAnother = anotherKmer.getKmerCoreBits();
-        if (kmerCoreBits < bitsAnother) {
-            return -1;
-        } else if (kmerCoreBits > bitsAnother) {
-            return 1;
-        }
-        return 0;
+        return CoreCoder.compareCores(getBitFields(), anotherKmer.getBitFields());
     }
 
-    public long getKmerCoreBits() {
-        return kmerCoreBits;
+    public long[] getBitFields() {
+        long bitsArray[] = {kmerCoreBits1};
+        return bitsArray;
     }
 
     @Override
     public String decodeCore(int coreLength) {
-        return decodeCore(coreLength, kmerCoreBits);
+        long bitsArray[] = {kmerCoreBits1};
+        return CoreCoder.decodeCore(coreLength, bitsArray);
     }
 
-    private String decodeCore(int encodedSequenceLength, long kmerCoreBits) {
-//        int LONG_LENGTH = 62; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
-        StringBuilder sb = new StringBuilder();
-//        int lastChunkLength = encodedSequenceLength * 2 % LONG_LENGTH;
-//        int startPrintingBitsFrom = LONG_LENGTH - 1;
-//        if ( lastChunkLength != 0) {
-        int startPrintingBitsFrom = encodedSequenceLength * 2 - 1;
-//            } else {
-//                System.out.println("Printing bits from "+startPrintingBitsFrom);
-//        }
-//        if (kmerCoreBits == 170160154469L) {
-//            String toBinaryString = Long.toBinaryString(kmerCoreBits);
-//            System.err.println(toBinaryString);
-//            for (int i = 64; i > -1; i--) {
-//                System.err.printf("%2d %d\n",i,(kmerCoreBits >>> i & 1));
-//            }
-//            System.err.println("DONE");
-//        }
-
-        for (int j = startPrintingBitsFrom; j > -1; j -= 2) {
-            long twoBits = kmerCoreBits >> j - 1 & 3;
-            if (twoBits == 0) {
-                sb.append("A");
-            } else if (twoBits == 1) {
-                sb.append("C");
-            } else if (twoBits == 2) {
-                sb.append("G");
-            } else if (twoBits == 3) {
-                sb.append("T");
-            }
-//            long b1 = kmerCoreBits >> j & 1;
-//            long b2 = kmerCoreBits >> j - 1 & 1;
-//            if (b1 == 0 && b2 == 0) {
-//                sb.append("A");
-//            } else if (b1 == 0 && b2 == 1) {
-//                sb.append("C");
-//            } else if (b1 == 1 && b2 == 0) {
-//                sb.append("G");
-//            } else if (b1 == 1 && b2 == 1) {
-//                sb.append("T");
-//            }
+    private void encodeCore(CharSequence kmerCoreOnly) {
+        long[] encodeCoreLong = CoreCoder.encodeCoreLongArray(kmerCoreOnly);
+        if (encodeCoreLong.length != 1) {
+            Reporter.report("[BUG?]", " 1*long value expected from core encoding", getClass().getSimpleName());
+        } else {
+            kmerCoreBits1 = encodeCoreLong[0];
         }
-        return sb.toString();
-    }
-
-    public final void encodeCore(String coreString) {
-//        System.err.println("Encoding seq len=" + kmerString.length());
-//        int LONG_LENGTH = 62; //64 - sign bit -1 to make even as 2 bits stored per nucleotide
-        int stringLength = coreString.length();
-//        int currentInt = 0;
-        int position = 0;
-//        kmerCoreBits = new int[intsNeeded];
-        char[] kmerCharArray = coreString.toCharArray();
-        while (position < stringLength) {
-            kmerCoreBits <<= 1;
-            switch (kmerCharArray[position]) {
-                case 'A':
-                case 'a':
-                    //if A : 00
-                    kmerCoreBits <<= 1;
-                    break;
-                case 'C':
-                case 'c':
-                    //if C : 01
-                    kmerCoreBits <<= 1;
-                    kmerCoreBits++;
-                    break;
-                case 'G':
-                case 'g':
-                    //if G : 10
-                    kmerCoreBits++;
-                    kmerCoreBits <<= 1;
-                    break;
-                case 'T':
-                case 't':
-                    //if T : 11
-                    kmerCoreBits++;
-                    kmerCoreBits <<= 1;
-                    kmerCoreBits++;
-                    break;
-                default:
-                    System.err.println("Failed ecoding kmerstring to long....");
-                    System.err.println("Offending char: " + kmerCharArray[position]);
-                    System.err.println("in " + coreString);
-                    System.err.println("....exiting");
-                    System.exit(1);
-            }
-            position++;
-        }
-//        String decodeCore = decodeCore(stringLength);
-//        if (!decodeCore.equals(coreString)) {
-//            System.err.println("Error encoding/decoding " + kmerCoreBits);
-//            System.err.println(coreString + " <-core");
-//            System.err.println(decodeCore + " <-decoded");
-//            decodeCore = decodeCore(stringLength);
+//        //Sanity check
+//        String decodeCore = decodeCore(kmerCoreOnly.length());
+//        if(!decodeCore.equals(kmerCoreOnly.toString())) {
+//            System.err.println("error");
+//            System.err.println(kmerCoreOnly);
+//            System.err.println(decodeCore);
 //        }
     }
+
 }

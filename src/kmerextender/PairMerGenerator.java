@@ -28,11 +28,11 @@ public class PairMerGenerator {
 //    private final String leftClip;
 //    private final String core;
 //    private final String rightClip;
-    private static final int MAX_1LONG_ENCODE = 32-1; //2bits per nucl, signed long so should be 31, but can use sign bit if lex ordering not needed
-    private static final int MAX_2LONG_ENCODE = 64-1;
-    private static final int MAX_3LONG_ENCODE = 96-1;
-    private static final int MAX_4LONG_ENCODE = 128-1;
-    private static final int MAX_5LONG_ENCODE = 160-1;
+    private static final int MAX_1LONG_ENCODE = 32; //using all bits, previously: 2bits per nucl, signed long so should be 31, but can use sign bit if lex ordering not needed
+    private static final int MAX_2LONG_ENCODE = 64;
+    private static final int MAX_3LONG_ENCODE = 96;
+    private static final int MAX_4LONG_ENCODE = 128 - 1;
+    private static final int MAX_5LONG_ENCODE = 160 - 1;
 
 //    /**
 //     * GeneRatePairMer object with k-1 core separated from 1 base clip 
@@ -96,36 +96,36 @@ public class PairMerGenerator {
 ////        }
 //    }
     /**
-     * GeneratePairMer object with k-1 core separated from 1 base clip 
-     * 
+     * GeneratePairMer object with k-1 core separated from 1 base clip
+     *
      * @param sequence
      * @param kmerFrom
      * @param kmerTo inclusive
      * @param frontClip
      * @param freq
-     * @return 
-     * @throws kmerextender.NonACGTException 
+     * @return
+     * @throws kmerextender.NonACGTException
      */
-    public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip, int freq) throws NonACGTException{        
-            
-//        if (kmerString.length() - 1 <= MAX_1LONG_ENCODE) {
-//            return new PairMer1LongEncoded(leftClip, core, rightClip);
-//        } else if (kmerString.length() - 1 <= MAX_2LONG_ENCODE) {
-//            return new PairMer2LongEncoded(leftClip, core, rightClip);
-//        } else if (kmerString.length() - 1 <= MAX_3LONG_ENCODE) {
-//            return new PairMer3LongEncoded(leftClip, core, rightClip);
+    public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip, int freq) throws NonACGTException {
+
+        if (kmerTo -kmerFrom <= MAX_1LONG_ENCODE) {
+            return new PairMer1LongEncoded(sequence, kmerFrom, kmerTo, frontClip, freq);
+        } else if (kmerTo -kmerFrom <= MAX_2LONG_ENCODE) {
+            return new PairMer2LongEncoded(sequence, kmerFrom, kmerTo, frontClip, freq);
+        } else if (kmerTo -kmerFrom  <= MAX_3LONG_ENCODE) { // && kmerTo -kmerFrom > MAX_2LONG_ENCODE) {
+            return new PairMer3LongEncoded(sequence, kmerFrom, kmerTo, frontClip, freq);
 //        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
 //            return new PairMer4LongEncoded(leftClip, core, rightClip);
 //        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
 //            return new PairMer5LongEncoded(leftClip, core, rightClip);
-//        } else {
+        } else {
             return new PairMerIntArrEncoded(sequence, kmerFrom, kmerTo, frontClip, freq);
-//        }
+        }
     }
-    
+
     /**
-     * Given a core string, generates a PairMer (without clips)
-     * for querying populated PairMerMaps
+     * Given a core string, generates a PairMer (without clips) for querying
+     * populated PairMerMaps
      *
      * @param core, which will be converted to its canonical form
      * @param k, used to encode pairMer using the correct data structure
@@ -133,21 +133,21 @@ public class PairMerGenerator {
      * @throws kmerextender.NonACGTException
      */
     public static PairMer getPairMer(CharSequence core, int k) throws NonACGTException {
-//        if (k - 1 <= MAX_1LONG_ENCODE) {
-//            return new PairMer1LongEncoded(core);
-//        } else if (k - 1 <= MAX_2LONG_ENCODE) {
-//            return new PairMer2LongEncoded(core);
-//        } else if (k - 1 <= MAX_3LONG_ENCODE) {
-//            return new PairMer3LongEncoded(core);
+        if (k - 1 <= MAX_1LONG_ENCODE) {
+            return new PairMer1LongEncoded(core);
+        } else if (k - 1 <= MAX_2LONG_ENCODE) {
+            return new PairMer2LongEncoded(core);
+        } else if (k - 1 <= MAX_3LONG_ENCODE ) { // && k-1 > MAX_2LONG_ENCODE) {
+            return new PairMer3LongEncoded(core);
 //        } else if (k - 1 <= MAX_4LONG_ENCODE) {
 //            return new PairMer4LongEncoded(core);
 //        } else if (k - 1 <= MAX_5LONG_ENCODE) {
 //            return new PairMer5LongEncoded(core);
-//        } else {
+        } else {
             return new PairMerIntArrEncoded(core);
-//        }
+        }
     }
-    
+
 //    public static PairMer generatePairMer(CharSequence kmerContainingString, int from , int to, boolean frontClip, int overlapLength) {        
 //        char leftClip = '#';
 //        String core;
