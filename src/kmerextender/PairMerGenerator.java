@@ -31,8 +31,8 @@ public class PairMerGenerator {
     private static final int MAX_1LONG_ENCODE = 32; //using all bits, previously: 2bits per nucl, signed long so should be 31, but can use sign bit if lex ordering not needed
     private static final int MAX_2LONG_ENCODE = 64;
     private static final int MAX_3LONG_ENCODE = 96;
-    private static final int MAX_4LONG_ENCODE = 128 - 1;
-    private static final int MAX_5LONG_ENCODE = 160 - 1;
+//    private static final int MAX_4LONG_ENCODE = 128 - 1;
+//    private static final int MAX_5LONG_ENCODE = 160 - 1;
 
 //    /**
 //     * GeneRatePairMer object with k-1 core separated from 1 base clip 

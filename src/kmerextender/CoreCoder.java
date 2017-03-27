@@ -23,11 +23,16 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import shared.InputReaderProducer;
@@ -215,20 +220,20 @@ public class CoreCoder {
         return sb.toString();
     }
 
-    public static int compareCores(int[] core, int[] anotherCore) {
-        for (int i = 0; i < core.length; i++) {
-            try {
-                if (core[i] < anotherCore[i]) {
-                    return -1;
-                } else if (core[i] > anotherCore[i]) {
-                    return 1;
-                }
-            } catch (IndexOutOfBoundsException e) {
-                System.err.println(e.getMessage());
-            }
-        }
-        return 0;
-    }
+//    public static int compareCores(int[] core, int[] anotherCore) {
+//        for (int i = 0; i < core.length; i++) {
+//            try {
+//                if (core[i] < anotherCore[i]) {
+//                    return -1;
+//                } else if (core[i] > anotherCore[i]) {
+//                    return 1;
+//                }
+//            } catch (IndexOutOfBoundsException e) {
+//                System.err.println(e.getMessage());
+//            }
+//        }
+//        return 0;
+//    }
 
     public static int compareCores(long[] core, long[] anotherCore) {
         for (int i = 0; i < core.length; i++) {
@@ -236,6 +241,24 @@ public class CoreCoder {
 //                if (core[i] < anotherCore[i]) {
 //                (longA < longB) ^ (longA < 0) ^ (longB< 0) ? 1 : -1;
                 //tryuing unisgned comparison to use all bits
+                if (core[i] == anotherCore[i]) {
+                    //keep going
+                } else if ((core[i] < anotherCore[i]) ^ (core[i] < 0) ^ (anotherCore[i] < 0)) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            } catch (IndexOutOfBoundsException e) {
+                System.err.println(e.getMessage());
+            }
+        }
+        return 0;
+    }
+    
+    public static int compareCores(int[] core, int[] anotherCore) {
+        for (int i = 0; i < core.length; i++) {
+            try {
+                //trying unisgned comparison to use all bits
                 if (core[i] == anotherCore[i]) {
                     //keep going
                 } else if ((core[i] < anotherCore[i]) ^ (core[i] < 0) ^ (anotherCore[i] < 0)) {
@@ -368,8 +391,7 @@ public class CoreCoder {
 //        //RUNTIME
 //        optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
 //        optSet.addOpt(new Opt('c', "only-count", "Do not output reads"));
-//        optSet.addOpt(new Opt('t', "splitter-threads", "Number of splitter threads. No point setting too high, "
-//            + "i/o is the likely bottleneck and a writing thread will be spawned per each sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+        optSet.addOpt(new Opt('t', "threads", "Number of threads", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
 //        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
 //
 //        //OUTPUT
@@ -393,41 +415,41 @@ public class CoreCoder {
         return optSet;
     }
 
-    private void addMer(PairMer[][] arr, int prefixLen, int postfixLen, String coreReminder, char clip, boolean left, Long[] stats) {
-        int prefix = encodeCore(coreReminder.subSequence(0, prefixLen));
-        int prefixp = encodeCore(coreReminder.subSequence(prefixLen, prefixLen + postfixLen));
-
-        find:
-        if (arr[prefix][prefixp] == null) {
-            try {
-//                    arr[prefix][prefixp] = new PairMerIntArrEncoded(inputKmerSequence, prefixLen + postfixLen, inputKmerSequence.length()-1, false, 1);                    
-                arr[prefix][prefixp] = new NewPairMerIntArrEncoded(coreReminder, clip, left, 1);
-                stats[0]++;
-            } catch (NonACGTException ex) {
-                ex.printStackTrace();
-            }
-        } else {
-            PairMer previous = arr[prefix][prefixp];
-            while ((previous = previous.getNextPairMer()) != null) {
-                if (previous.decodeCore(coreReminder.length()).equals(coreReminder)) {
-                    //same core - TODO - add PM to core                    
-                    stats[1]++;
-                    break find;
-                } else {
-//                        System.err.println(previous.decodeCore(coreReminder.length()) + " != " + coreReminder);
-                }
-            } 
-            try {
-                //replace first elem in linked list
-//                PairMer stored = arr[prefix][prefixp];                
-//                NewPairMerIntArrEncodedWithRef toStore = new NewPairMerIntArrEncodedWithRef(coreReminder, clip, left, 1, arr[prefix][prefixp]);
-                arr[prefix][prefixp] = new NewPairMerIntArrEncodedWithRef(coreReminder, clip, left, 1, arr[prefix][prefixp]);
-                stats[2]++;
-            } catch (NonACGTException ex) {
-                ex.printStackTrace();
-            }
-        }
-    }
+//    private void addMer(PairMer[][] arr, int prefixLen, int postfixLen, String coreReminder, char clip, boolean left, Long[] stats) {
+//        int prefix = encodeCore(coreReminder.subSequence(0, prefixLen));
+//        int prefixp = encodeCore(coreReminder.subSequence(prefixLen, prefixLen + postfixLen));
+//
+//        find:
+//        if (arr[prefix][prefixp] == null) {
+//            try {
+////                    arr[prefix][prefixp] = new PairMerIntArrEncoded(inputKmerSequence, prefixLen + postfixLen, inputKmerSequence.length()-1, false, 1);                    
+//                arr[prefix][prefixp] = new NewPairMerIntArrEncoded(coreReminder, clip, left, 1);
+//                stats[0]++;
+//            } catch (NonACGTException ex) {
+//                ex.printStackTrace();
+//            }
+//        } else {
+//            PairMer previous = arr[prefix][prefixp];
+//            while ((previous = previous.getNextPairMer()) != null) {
+//                if (previous.decodeCore(coreReminder.length()).equals(coreReminder)) {
+//                    //same core - TODO - add PM to core                    
+//                    stats[1]++;
+//                    break find;
+//                } else {
+////                        System.err.println(previous.decodeCore(coreReminder.length()) + " != " + coreReminder);
+//                }
+//            } 
+//            try {
+//                //replace first elem in linked list
+////                PairMer stored = arr[prefix][prefixp];                
+////                NewPairMerIntArrEncodedWithRef toStore = new NewPairMerIntArrEncodedWithRef(coreReminder, clip, left, 1, arr[prefix][prefixp]);
+//                arr[prefix][prefixp] = new NewPairMerIntArrEncodedWithRef(coreReminder, clip, left, 1, arr[prefix][prefixp]);
+//                stats[2]++;
+//            } catch (NonACGTException ex) {
+//                ex.printStackTrace();
+//            }
+//        }
+//    }
 
     public CoreCoder(String[] args, String callerName, String toolName) {
         String TOOL_NAME = callerName + " " + toolName;
@@ -441,92 +463,139 @@ public class CoreCoder {
         int prefixMax = (int) Math.pow(4, prefixLen);
         int postfixLen = (int) optSet.getOpt("postfix-len").getValueOrDefault();;
         int postfixpMax = (int) Math.pow(4, postfixLen);
+        
+        ArrayList<String> inputFileNamesList = new ArrayList<>();
+        ArrayList<PositionalOpt> positionalOptsList = optSet.getPositionalOptsList();
+        for (PositionalOpt po : positionalOptsList) {
+            if (po.getValues() != null) {
+                inputFileNamesList.addAll(po.getValues());
+            }
+        }
 
-        PairMer[][] arr = new PairMer[prefixMax][postfixpMax];
+        NewPairMerArrays arr = new NewPairMerArrays(prefixLen, postfixLen, TOOL_NAME);
         Random random = new Random();
 //        Long count = 0L;
 //        Long dups = 0L;
 //        Long diffs = 0L;
-        Long stats[] = new Long[]{0L,0L,0L};
-        
-        int randomInts = prefixMax * postfixpMax*100;
+//        Long stats[] = new Long[]{0L,0L,0L};
+            AtomicLongArray stats = new AtomicLongArray(3);
 
-        
-        
-        
-        
-        for (int i = 0; i < randomInts; i++) {
-//            CharSequence kmerSequence = decodeCore(16, random.nextInt(1024));
-            CharSequence inputKmerSequence = decodeCore(16, random.nextInt());
 
-            //Process both paiMers separately
-            //Separate left clip+core            
-            char leftClip = inputKmerSequence.charAt(0);
-            CharSequence core1 = inputKmerSequence.subSequence(1, inputKmerSequence.length());
-            boolean is1rc = false;
-            if (!SequenceOps.isCanonical(core1)) {
-                core1 = SequenceOps.getReverseComplement(core1);
-                leftClip = SequenceOps.complement(leftClip);
-                is1rc = true;
+
+
+int INPUT_QUEUE_SIZE = 2;
+
+ BlockingQueue inputQueue = new ArrayBlockingQueue(INPUT_QUEUE_SIZE);
+
+        try {
+            //READ INPUT AND POPULATE PairMers MAP
+            int threads = (int)optSet.getOpt("threads").getValueOrDefault();
+            int INPUT_BUFFER_SIZE = 1024;
+            int MIN_KMER_FREQUENCY =1 ;
+            Reporter.report("[INFO]", "Allocated " + threads + " thread(s) to map populating", TOOL_NAME);
+            ArrayList<Future<?>> futures = new ArrayList<>(threads + 1);
+            final ExecutorService readAndPopulateExecutor = new ThreadPoolExecutor(threads + 1, threads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+
+            //SPAWN INPUT READING THREAD
+            ArrayList<Integer> kSizes = new ArrayList<>();
+            InputReaderProducer inputReaderProducer = new InputReaderProducer(inputQueue, kSizes, inputFileNamesList, INPUT_BUFFER_SIZE, TOOL_NAME);
+
+            Future<?> future = readAndPopulateExecutor.submit(inputReaderProducer);
+            futures.add(future);
+            boolean splitInputSequenceIntoKmers = true;
+
+            //ENSURING WE KNOW THE INPUT FORMAT BEFORE CONSUMER THREADS ARE SPAWNED
+            long timeStart = System.currentTimeMillis();
+            int count = 0;
+            while (inputReaderProducer.getGuessedInputFormat() == null) {
+                try {
+                    //IF nothing happens after 5 seconds
+                    if (System.currentTimeMillis() - timeStart > 5000 && (count++ % 50 == 0)) {
+                        Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", TOOL_NAME);
+                    }
+                    Thread.sleep(100); //wait for 1/10 of a second
+                } catch (InterruptedException ex) {
+                }
             }
-            addMer(arr, prefixLen, postfixLen, core1.toString(), leftClip, !is1rc, stats);
-
-            //Separate core+right clip
-            CharSequence core2 = inputKmerSequence.subSequence(0, inputKmerSequence.length() - 1);
-            char rightClip = inputKmerSequence.charAt(inputKmerSequence.length() - 1);
-            boolean is2rc = false;
-            if (!SequenceOps.isCanonical(core2)) {
-                core2 = SequenceOps.getReverseComplement(core2);
-                rightClip = SequenceOps.complement(rightClip);
-                is2rc = true;
+//            Integer kSizeFromInput = null;
+            if (inputReaderProducer.getGuessedInputFormat().equals(InputReaderProducer.InFormat.KMERS)) {
+                splitInputSequenceIntoKmers = false;
             }
-            addMer(arr, prefixLen, postfixLen, core2.toString(), rightClip, is2rc, stats);
 
-            //elem not seen before, store
+            //SPAWN THREADS TO POPULATE MAP
+            for (int i = 0; i < threads; i++) {
+//                PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(inputQueue, pairMerMaps,
+//                        splitInputSequenceIntoKmers, kSizes, MIN_KMER_FREQUENCY, false);
+                NewPairMerMapPopulatorConsumer consumer = new NewPairMerMapPopulatorConsumer(inputQueue, arr, false, kSizes, i, false, stats, prefixLen, postfixLen);
+                futures.add(readAndPopulateExecutor.submit(consumer));
+            }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            readAndPopulateExecutor.shutdown();
+            try {
+                for (Future<?> f : futures) {
+                    f.get(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+                }
+                readAndPopulateExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                Reporter.report("[ERROR]", "PairMerSet populator interrupted exception!", TOOL_NAME);
+            } catch (ExecutionException ex) {
+                Reporter.report("[ERROR]", "PairMerSet populator execution exception!", TOOL_NAME);
+                ex.printStackTrace();
+
+            } catch (TimeoutException ex) {
+                Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
+                Reporter.report("[ERROR]", "PairMerSet populator timeout exception!", TOOL_NAME);
+            }
+
+//            if (pairMersMap.isOutOfMemory()) {
+//                Reporter.report("[ERROR]", "Terminating, out of memory while populating the Map, k=" + KMER_LENGTH + ", n=" + NumberFormat.getIntegerInstance().format(pairMersMap.getPairMersSkipListMap().size()), TOOL_NAME);
+//                System.exit(1);
+//            }
+        } catch (OutOfMemoryError e) {
+            Reporter.report("[ERROR]", "Out of memory error!", TOOL_NAME);
+//            printStatus("Reference set n = " + NumberFormat.getNumberInstance().format(clipMersMap.getClipMersMap().size()));
+            System.exit(1);
         }
-        Reporter.report("[INFO]", randomInts + " input kmers", TOOL_NAME);
-        Reporter.report("[INFO]", stats[0] + " loaded PairMers" , TOOL_NAME);
-        Reporter.report("[INFO]", stats[1] + " duplicated PairMers", TOOL_NAME);
-        Reporter.report("[INFO]", stats[2] + " different PairMers at given prefix", TOOL_NAME);
-        Reporter.report("[INFO]", (stats[0] + stats[1] + stats[2])+" total PairMers ", TOOL_NAME);
+
+
+
+
+
+
+
+
+        
+//        int randomInts = prefixMax * postfixpMax*100;
+//        for (int i = 0; i < randomInts; i++) {
+////            CharSequence kmerSequence = decodeCore(16, random.nextInt(1024));
+//            CharSequence inputKmerSequence = decodeCore(16, random.nextInt());
+//
+//            arr.addKmer(inputKmerSequence, stats);
+//
+//            //elem not seen before, store
+//        }
+//        Reporter.report("[INFO]", randomInts + " input kmers", TOOL_NAME);
+        Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(stats.get(0)) + " PairMers loaded without conflict" , TOOL_NAME);
+        Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(stats.get(1)) + " duplicated PairMer cores", TOOL_NAME);
+        Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(stats.get(2)) + " distinct PairMer cores at given prefix", TOOL_NAME);
+        Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format((stats.get(0)) + stats.get(1) + stats.get(2))+" total PairMers ", TOOL_NAME);
 //        Reporter.report("[INFO]", "Load level 1 = " +  perc.format(((double) lev1load) / arr.length), TOOL_NAME);
 
-        //get some stats
-        int lev1load = 0;
-        long lev2load = 0;
-        long totalSlots = 0;
-        long occupiedSlotsTotal = 0;
-
-        for (int i = 0; i < arr.length; i++) {
-            CharSequence prefixSeq = decodeCore(prefixLen, i);
-            if (arr[i] != null) {
-                lev1load++;
-                int localCount = 0;
-                for (int j = 0; j < arr[i].length; j++) {
-//                    CharSequence prefixpSeq = decodeCore(postfixLen, j);
-                    if (arr[i][j] != null) {
-                        totalSlots++;
-                        lev2load++;
-                        localCount++;
-                        int local = 0;
-                        PairMer p = arr[i][j];
-                        do {
-                            local++;
-                        } while ((p = p.getNextPairMer()) != null);
-//                        System.err.println(prefixSeq+"_"+prefixpSeq+"_"+arr[i][j].decodeCore(16-prefixLen-postfixLen)+" "+local);                        
-                        occupiedSlotsTotal += local;
-                    }
-                }
-                System.err.println(prefixSeq + " total " + localCount);
-            }
-        }
-        NumberFormat perc = NumberFormat.getPercentInstance();
-        perc.setMaximumFractionDigits(4);
-        NumberFormat numInstance = NumberFormat.getInstance();
-        numInstance.setMaximumFractionDigits(2);
-        Reporter.report("[INFO]", "Occupied level 1 = " + perc.format(((double) lev1load) / arr.length), TOOL_NAME);
-        Reporter.report("[INFO]", "Occupied level 2 = " + perc.format(((double) lev2load / arr[0].length / arr.length)), TOOL_NAME);
-        Reporter.report("[INFO]", "Mean non empty occupancy level 2 = " + numInstance.format(((double) occupiedSlotsTotal / totalSlots)), TOOL_NAME);
+        arr.printStats();
     }
 
 //    private class PMO {

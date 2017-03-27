@@ -22,7 +22,7 @@ import shared.Reporter;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class NewPairMerIntArrEncoded extends PairMer {
+public class NewPairMerIntArrEncoded extends PairMer implements Comparable<NewPairMerIntArrEncoded>{
 
     //Object overhead 8 B
     private int[] kmerCoreReminderBitsArray;  //12B + len*4 Bytes 
@@ -45,6 +45,10 @@ public class NewPairMerIntArrEncoded extends PairMer {
     public NewPairMerIntArrEncoded(CharSequence canonicalCoreReminder, char clip, boolean frontClip, int freq) throws NonACGTException {
         addFirstKmer(canonicalCoreReminder, clip, frontClip, freq);
     }
+    
+    public NewPairMerIntArrEncoded(int[] encodedCanonicalCoreReminded, char clip, boolean frontClip, int freq)  {
+        addFirstKmer(encodedCanonicalCoreReminded, clip, frontClip, freq);
+    }
 
 //    /**
     /**
@@ -65,12 +69,32 @@ public class NewPairMerIntArrEncoded extends PairMer {
                 setClipRight(clip);
             }
             kmerCoreReminderBitsArray = CoreCoder.encodeCoreIntArray(canonicalCoreReminder);
-            incrementStoredCount(hasLeftClip(), freq);            
+            incrementStoredCount(hasLeftClip(), freq);
         } else {
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }
     }
 
+    /**
+     *
+     * @param encodedCanonicalCoreReminded
+     * @param clip
+     * @param frontClip
+     * @param freq
+     */
+    protected final void addFirstKmer(int[] encodedCanonicalCoreReminded, char clip, boolean frontClip, int freq) {
+        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
+            if (frontClip) {
+                setClipLeft(clip);
+            } else {
+                setClipRight(clip);
+            }
+            kmerCoreReminderBitsArray = encodedCanonicalCoreReminded;
+            incrementStoredCount(hasLeftClip(), freq);
+        } else {
+            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
+        }
+    }
 
     @Override
     public String decodeCore(int coreLength) {
@@ -103,6 +127,15 @@ public class NewPairMerIntArrEncoded extends PairMer {
             }
         }
         return sb.toString();
+    }
+
+    @Override
+    public int compareTo(NewPairMerIntArrEncoded anotherMer) {
+        return CoreCoder.compareCores(getBitFields(), anotherMer.getBitFields());
+    }
+
+    public int[] getBitFields() {
+        return kmerCoreReminderBitsArray;
     }
 
 }

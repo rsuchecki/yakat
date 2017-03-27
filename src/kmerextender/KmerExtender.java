@@ -72,7 +72,6 @@ public class KmerExtender {
     private int MAX_THREADS;
     private int INPUT_BUFFER_SIZE;
     private int INPUT_QUEUE_SIZE;
-    private int EXTENDER_BUFFER_MAX = 1000;
 
     private boolean OUTPUT_FASTA = false;
     private String NAME_PREFIX = "";

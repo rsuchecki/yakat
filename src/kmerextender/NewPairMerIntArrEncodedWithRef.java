@@ -30,6 +30,19 @@ public class NewPairMerIntArrEncodedWithRef extends NewPairMerIntArrEncoded {
         this.next = next;
     }
 
+//    public NewPairMerIntArrEncodedWithRef(PairMerIntArrEncoded tthis, PairMerIntArrEncoded next) {        
+//        this.next = next;
+//    }
+
+    public NewPairMerIntArrEncodedWithRef(int[] encodedCanonicalCoreReminded, char clip, boolean frontClip, int freq, PairMer next)  {
+        super(encodedCanonicalCoreReminded, clip, frontClip, freq);
+        this.next = next;
+    }
+
+    
+    
+    
+
     public PairMer getNext() {
         return next;
     }
