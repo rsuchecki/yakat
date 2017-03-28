@@ -157,6 +157,8 @@ public class NewPairMerMapPopulatorConsumer implements Runnable {
         return true;
     }
     
+    
+    
     private void kmerizeAndAddToMaps(CharSequence sequence) {
         for (Integer k : kList) {
             try {

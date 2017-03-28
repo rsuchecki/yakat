@@ -234,7 +234,6 @@ public class CoreCoder {
 //        }
 //        return 0;
 //    }
-
     public static int compareCores(long[] core, long[] anotherCore) {
         for (int i = 0; i < core.length; i++) {
             try {
@@ -254,7 +253,7 @@ public class CoreCoder {
         }
         return 0;
     }
-    
+
     public static int compareCores(int[] core, int[] anotherCore) {
         for (int i = 0; i < core.length; i++) {
             try {
@@ -368,7 +367,7 @@ public class CoreCoder {
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet();
         //INPUT
-        optSet.setListingGroupLabel("[Input settings]");
+//        optSet.setListingGroupLabel("[Input settings]");
 //        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGAT"));
 //        optSet.addOpt(new Opt(null, "adapter-prefix-length", "Length of the adapter prefix used to identify 3' read-through", 1).setDefaultValue(9));
 //        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
@@ -409,7 +408,8 @@ public class CoreCoder {
 //            + "passed to out-queue", 1024, 64, 8092).addFootnote(footId, footText2));
 //        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writer threads to pick-up",
 //            2, 1, 32).addFootnote(footId, footText2));
-//
+        optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
+
 //        //POSITIONAL
         optSet.addPositionalOpt(new PositionalOpt("INPUT_FILENAMEs", "names of input files", 1, (int) Short.MAX_VALUE));
         return optSet;
@@ -450,7 +450,6 @@ public class CoreCoder {
 //            }
 //        }
 //    }
-
     public CoreCoder(String[] args, String callerName, String toolName) {
         String TOOL_NAME = callerName + " " + toolName;
         int HELP_WIDTH = 150;
@@ -458,12 +457,14 @@ public class CoreCoder {
         ArgParser argParser = new ArgParser();
         argParser.processArgs(args, optSet, true, callerName, HELP_WIDTH);
 //        readArgValues(optSet);
-
+        if (optSet.getOpt("P").isUsed()) {
+            optSet.printUserSettings(TOOL_NAME);
+        }
         int prefixLen = (int) optSet.getOpt("prefix-len").getValueOrDefault();;
         int prefixMax = (int) Math.pow(4, prefixLen);
         int postfixLen = (int) optSet.getOpt("postfix-len").getValueOrDefault();;
         int postfixpMax = (int) Math.pow(4, postfixLen);
-        
+
         ArrayList<String> inputFileNamesList = new ArrayList<>();
         ArrayList<PositionalOpt> positionalOptsList = optSet.getPositionalOptsList();
         for (PositionalOpt po : positionalOptsList) {
@@ -478,20 +479,17 @@ public class CoreCoder {
 //        Long dups = 0L;
 //        Long diffs = 0L;
 //        Long stats[] = new Long[]{0L,0L,0L};
-            AtomicLongArray stats = new AtomicLongArray(3);
+        AtomicLongArray stats = new AtomicLongArray(3);
 
+        int INPUT_QUEUE_SIZE = 2;
 
-
-
-int INPUT_QUEUE_SIZE = 2;
-
- BlockingQueue inputQueue = new ArrayBlockingQueue(INPUT_QUEUE_SIZE);
+        BlockingQueue inputQueue = new ArrayBlockingQueue(INPUT_QUEUE_SIZE);
 
         try {
             //READ INPUT AND POPULATE PairMers MAP
-            int threads = (int)optSet.getOpt("threads").getValueOrDefault();
+            int threads = (int) optSet.getOpt("threads").getValueOrDefault();
             int INPUT_BUFFER_SIZE = 1024;
-            int MIN_KMER_FREQUENCY =1 ;
+            int MIN_KMER_FREQUENCY = 1;
             Reporter.report("[INFO]", "Allocated " + threads + " thread(s) to map populating", TOOL_NAME);
             ArrayList<Future<?>> futures = new ArrayList<>(threads + 1);
             final ExecutorService readAndPopulateExecutor = new ThreadPoolExecutor(threads + 1, threads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
@@ -530,20 +528,6 @@ int INPUT_QUEUE_SIZE = 2;
                 futures.add(readAndPopulateExecutor.submit(consumer));
             }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
             readAndPopulateExecutor.shutdown();
             try {
                 for (Future<?> f : futures) {
@@ -571,14 +555,6 @@ int INPUT_QUEUE_SIZE = 2;
             System.exit(1);
         }
 
-
-
-
-
-
-
-
-        
 //        int randomInts = prefixMax * postfixpMax*100;
 //        for (int i = 0; i < randomInts; i++) {
 ////            CharSequence kmerSequence = decodeCore(16, random.nextInt(1024));
@@ -589,10 +565,10 @@ int INPUT_QUEUE_SIZE = 2;
 //            //elem not seen before, store
 //        }
 //        Reporter.report("[INFO]", randomInts + " input kmers", TOOL_NAME);
-        Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(stats.get(0)) + " PairMers loaded without conflict" , TOOL_NAME);
+        Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(stats.get(0)) + " PairMers loaded without conflict", TOOL_NAME);
         Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(stats.get(1)) + " duplicated PairMer cores", TOOL_NAME);
         Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(stats.get(2)) + " distinct PairMer cores at given prefix", TOOL_NAME);
-        Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format((stats.get(0)) + stats.get(1) + stats.get(2))+" total PairMers ", TOOL_NAME);
+        Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format((stats.get(0)) + stats.get(1) + stats.get(2)) + " total PairMers ", TOOL_NAME);
 //        Reporter.report("[INFO]", "Load level 1 = " +  perc.format(((double) lev1load) / arr.length), TOOL_NAME);
 
         arr.printStats();

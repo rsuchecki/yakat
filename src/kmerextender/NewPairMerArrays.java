@@ -44,8 +44,8 @@ public class NewPairMerArrays {
 
     public boolean addMer(String core, char clip, boolean left, AtomicLongArray stats) {
         int prefix = CoreCoder.encodeCore(core.subSequence(0, prefixLen));
-        PairMer arr[] = pairMerArrays[prefix];
         int postfix = CoreCoder.encodeCore(core.subSequence(prefixLen, prefixLen + postfixLen));
+        PairMer arr[] = pairMerArrays[prefix];
         NewPairMerIntArrEncoded newPairMerIntArrEncoded = null;
         try {
             newPairMerIntArrEncoded = new NewPairMerIntArrEncoded(core.subSequence(prefixLen + postfixLen, core.length()), clip, left, 1);
@@ -91,29 +91,26 @@ public class NewPairMerArrays {
     public void printStats() {
         //get some stats
         int lev1load = 0;
-        long lev2load = 0;
-        long totalSlots = 0;
-        long occupiedSlotsTotal = 0;
+        long occupiedSlots = 0;
         long totalElements = 0;
         
         for (int i = 0; i < pairMerArrays.length; i++) {
             CharSequence prefixSeq = decodeCore(prefixLen, i);
             if (pairMerArrays[i] != null) {
                 lev1load++;
-                int localCount = 0;
+//                int localCount = 0;
                 for (int j = 0; j < pairMerArrays[i].length; j++) {
 //                    CharSequence prefixpSeq = decodeCore(postfixLen, j);
                     if (pairMerArrays[i][j] != null) {
-                        totalSlots++;
-                        lev2load++;
-                        localCount++;
+                        occupiedSlots++;
+//                        localCount++;
                         int local = 0;                        
                         PairMer p = pairMerArrays[i][j];
                         do {
                             local++;
                         } while ((p = p.getNextPairMer()) != null);
 //                        System.err.println(prefixSeq+"_"+prefixpSeq+"_"+arr[i][j].decodeCore(16-prefixLen-postfixLen)+" "+local);                        
-                        occupiedSlotsTotal += local;
+                        totalElements += local;
                     }
                 }
 //                System.err.println(prefixSeq + " total " + localCount);
@@ -123,11 +120,13 @@ public class NewPairMerArrays {
         perc.setMaximumFractionDigits(4);
         NumberFormat numInstance = NumberFormat.getInstance();
         numInstance.setMaximumFractionDigits(2);
+        int slotsAvailable = (int) Math.pow(4, prefixLen)*(int) Math.pow(4, postfixLen);
         Reporter.report("[INFO]", "Occupied level 1 = " + perc.format(((double) lev1load) / pairMerArrays.length), TOOL_NAME);
-        Reporter.report("[INFO]", "Occupied level 2 = " + perc.format(((double) lev2load / pairMerArrays[0].length / pairMerArrays.length)), TOOL_NAME);
-        Reporter.report("[INFO]", "Mean non empty occupancy level 2 = " + numInstance.format(((double) occupiedSlotsTotal / totalSlots)), TOOL_NAME);
-        Reporter.report("[INFO]", "Total slots = " + numInstance.format((totalSlots)), TOOL_NAME);
-        Reporter.report("[INFO]", "Total elements = " + numInstance.format(( occupiedSlotsTotal)), TOOL_NAME);
+//        Reporter.report("[INFO]", "Occupied level 2 = " + perc.format(((double) lev2load / pairMerArrays[0].length / pairMerArrays.length)), TOOL_NAME);
+        Reporter.report("[INFO]", "Mean non empty occupancy level 2 = " + numInstance.format(((double) totalElements / occupiedSlots)), TOOL_NAME);
+        Reporter.report("[INFO]", "Slots available = " + numInstance.format(slotsAvailable), TOOL_NAME);
+        Reporter.report("[INFO]", "Slots occupied = " + numInstance.format((occupiedSlots)) + " ("+perc.format((double)occupiedSlots/slotsAvailable)+")", TOOL_NAME);
+        Reporter.report("[INFO]", "Total elements  = " + numInstance.format((totalElements)), TOOL_NAME);
     }
 
 }
