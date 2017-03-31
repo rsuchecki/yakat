@@ -20,7 +20,10 @@ import java.util.Iterator;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
+import net.openhft.chronicle.map.ChronicleMap;
+import net.openhft.chronicle.map.ChronicleMapBuilder;
 import shared.Reporter;
+import org.mapdb.*;
 
 /**
  * Wrapper around a concurrent collection (ConcurrentSkipListMap, but other
@@ -41,10 +44,9 @@ public class PairMersMap extends shared.MerMap {
     private AtomicLong size;
     private AtomicLong sizeTerminal = new AtomicLong();
 
-    
-    
     private PairMer[] prefixToPairMers;
-    
+    private ChronicleMap<long[], Integer> chronicleMap;
+
     /**
      * Instantiate the Map
      *
@@ -61,7 +63,16 @@ public class PairMersMap extends shared.MerMap {
 //           pairMersHashMap  = new ConcurrentHashMap<>();
             this.k = k;
         }
-//        this.LOCK = new Object();
+
+//        long[] encodedCoreLongArray = CoreCoder.encodeCoreLongArray("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+//        ChronicleMapBuilder<long[], Integer> cityPostalCodesMapBuilder
+//                = ChronicleMapBuilder.of(long[].class, Integer.class)
+//                        .name("chronicleMap")
+//                        .constantKeySizeBySample(encodedCoreLongArray)
+//                        .entries(2_078_214);
+//        chronicleMap = cityPostalCodesMapBuilder.create();
+        
+
     }
 
     /**
@@ -84,8 +95,6 @@ public class PairMersMap extends shared.MerMap {
     public AtomicLong getAmbiguous() {
         return ambiguous;
     }
-    
-    
 
     public AtomicLong getSize() {
         return size;
@@ -163,6 +172,8 @@ public class PairMersMap extends shared.MerMap {
             //Atomic operation START                    
             PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
             //Atomic operation END
+//            chronicleMap.put(((PairMer2LongEncoded)pairMer).getBitFields(), freq);
+//            chronicleMap.
 
             if (previousStoredPairMer == null) {
                 size.incrementAndGet();
@@ -354,7 +365,7 @@ public class PairMersMap extends shared.MerMap {
 //                count++;
             if (next.isInvalid() || next.getStoredCountLeft() == 0 || next.getStoredCountRigth() == 0) {
 //                //PM removed either due to ambig or holding just one k-mer, any valid adjacent k-mer present in map must be a terminal one
-                if(next.isInvalid()) {
+                if (next.isInvalid()) {
                     ambiguous.incrementAndGet();
                 }
                 try {

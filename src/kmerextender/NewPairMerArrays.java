@@ -16,6 +16,7 @@
 package kmerextender;
 
 import java.text.NumberFormat;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.atomic.AtomicLongArray;
 import static kmerextender.CoreCoder.decodeCore;
 import shared.Reporter;
@@ -28,21 +29,25 @@ import shared.SequenceOps;
 public class NewPairMerArrays {
 
     private PairMer[][] pairMerArrays;
+    
     private final int prefixLen;
     private final int postfixLen;
     private String TOOL_NAME;
+//    private BlockingQueue perPrefixQueue[];
 
     public NewPairMerArrays(int prefixLen, int postfixLen, String TOOL_NAME) {
         this.prefixLen = prefixLen;
         this.postfixLen = postfixLen;
         int prefixMax = (int) Math.pow(4, prefixLen);
-        int postfixpMax = (int) Math.pow(4, postfixLen);
-        this.pairMerArrays = new PairMer[prefixMax][postfixpMax];
+        int postfixMax = (int) Math.pow(4, postfixLen);
+        this.pairMerArrays = new PairMer[prefixMax][postfixMax];
         this.TOOL_NAME = TOOL_NAME;
+//        this.perPrefixQueue = new BlockingQueue[prefixMax];
     }
 
+    
 
-    public boolean addMer(String core, char clip, boolean left, AtomicLongArray stats) {
+    public boolean addMer(String core, char clip, boolean left, AtomicLongArray stats) throws InterruptedException {
         int prefix = CoreCoder.encodeCore(core.subSequence(0, prefixLen));
         int postfix = CoreCoder.encodeCore(core.subSequence(prefixLen, prefixLen + postfixLen));
         PairMer arr[] = pairMerArrays[prefix];
@@ -52,7 +57,8 @@ public class NewPairMerArrays {
         } catch (NonACGTException ex) {
             ex.printStackTrace();
         }
-        synchronized (this) {
+//        perPrefixQueue[prefix].put(new NewPairMerWithPrefixes(prefix, postfix, newPairMerIntArrEncoded));
+        synchronized (arr) {
             if (arr[postfix] == null) {
 //                    arr[prefix][prefixp] = new PairMerIntArrEncoded(inputKmerSequence, prefixLen + postfixLen, inputKmerSequence.length()-1, false, 1);                                    
                 arr[postfix] = newPairMerIntArrEncoded;
@@ -88,11 +94,18 @@ public class NewPairMerArrays {
         }
     }
 
+//    public BlockingQueue[] getPerPrefixQueue() {
+//        return perPrefixQueue;
+//    }
+
+    
+    
     public void printStats() {
         //get some stats
         int lev1load = 0;
         long occupiedSlots = 0;
         long totalElements = 0;
+        long singlePMs = 0;
         
         for (int i = 0; i < pairMerArrays.length; i++) {
             CharSequence prefixSeq = decodeCore(prefixLen, i);
@@ -111,6 +124,9 @@ public class NewPairMerArrays {
                         } while ((p = p.getNextPairMer()) != null);
 //                        System.err.println(prefixSeq+"_"+prefixpSeq+"_"+arr[i][j].decodeCore(16-prefixLen-postfixLen)+" "+local);                        
                         totalElements += local;
+                        if(local == 1 ) {
+                            singlePMs++;
+                        }
                     }
                 }
 //                System.err.println(prefixSeq + " total " + localCount);
@@ -126,6 +142,7 @@ public class NewPairMerArrays {
         Reporter.report("[INFO]", "Mean non empty occupancy level 2 = " + numInstance.format(((double) totalElements / occupiedSlots)), TOOL_NAME);
         Reporter.report("[INFO]", "Slots available = " + numInstance.format(slotsAvailable), TOOL_NAME);
         Reporter.report("[INFO]", "Slots occupied = " + numInstance.format((occupiedSlots)) + " ("+perc.format((double)occupiedSlots/slotsAvailable)+")", TOOL_NAME);
+        Reporter.report("[INFO]", "Slots occupied by single PM  = " + numInstance.format((singlePMs)) + " ("+perc.format((double)singlePMs/slotsAvailable)+")", TOOL_NAME);
         Reporter.report("[INFO]", "Total elements  = " + numInstance.format((totalElements)), TOOL_NAME);
     }
 

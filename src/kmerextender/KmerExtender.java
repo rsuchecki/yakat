@@ -52,6 +52,8 @@ import java.util.concurrent.TimeoutException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
+import net.openhft.chronicle.map.ChronicleMap;
+import net.openhft.chronicle.map.ChronicleMapBuilder;
 import shared.CommonMaths;
 import shared.StdRedirect;
 
@@ -207,7 +209,7 @@ public class KmerExtender {
                 + "as it is done in parallel to avoid excessive I/O and to preserve stdin handling";
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Variable k-mer size for longest extension of a seed]");
         optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing \"seeds\" to be extended", 1));
-        optSet.addOpt(new Opt(null, "purged-input", "The input k-mers do not contain any of the seed-mers"));        
+        optSet.addOpt(new Opt(null, "purged-input", "The input k-mers do not contain any of the seed-mers"));
         optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-step", "", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, foot));
@@ -233,11 +235,18 @@ public class KmerExtender {
         return optSet;
     }
 
+  
+
     /**
      * Wrapper method executing individual steps
      */
     private void runKmerExtender(OptSet optSet) {
         Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", TOOL_NAME);
+
+
+
+
+        int x = 0;
 
         ArrayList<Integer> kSizes = new ArrayList<>();
         if (KMER_LENGTH_MIN != null) {
@@ -262,10 +271,10 @@ public class KmerExtender {
 
         ConcurrentHashMap<Integer, PairMerToSeedMap> kToSeedMers = null;
         if (seedSequences != null) {
-             if (!optSet.getOpt("purged-input").isUsed()) {
+            if (!optSet.getOpt("purged-input").isUsed()) {
                 //PURGE NON-TERMINAL SeedPairMers FROM PairMerMaps 
                 purgeSeedMersFromPairMersMaps(kSizes, pairMerMaps);
-             }
+            }
             //CREATE PairMers REPRESENTING SEED-ENDS 
             Reporter.report("[INFO]", "Now populate seedMersMap", TOOL_NAME);
             kToSeedMers = populateSeedMersMaps(kSizes);
@@ -465,13 +474,13 @@ public class KmerExtender {
                             tail = pairMersIterator.next();
                             ConcurrentNavigableMap subMap = pairMersMap.getPairMersMap().subMap(head, tail);
                             mapsQueue.put(new PairMersMap(k, subMap, pairMersMap));
-                            head = tail;                                 
+                            head = tail;
                         } else {
                             pairMersIterator.next();
                         }
                     }
                     ConcurrentNavigableMap tailMap = pairMersMap.getPairMersMap().tailMap(head);
-                    mapsQueue.put(new PairMersMap(k, tailMap, pairMersMap));                    
+                    mapsQueue.put(new PairMersMap(k, tailMap, pairMersMap));
                 }
             }
             mapsQueue.put(new PairMersMap(null));
@@ -521,7 +530,7 @@ public class KmerExtender {
             double ratio = (double) terminals / size;
             NumberFormat perc = NumberFormat.getPercentInstance();
             perc.setMaximumFractionDigits(4);
-            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", identified " + NumberFormat.getIntegerInstance().format(terminals) 
+            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", identified " + NumberFormat.getIntegerInstance().format(terminals)
                     + " terminal PairMers (" + perc.format(ratio) + ")", TOOL_NAME);
             Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(pairMersMap.getAmbiguous()) + " ambiguous extensions found", TOOL_NAME);
             Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
@@ -723,4 +732,7 @@ public class KmerExtender {
 //        System.out.println(Reporter.wrapString(s, 145));
 //        System.out.println();
 //    }
+
+     
+    
 }

@@ -461,9 +461,10 @@ public class CoreCoder {
             optSet.printUserSettings(TOOL_NAME);
         }
         int prefixLen = (int) optSet.getOpt("prefix-len").getValueOrDefault();;
-        int prefixMax = (int) Math.pow(4, prefixLen);
+        
+//        int prefixMax = (int) Math.pow(4, prefixLen);
         int postfixLen = (int) optSet.getOpt("postfix-len").getValueOrDefault();;
-        int postfixpMax = (int) Math.pow(4, postfixLen);
+//        int postfixpMax = (int) Math.pow(4, postfixLen);
 
         ArrayList<String> inputFileNamesList = new ArrayList<>();
         ArrayList<PositionalOpt> positionalOptsList = optSet.getPositionalOptsList();
@@ -474,7 +475,8 @@ public class CoreCoder {
         }
 
         NewPairMerArrays arr = new NewPairMerArrays(prefixLen, postfixLen, TOOL_NAME);
-        Random random = new Random();
+        
+        
 //        Long count = 0L;
 //        Long dups = 0L;
 //        Long diffs = 0L;
@@ -520,12 +522,21 @@ public class CoreCoder {
                 splitInputSequenceIntoKmers = false;
             }
 
-            //SPAWN THREADS TO POPULATE MAP
+            //SPAWN THREADS TO ENCODE PairMers
             for (int i = 0; i < threads; i++) {
 //                PairMerMapPopulatorConsumer consumer = new PairMerMapPopulatorConsumer(inputQueue, pairMerMaps,
 //                        splitInputSequenceIntoKmers, kSizes, MIN_KMER_FREQUENCY, false);
-                NewPairMerMapPopulatorConsumer consumer = new NewPairMerMapPopulatorConsumer(inputQueue, arr, false, kSizes, i, false, stats, prefixLen, postfixLen);
+                NewPairMerMapEncoderConsumer consumer = new NewPairMerMapEncoderConsumer(inputQueue, arr, false, kSizes, i, false, stats, prefixLen, postfixLen);
                 futures.add(readAndPopulateExecutor.submit(consumer));
+            }
+            
+            
+           
+            
+            //SPAWN THREADS TO POPULATE MAP
+            for (int i = 0; i < threads; i++) {
+//                NewPairMerMapEncoderConsumer consumer = new NewPairMerMapEncoderConsumer(inputQueue, arr, false, kSizes, i, false, stats, prefixLen, postfixLen);
+//                futures.add(readAndPopulateExecutor.submit(consumer));
             }
 
             readAndPopulateExecutor.shutdown();
