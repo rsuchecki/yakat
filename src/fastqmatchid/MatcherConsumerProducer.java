@@ -29,21 +29,14 @@
  */
 package fastqmatchid;
 
-import argparser.OptSet;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import shared.Message;
-import shared.Reporter;
-import shared.SequenceOps;
 
 /**
  *
