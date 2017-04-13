@@ -96,7 +96,7 @@ public class CommonMaths implements Serializable {
         }
     }
     
-    public static double getMedian(ArrayList listOfNumbers) {
+    public static double getMedian(ArrayList<Short> listOfNumbers) {
         if (listOfNumbers.isEmpty()) {
             return 0;
         } else {
@@ -110,7 +110,7 @@ public class CommonMaths implements Serializable {
                 return ((double) (sum)) / 2;
             } else {
                 int middle = size / 2;
-                return (double) listOfNumbers.get(middle);
+                return listOfNumbers.get(middle).doubleValue();
             }
         }
     }

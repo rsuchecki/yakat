@@ -197,7 +197,7 @@ public class OptSet {
             opt = longToOptMap.get(key.toLowerCase());
         }
         if (opt == null) {
-            Reporter.report("[FATAL]", "Unknown option requested: " + key, this.getClass().getSimpleName());
+            Reporter.report("[FATAL]", "Unknown option requested: " + key, this.getClass().getSimpleName());            
             System.exit(1);
         }
         return opt;

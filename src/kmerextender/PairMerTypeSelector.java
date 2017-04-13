@@ -23,12 +23,12 @@ package kmerextender;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class PairMerGenerator {
+public class PairMerTypeSelector {
 
 //    private final String leftClip;
 //    private final String core;
 //    private final String rightClip;
-    private static final int MAX_1LONG_ENCODE = 32; //using all bits, previously: 2bits per nucl, signed long so should be 31, but can use sign bit if lex ordering not needed
+    private static final int MAX_1LONG_ENCODE = 32; //using all bits,  2bits per nucl. Previously skipping sign bit (and the adjacent one to make even) now comparioson is unsigned 
     private static final int MAX_2LONG_ENCODE = 64;
     private static final int MAX_3LONG_ENCODE = 96;
 //    private static final int MAX_4LONG_ENCODE = 128 - 1;

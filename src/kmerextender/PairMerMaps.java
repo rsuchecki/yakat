@@ -55,6 +55,8 @@ public class PairMerMaps {
                 PairMersMap previous = kSizeToPairMersMap.putIfAbsent(k, map);
                 if (previous == null) {
                     addKValue(k);
+//                    map.initChronicleMap();
+//                    map.initMapDB();
                 } else { //another thread just beat us to putting this one in
                     return previous; 
                 }

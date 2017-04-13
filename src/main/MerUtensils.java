@@ -18,6 +18,7 @@ package main;
 import argparser.ParserTest;
 import fastqmatchid.FastqMatchId;
 import gbssplit.SplitGBS;
+import hmmerdoms.HmmerDomains;
 import kexpression.KeXpression;
 import kmerextender.CoreCoder;
 import kmerextender.KmerExtender;
@@ -68,6 +69,8 @@ public class MerUtensils {
             new SnpMers(args, name, "snpmers");
         } else if (args.length != 0 && args[0].matches("s(eed)?mers")) {
             new SeedMers(args, name, "seedmers");
+        } else if (args.length != 0 && args[0].matches("h(a)?mmerdom(ain)?s")) {
+            new HmmerDomains(args, name, "hmmerdoms");
         } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {
 //            new (args, name, "vclustersvars");
             new MsaParserListVariants(args, name, "vclust");

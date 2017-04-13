@@ -16,14 +16,15 @@
 package kmerextender;
 
 //import gnu.trove..set.hash.THashSet;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.util.Iterator;
+import java.util.Random;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
-import net.openhft.chronicle.map.ChronicleMap;
-import net.openhft.chronicle.map.ChronicleMapBuilder;
 import shared.Reporter;
-import org.mapdb.*;
 
 /**
  * Wrapper around a concurrent collection (ConcurrentSkipListMap, but other
@@ -44,8 +45,9 @@ public class PairMersMap extends shared.MerMap {
     private AtomicLong size;
     private AtomicLong sizeTerminal = new AtomicLong();
 
-    private PairMer[] prefixToPairMers;
-    private ChronicleMap<long[], Integer> chronicleMap;
+////    private PairMer[] prefixToPairMers;
+//    private ChronicleMap<long[], Long> chronicleMap;
+//    BTreeMap<long[], Long> mapDB;
 
     /**
      * Instantiate the Map
@@ -53,7 +55,7 @@ public class PairMersMap extends shared.MerMap {
      * @param k
      */
     public PairMersMap(Integer k) {
-        prefixToPairMers = new PairMer[16777216];
+//        prefixToPairMers = new PairMer[16777216];
         this.size = new AtomicLong();
         this.ambiguous = new AtomicLong();
         this.sizeTerminal = new AtomicLong();
@@ -63,17 +65,83 @@ public class PairMersMap extends shared.MerMap {
 //           pairMersHashMap  = new ConcurrentHashMap<>();
             this.k = k;
         }
+    }
 
-//        long[] encodedCoreLongArray = CoreCoder.encodeCoreLongArray("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
-//        ChronicleMapBuilder<long[], Integer> cityPostalCodesMapBuilder
-//                = ChronicleMapBuilder.of(long[].class, Integer.class)
+//    public void initChronicleMap() {
+//        System.err.println("Hardcoded tests of chronicle map @ k=71 ...");
+//        long[] encodedCoreLongArray = CoreCoder.encodeCoreLongArray("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
+//        ChronicleMapBuilder<long[], Long> chronicleMapBuilder
+//                = ChronicleMapBuilder.of(long[].class, Long.class)
 //                        .name("chronicleMap")
 //                        .constantKeySizeBySample(encodedCoreLongArray)
-//                        .entries(2_078_214);
-//        chronicleMap = cityPostalCodesMapBuilder.create();
-        
+//                        .entries(5_000_000_000L);
+////                        .entries(2_000_000L);
+//        chronicleMap = chronicleMapBuilder.create();
+//
+//        System.err.println("Hardcoded tests of chronicle map @ k=71 - map created");
+////        chronicleMap.put(encodedCoreLongArray, Long.MIN_VALUE);
+////        System.err.println("Hardcoded tests of chronicle map @ k=71 - test element added");
+//    }
+//
+//    public void initMapDB() {
+//        System.err.println("Hardcoded tests of mapDB  ...");
+//        DB db = DBMaker
+//            .memoryDirectDB()
+////                .fileDB("file.db")
+////                .fileMmapEnable()
+////                .allocateStartSize(10_000_000)
+//                .transactionEnable()
+//                .make();
+//        mapDB = db.treeMap("map",Serializer.LONG_ARRAY, Serializer.LONG)
+//                .createOrOpen();
+//        System.err.println("Hardcoded tests of mapDB  ... created");
+//        
+//        
+//        // using native order speeds access for values longer than a byte.
+////ByteBuffer bb = ByteBuffer.allocateDirect(1024*1024*1024).order(ByteOrder.nativeOrder());
+////// start at some location.
+////bb.position(0);
+////bb.put((byte) 1);
+////bb.putInt(6456456);
+////bb.putDouble(1.4564687);
+////
+////// to read back.
+////bb.position(0);
+////byte b = bb.get();
+////int i = bb.getInt();
+////double d = bb.getDouble();
+////        
+////int x =0;
+////        BTreeMap<byte[], Long> map = db.treeMap("map")
+////                .keySerializer(Serializer.BYTE_ARRAY)
+////                .valueSerializer(Serializer.LONG)
+////                .createOrOpen();
+//    }
+//    
+//    public void initOHC() {
+//        OHCache ohCache = OHCacheBuilder.newBuilder()
+//                                .keySerializer(new CacheSerializer<Object>() {
+//            @Override
+//            public void serialize(Object t, ByteBuffer bb) {
+//                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//            }
+//
+//            @Override
+//            public Object deserialize(ByteBuffer bb) {
+//                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//            }
+//
+//            @Override
+//            public int serializedSize(Object t) {
+//                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+//            }
+//        })
+//                                .valueSerializer(Serializer.LONG)
+//                                .build();
+//    }
 
-    }
+    
+
 
     /**
      * Constructor for exposing a subMap for multithreaded purging
@@ -133,6 +201,8 @@ public class PairMersMap extends shared.MerMap {
 //            previousStoredPairMer.addKmerSynchronized(pairMer, inputKmersUnique);
 //        }
 //    }
+//    Random r = new Random();
+
     /**
      * First tries to atomically add a k-mer to the Map, if this fails,
      * synchronized method is used to update the previously stored PairMer
@@ -149,7 +219,7 @@ public class PairMersMap extends shared.MerMap {
         boolean failed = false;
         PairMer pairMer = null;
         try {
-            pairMer = PairMerGenerator.generatePairMer(sequence, from, to, frontClip, freq);
+            pairMer = PairMerTypeSelector.generatePairMer(sequence, from, to, frontClip, freq);
 
 //            String canonicalKmer;
 //            if(pairMer.hasLeftClip()) {
@@ -172,7 +242,10 @@ public class PairMersMap extends shared.MerMap {
             //Atomic operation START                    
             PairMer previousStoredPairMer = pairMersSkipListMap.putIfAbsent(pairMer, pairMer);
             //Atomic operation END
-//            chronicleMap.put(((PairMer2LongEncoded)pairMer).getBitFields(), freq);
+//            System.err.println("Putting elem...");
+//            chronicleMap.putIfAbsent(((PairMer3LongEncoded) pairMer).getBitFields(), r.nextLong());
+//            mapDB.putIfAbsent(((PairMer2LongEncoded) pairMer).getBitFields(), r.nextLong());
+//            System.err.println("Done");
 //            chronicleMap.
 
             if (previousStoredPairMer == null) {
@@ -195,7 +268,7 @@ public class PairMersMap extends shared.MerMap {
      * @throws kmerextender.NonACGTException
      */
     public PairMer get(CharSequence core, int k) throws NonACGTException {
-        return pairMersSkipListMap.get(PairMerGenerator.getPairMer(core, k));
+        return pairMersSkipListMap.get(PairMerTypeSelector.getPairMer(core, k));
     }
 
 //    /**
@@ -504,7 +577,7 @@ public class PairMersMap extends shared.MerMap {
 //                                int x = 0;
 //                            }
 //                        }
-        PairMer encodedCoreOfKmer1 = PairMerGenerator.getPairMer(pairMerCore, k);
+        PairMer encodedCoreOfKmer1 = PairMerTypeSelector.getPairMer(pairMerCore, k);
         PairMer otherPairMer1 = getParentMap().get(encodedCoreOfKmer1);
         if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
             //                        pairMersSkipListMap.remove(otherPairMer1);

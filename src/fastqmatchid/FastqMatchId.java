@@ -98,8 +98,7 @@ public class FastqMatchId {
         //RUNTIME
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime settings]");
         optSet.addOpt(new Opt('v', "invert-matching", "Output unmatched reads"));
-        optSet.addOpt(new Opt('t', "threads", "Number of splitter threads. No point setting too high, "
-                + "i/o is the likely bottleneck and a writing thread will be spawned per each sample", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
+        optSet.addOpt(new Opt('t', "threads", "Number of threads. ", 1, 1, Runtime.getRuntime().availableProcessors(), 1, 1));
         optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
 
         //OUTPUT
@@ -112,7 +111,7 @@ public class FastqMatchId {
 //        optSet.addOpt(new Opt(null, "force", "If output file(s) exist(s) for a given sample, force overwrite"));
 //        optSet.addOpt(new Opt('M', "[TODO] matchless-output", "Output reads with unmatched barcodes to R1/R2/SE file(s) prefixed with <arg>. If not set, these reads will be discarded", 1));
 //        footId++;
-        optSet.addOpt(new Opt('o', "out-file", "Print extended sequences to <arg> file", 1).setDefaultValue("/dev/stdout"));
+        optSet.addOpt(new Opt('o', "out-file", "Send output to <arg> file", 1).setDefaultValue("/dev/stdout"));
 
         String footText2 = "Consider increasing to sacrifice memory for speed. Decrease if encountering 'out of memory' errors.";
         optSet.addOpt(new Opt('u', "out-buffer-size", "Number of FASTQ records (reads or pairs) "
