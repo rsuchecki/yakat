@@ -108,6 +108,22 @@ public class DomainHit {
         return targetDescription;
     }
     
+    /**
+     * Assuming this can be picked up from the description line for the target, BBMap translate6frames.sh appends fr{1,2,...,6} after a whitespace
+     * @return 
+     */
+    public int getTargetFrame() {
+        return Integer.parseInt(getTargetDescription().replaceFirst("fr", ""));
+    }
+    
+    /**
+     * Assuming this can be picked up from the identifier, expected format: >chromosome_contigOffset_Ns_length
+     * @return 
+     */
+    public int getTargetOffset() {
+        String[] toks = getTargetId().split("_");
+        return Integer.parseInt(toks[1])+Integer.parseInt(toks[2]);
+    }
     
 }
 

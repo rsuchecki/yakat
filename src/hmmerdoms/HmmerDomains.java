@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -117,7 +118,7 @@ public class HmmerDomains {
 
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
-//        optSet.addOpt(new Opt('o', "out-dir", "Output directory", 1).setDefaultValue("out_split"));
+        optSet.addOpt(new Opt('g', "max-gap", "Maximum bp gap allowed between grouped domain-hits", 1).setDefaultValue(200));
 //        optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
 //        optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
 //        optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
@@ -141,8 +142,7 @@ public class HmmerDomains {
     private void processHmmerDomains(ArrayList<String> inputFilenamesList, OptSet optSet) {
 
         
-
-
+        DomainHitsPerTarget domainHitsPerTarget = new DomainHitsPerTarget();
         
         
         String inputFile = inputFilenamesList.get(0);
@@ -162,7 +162,8 @@ public class HmmerDomains {
                 if (!line.startsWith("#")) {
                     String[] toks = spliPattern.split(line);
                     DomainHit domainHit = new DomainHit(toks);
-                    System.out.println(line);
+                    domainHitsPerTarget.addHit(domainHit);
+//                    System.out.println(line);
                 }
             }
 
@@ -180,6 +181,9 @@ public class HmmerDomains {
                 System.err.println(ex.getMessage());
             }
         }
+        
+        domainHitsPerTarget.printAll(true,(int)optSet.getOpt("g").getValueOrDefault());
+        domainHitsPerTarget.printAll(false,(int)optSet.getOpt("g").getValueOrDefault());
 
     }
 
