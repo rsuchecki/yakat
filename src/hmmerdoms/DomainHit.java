@@ -113,7 +113,13 @@ public class DomainHit {
      * @return 
      */
     public int getTargetFrame() {
-        return Integer.parseInt(getTargetDescription().replaceFirst("fr", ""));
+        int frame  = Integer.parseInt(getTargetDescription().replaceFirst("fr", ""));
+        switch(frame) {
+            case 4: return -1;
+            case 5: return -2;
+            case 6: return -3;
+            default: return frame;
+        }
     }
     
     /**
@@ -122,7 +128,7 @@ public class DomainHit {
      */
     public int getTargetOffset() {
         String[] toks = getTargetId().split("_");
-        return Integer.parseInt(toks[1])+Integer.parseInt(toks[2]);
+       return  Integer.parseInt(toks[1]);
     }
     
 }

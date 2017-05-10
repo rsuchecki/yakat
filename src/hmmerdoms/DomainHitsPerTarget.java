@@ -51,6 +51,7 @@ public class DomainHitsPerTarget {
         Integer clusteredTo = null;
         String clusteredChr = null;
         String clusteredStrand = null;
+        Integer clusterElems = null;
 
         for (int i = 0; i < sortedKeys.length; i++) {
             ArrayList<DomainHit> hits = targetToHitsMap.get(sortedKeys[i]);
@@ -64,19 +65,25 @@ public class DomainHitsPerTarget {
                 StringBuilder sb = new StringBuilder(chr);
                 int frame = hit.getTargetFrame();
                 int contigOffset = hit.getTargetOffset();
+                int envStartLocal = -1;
                 int envStart = -1;
+                int envEndLocal = -1;
                 int envEnd = -1;
                 boolean print = false;
                 String strand = "plus";
-                if (forward && frame <= 3) {
-                    envStart = contigOffset + (frame - 1) + hit.getEnvFrom() * 3;
-                    envEnd = contigOffset + (frame - 1) + hit.getEnvTo() * 3;
+                if (forward && frame > 0) {
+                    envStartLocal = hit.getEnvFrom() * 3 - (3-frame);
+                    envStart = contigOffset + envStartLocal; 
+                    envEndLocal = hit.getEnvTo() * 3 + (frame-1);
+                    envEnd = contigOffset + envEndLocal;
                     print = true;
-                } else if (!forward && frame >= 4) {
+                } else if (!forward && frame < 0) {
                     int contigLen = hit.getTargetLength();
                     //TODO the adjustmant for frame might be off
-                    envStart = contigOffset + (frame - 4) + (contigLen - hit.getEnvTo() + 1) * 3;
-                    envEnd = contigOffset + (frame - 4) + (contigLen - hit.getEnvFrom() + 1) * 3;
+                    envStartLocal = (contigLen - hit.getEnvTo() + 1) * 3 - (3+frame);
+                    envEndLocal = (contigLen - hit.getEnvFrom() + 1) * 3 + (-frame-1);
+                    envStart = contigOffset + envStartLocal; 
+                    envEnd = contigOffset + envEndLocal;
                     print = true;
                     strand = "minus";
                 }
@@ -87,25 +94,34 @@ public class DomainHitsPerTarget {
                     if (prevEnd != null && prevChr.equals(chr)) {
                         sb.append(SEP).append(envStart - prevEnd);
                     }
-                    System.err.println(sb.toString());
+                    //printing domain info
+                    System.err.println(sb.toString() + "\t" + hit.getTargetId()+ "\t"+envStartLocal+ "\t"+envEndLocal+ "\t"+hit.getEnvFrom()+ "\t"+hit.getEnvTo());
 //                if(distanceToLast < 500 && clusteredStrand == null || clusteredStrand ==strand) {
+
                     if ((prevChr == null || prevChr.equals(chr)) && (prevEnd == null || envStart - prevEnd < maxGap)) {
                         clusteredFrom = clusteredFrom == null ? envStart : clusteredFrom > envStart ? envStart : clusteredFrom;
                         clusteredTo = clusteredTo == null ? envEnd : clusteredTo > envEnd ? envEnd : clusteredTo;
                         clusteredStrand = clusteredStrand == null ? strand : clusteredStrand.equals(strand) ? strand : "ERROR_CLUSTERED_ON_BOTH_STARNDS";
+                        String tmp = "" + clusteredChr;
                         clusteredChr = clusteredChr == null ? chr : clusteredChr.equals(chr) ? chr : "ERROR_CLUSTERED_ACROSS_CHROMOSOMES";
+                        if (clusteredChr.startsWith("ERROR")) {
+                            int x = 0;
+                        }
+                        clusterElems = clusterElems == null ? 1 : ++clusterElems;
                     } else {
                         if (clusteredFrom != null) {
-                            System.out.println(clusteredChr+SEP+clusteredFrom + SEP + clusteredTo + SEP + clusteredStrand);
+                            //printing group/cluster info
+                            System.out.println(clusteredChr + SEP + clusteredFrom + SEP + clusteredTo + SEP + clusteredStrand + SEP + clusterElems);
                         }
                         clusteredFrom = null;
                         clusteredTo = null;
                         clusteredStrand = null;
                         clusteredChr = null;
+                        clusterElems = null;
                     }
+                    prevEnd = envEnd;
+                    prevChr = chr;
                 }
-                prevEnd = envEnd;
-                prevChr = chr;
             }
         }
     }
