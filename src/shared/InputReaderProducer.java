@@ -58,7 +58,7 @@ public class InputReaderProducer implements Runnable {
     private int REPORTING_SHIFT = 0;
 
     public enum InFormat {
-        KMERS, PER_SAMPLE_KMERS, FASTA_SE_ONE_LINE, FASTA_PE_ONE_LINE, FASTQ_SE_ONE_LINE, FASTQ_PE_ONE_LINE, FASTA, FASTQ,
+        KMERS, PER_SAMPLE_KMERS, FASTA_SE_ONE_LINE, FASTA_PE_ONE_LINE, FASTQ_SE_ONE_LINE, FASTQ_PE_ONE_LINE, FASTQ_PE_WITH_INDEX_ONE_LINE, FASTA, FASTQ,
         MPILEUP, ONE_RECORD_PER_LINE, UNSUPPORTED_OR_UNRECOGNIZED, EMPTY;
     }
 
@@ -273,7 +273,7 @@ public class InputReaderProducer implements Runnable {
                 } else if (guessedInFormat == InFormat.KMERS
                         || (guessedInFormat == InFormat.FASTQ_PE_ONE_LINE && !kMerIsSet())
                         || (guessedInFormat == InFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())
-                        || (guessedInFormat == InFormat.MPILEUP) 
+                        || (guessedInFormat == InFormat.MPILEUP)
                         || (guessedInFormat == InFormat.ONE_RECORD_PER_LINE)) {
                     //READ KMERS (or any other input that can simply be processed line by line)
                     readLines(content, testLines);
@@ -538,8 +538,15 @@ public class InputReaderProducer implements Runnable {
                 return InFormat.FASTQ_SE_ONE_LINE;
             }
         } else if (split.length == 8) {
-            if (split[0].startsWith("@") && split[2].startsWith("+") && split[4].startsWith("@") && split[6].startsWith("+")) {
+            if (split[0].startsWith("@") && (split[2].equals("+") || split[2].startsWith("@"))
+                    && split[4].startsWith("@") && (split[6].startsWith("+") || split[6].startsWith("@"))) {
                 return InFormat.FASTQ_PE_ONE_LINE;
+            }
+        } else if (split.length == 12) {
+            if (split[0].startsWith("@") && (split[2].equals("+") || split[2].startsWith("@"))
+                    && split[4].startsWith("@") && (split[6].equals("+") || split[6].startsWith("@")) 
+                    && split[8].startsWith("@") && (split[10].equals("+") || split[10].startsWith("@"))) {
+                return InFormat.FASTQ_PE_WITH_INDEX_ONE_LINE;
             }
         }
 

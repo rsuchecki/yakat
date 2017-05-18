@@ -14,7 +14,7 @@
     
     <target name="-pre-init">
 <!--       <property name="project.name" value="NAME" />-->
-       <property name="version.num" value="0.7.17" />
+       <property name="version.num" value="0.7.18" />
         <tstamp>
             <format property="NOW" pattern="yyyy-MM-dd HH:mm:ss z" />
         </tstamp>
