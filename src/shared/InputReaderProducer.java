@@ -272,6 +272,7 @@ public class InputReaderProducer implements Runnable {
                     empty = new LabelledInputBuffer("", new ArrayList()); //making sure that the type of "done reading" flag matches the input type
                 } else if (guessedInFormat == InFormat.KMERS
                         || (guessedInFormat == InFormat.FASTQ_PE_ONE_LINE && !kMerIsSet())
+                        || (guessedInFormat == InFormat.FASTQ_PE_WITH_INDEX_ONE_LINE && !kMerIsSet())
                         || (guessedInFormat == InFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())
                         || (guessedInFormat == InFormat.MPILEUP)
                         || (guessedInFormat == InFormat.ONE_RECORD_PER_LINE)) {
