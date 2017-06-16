@@ -16,6 +16,8 @@
 
 package shared;
 
+import java.util.ArrayList;
+
 /**
  * Generic methods for handling nucleotide strings.
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
@@ -115,7 +117,7 @@ public class SequenceOps {
         return isCanonical(sequence, 0, sequence.length()-1);
     }
     
-    
+
 
     
 }
