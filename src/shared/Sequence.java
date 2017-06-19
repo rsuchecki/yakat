@@ -106,7 +106,7 @@ public class Sequence {
         ArrayList<Orf> orfs = new ArrayList<>();
         HashMap<Integer, Codon> previousCodonInFrame = new HashMap<>();
         for (Codon codon : codons) {
-            System.err.println(getId() + "\t" + codon.isStart() + "\t" + codon.getPosition() + "\t" + codon.getFrame() + "\t" + codon.getSeq());
+//            System.err.println(getId() + "\t" + codon.isStart() + "\t" + codon.getPosition() + "\t" + codon.getFrame() + "\t" + codon.getSeq());
             int currentFrame = codon.getFrame();
             if (previousCodonInFrame.containsKey(codon.getFrame())) {
                 Codon previous = previousCodonInFrame.get(codon.getFrame());

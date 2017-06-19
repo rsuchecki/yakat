@@ -268,7 +268,7 @@ public class MpileupConsumer implements Runnable {
      * @paramminCoveragePerAlleleminCoverageThreshold int min depth for a base
      * to be considered
      *
-     * TODO EXTEND TO ACCOMMODATE IDELS
+     * TODO EXTEND TO ACCOMMODATE INDELS
      *
      * @return
      */
@@ -440,10 +440,15 @@ public class MpileupConsumer implements Runnable {
                     if (Character.isDigit(c)) {
                         lenDelRef.append(c);
                     } else {
-                        int indelLen = Integer.parseInt(lenDelRef.toString());
-                        lenDelRef = null;
-                        i += indelLen - 1;
-                        bases[6]++;
+                        try {
+                            int indelLen = Integer.parseInt(lenDelRef.toString());
+                            lenDelRef = null;
+                            i += indelLen - 1;
+                            bases[6]++;
+                        } catch (NumberFormatException e) {
+                            Reporter.report("[ERROR]", "Fallen over: " + s, TOOL_NAME);
+                            System.exit(1);
+                        }
 //                        System.out.println("del in ref"+s);
                     }
                 }

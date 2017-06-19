@@ -64,7 +64,7 @@ public class FastaIndexed {
                 offsetsMap.put(toks[0], Long.parseLong(toks[2]));
                 lineBasesMap.put(toks[0], Long.parseLong(toks[3]));
                 lineWidthsMap.put(toks[0], Long.parseLong(toks[4]));
-                System.out.println(line);
+//                System.out.println(line);
             }
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
