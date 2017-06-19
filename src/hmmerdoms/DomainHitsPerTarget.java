@@ -15,6 +15,7 @@
  */
 package hmmerdoms;
 
+import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -23,6 +24,9 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.TreeSet;
+import shared.FastaIndexed;
+import shared.Orf;
+import shared.Sequence;
 
 /**
  *
@@ -33,100 +37,66 @@ public class DomainHitsPerTarget {
     private HashMap<String, ArrayList<DomainHit>> targetToHitsMap = new HashMap<>();
     private String SEP = "\t";
 
+    /**
+     * Hits are stored in a hashmap under a chromosome id (chr1A,chr1B,...,chr7D) except for chromosome "chrUn" 
+     * for which the hits are stored separately for each contig to avoid domains being grouped due to spurious 
+     * proximity on the artificial pseudomolecule
+     * @param domainHit 
+     */
     public void addHit(DomainHit domainHit) {
-        ArrayList<DomainHit> hits = targetToHitsMap.get(domainHit.getTargetId());
+        String targetIdCorrected = domainHit.getTargetIdCorrected();        
+        String targetId = targetIdCorrected.startsWith("chrUn") ? domainHit.getTargetId() : targetIdCorrected;
+        ArrayList<DomainHit> hits = targetToHitsMap.get(targetId);
         if (hits == null) {
             hits = new ArrayList<>();
-            targetToHitsMap.put(domainHit.getTargetId(), hits);
+            targetToHitsMap.put(targetId, hits);
         }
         hits.add(domainHit);
     }
 
-    public void printAll(boolean forward, int maxGap) {
-        String[] sortedKeys = getSortedKeys();
-        Integer prevEnd = null;
-        String prevChr = null;
-        int clustered = 0;
-        Integer clusteredFrom = null;
-        Integer clusteredTo = null;
-        String clusteredChr = null;
-        String clusteredStrand = null;
-        Integer clusterElems = null;
-
+    public ArrayList<HitsGroup> processDomainsPerStrand(boolean forward, int maxGap, FastaIndexed fasta) {
+        String[] sortedKeys = getSortedTargetIds();
+        ArrayList<HitsGroup> hitsGroups = new ArrayList<>();
         for (int i = 0; i < sortedKeys.length; i++) {
+//            System.err.println("Processing "+sortedKeys[i]);
+            Integer prevEnd = null;
             ArrayList<DomainHit> hits = targetToHitsMap.get(sortedKeys[i]);
-            if (forward) {
+            //Strands processed separately
+//            if (forward) {
                 Collections.sort(hits, new HitForwardComparator());
-            } else {
-                Collections.sort(hits, new HitReverseComparator());
-            }
+//            } else {
+//                Collections.sort(hits, new HitReverseComparator());
+//            }
+            HitsGroup hitsGroup = new HitsGroup(forward);
             for (DomainHit hit : hits) {
-                String chr = hit.getTargetId().replaceAll("_.*", "");
-                StringBuilder sb = new StringBuilder(chr);
                 int frame = hit.getTargetFrame();
-                int contigOffset = hit.getTargetOffset();
-                int envStartLocal = -1;
-                int envStart = -1;
-                int envEndLocal = -1;
-                int envEnd = -1;
-                boolean print = false;
-                String strand = "plus";
-                if (forward && frame > 0) {
-                    envStartLocal = hit.getEnvFrom() * 3 - (3-frame);
-                    envStart = contigOffset + envStartLocal; 
-                    envEndLocal = hit.getEnvTo() * 3 + (frame-1);
-                    envEnd = contigOffset + envEndLocal;
-                    print = true;
-                } else if (!forward && frame < 0) {
-                    int contigLen = hit.getTargetLength();
-                    //TODO the adjustmant for frame might be off
-                    envStartLocal = (contigLen - hit.getEnvTo() + 1) * 3 - (3+frame);
-                    envEndLocal = (contigLen - hit.getEnvFrom() + 1) * 3 + (-frame-1);
-                    envStart = contigOffset + envStartLocal; 
-                    envEnd = contigOffset + envEndLocal;
-                    print = true;
-                    strand = "minus";
-                }
-                if (print) {
-                    sb.append(SEP).append(envStart);
-                    sb.append(SEP).append(envEnd);
-                    sb.append(SEP).append(strand);
-                    if (prevEnd != null && prevChr.equals(chr)) {
-                        sb.append(SEP).append(envStart - prevEnd);
+                //Strands processed separately
+                if ((forward && frame > 0) || (!forward && frame < 0)) {
+                    int correctedStart = hit.getCorrectedStart();
+                    int correctedEnd = hit.getCorrectedEnd();
+                    
+                    if(prevEnd != null)
+//                    System.err.println("dist = "+NumberFormat.getInstance().format( correctedStart - prevEnd));
+                    //If this is the first record or within maximum gap distance to the last one                    
+                    if (prevEnd != null &&  correctedStart - prevEnd > maxGap) {
+//                        System.err.println("Adding "+hitsGroup.getDomainHits().size()+" as distance = "+( NumberFormat.getInstance().format(hit.getCorrectedStart() - prevEnd))+" at "+ hitsGroup.getTargetId());
+                        hitsGroups.add(hitsGroup);
+                        hitsGroup = new HitsGroup(forward);
                     }
-                    //printing domain info
-                    System.err.println(sb.toString() + "\t" + hit.getTargetId()+ "\t"+envStartLocal+ "\t"+envEndLocal+ "\t"+hit.getEnvFrom()+ "\t"+hit.getEnvTo());
-//                if(distanceToLast < 500 && clusteredStrand == null || clusteredStrand ==strand) {
-
-                    if ((prevChr == null || prevChr.equals(chr)) && (prevEnd == null || envStart - prevEnd < maxGap)) {
-                        clusteredFrom = clusteredFrom == null ? envStart : clusteredFrom > envStart ? envStart : clusteredFrom;
-                        clusteredTo = clusteredTo == null ? envEnd : clusteredTo > envEnd ? envEnd : clusteredTo;
-                        clusteredStrand = clusteredStrand == null ? strand : clusteredStrand.equals(strand) ? strand : "ERROR_CLUSTERED_ON_BOTH_STARNDS";
-                        String tmp = "" + clusteredChr;
-                        clusteredChr = clusteredChr == null ? chr : clusteredChr.equals(chr) ? chr : "ERROR_CLUSTERED_ACROSS_CHROMOSOMES";
-                        if (clusteredChr.startsWith("ERROR")) {
-                            int x = 0;
-                        }
-                        clusterElems = clusterElems == null ? 1 : ++clusterElems;
-                    } else {
-                        if (clusteredFrom != null) {
-                            //printing group/cluster info
-                            System.out.println(clusteredChr + SEP + clusteredFrom + SEP + clusteredTo + SEP + clusteredStrand + SEP + clusterElems);
-                        }
-                        clusteredFrom = null;
-                        clusteredTo = null;
-                        clusteredStrand = null;
-                        clusteredChr = null;
-                        clusterElems = null;
-                    }
-                    prevEnd = envEnd;
-                    prevChr = chr;
+                    hitsGroup.addDomainHit(hit);
+//                    System.err.println(sb.toString() + "\t" + hit.getTargetId() + "\t" + startLocal + "\t" + endLocal + "\t" + hit.getAlnFrom() + "\t" + hit.getAlnTo());
+                    prevEnd = hit.getCorrectedEnd();
                 }
+            }
+            if (!hitsGroup.isEmpty()) {
+                hitsGroups.add(hitsGroup);
+//                    System.err.println("Adding " + hitsGroup.getDomainHits().size() + " as last one " + hitsGroup.getTargetId());
             }
         }
+        return hitsGroups;
     }
 
-    private String[] getSortedKeys() {
+    private String[] getSortedTargetIds() {
         Set<String> keySet = targetToHitsMap.keySet();
         String keys[] = new String[keySet.size()];
         keys = keySet.toArray(keys);
@@ -156,7 +126,7 @@ public class DomainHitsPerTarget {
 
         @Override
         public int compare(DomainHit dh1, DomainHit dh2) {
-            return dh1.getEnvFrom() - dh2.getEnvFrom();
+            return dh1.getCorrectedStart()- dh2.getCorrectedStart();
         }
     }
 
@@ -164,7 +134,7 @@ public class DomainHitsPerTarget {
 
         @Override
         public int compare(DomainHit dh1, DomainHit dh2) {
-            return dh2.getEnvFrom() - dh1.getEnvFrom();
+            return dh2.getCorrectedStart() - dh1.getCorrectedStart();
         }
     }
 

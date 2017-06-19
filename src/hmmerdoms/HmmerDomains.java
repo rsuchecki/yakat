@@ -22,6 +22,7 @@ import java.io.InputStreamReader;
 import java.io.RandomAccessFile;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -41,7 +42,9 @@ import java.util.zip.GZIPInputStream;
 import shared.FastaIndexed;
 import shared.InputReaderProducer;
 import shared.Message;
+import shared.Orf;
 import shared.Reporter;
+import shared.Sequence;
 
 /**
  *
@@ -56,7 +59,6 @@ public class HmmerDomains {
     private final int IN_BUFFER_SIZE;
     private final int IN_Q_CAPACITY;
 
-    
     //OUT
 //    private final int OUT_BUFFER_SIZE;
 //    private final int OUT_Q_CAPACITY;
@@ -71,8 +73,7 @@ public class HmmerDomains {
         //PARSE OPTS
         IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
         IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
-        
-        
+
 //        MATCHER_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
 //        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
 //        OUT_Q_CAPACITY = (int) optSet.getOpt("q").getValueOrDefault();
@@ -127,7 +128,7 @@ public class HmmerDomains {
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
         optSet.addOpt(new Opt('g', "max-gap", "Maximum bp gap allowed between grouped domain-hits", 1).setDefaultValue(200));
 //        optSet.addOpt(new Opt('e', "min-elems", "Minimum elements for a group of domain-hits to be reported", 1).setDefaultValue(1).setMinValue(1));
-        
+
 //        optSet.addOpt(new Opt('x', "out-suffix-r1", "Output file suffix for R1 reads", 1).setDefaultValue("_R1.fastq.gz"));
 //        optSet.addOpt(new Opt('X', "out-suffix-r2", "Output file suffix for R2 reads", 1).setDefaultValue("_R2.fastq.gz"));
 //        optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
@@ -147,13 +148,10 @@ public class HmmerDomains {
         return optSet;
     }
 
-    
     private void processHmmerDomains(ArrayList<String> inputFilenamesList, OptSet optSet) {
 
-        
         DomainHitsPerTarget domainHitsPerTarget = new DomainHitsPerTarget();
-        
-        
+
         String inputFile = inputFilenamesList.get(0);
 
         Pattern spliPattern = Pattern.compile("\t| +");
@@ -191,16 +189,70 @@ public class HmmerDomains {
             }
         }
         FastaIndexed fastaIndexed = null;
-        if(optSet.getOpt("f").isUsed()) {
+        if (optSet.getOpt("f").isUsed()) {
             String fasta = (String) optSet.getOpt("f").getValueOrDefault();
-            fastaIndexed = new FastaIndexed(TOOL_NAME, fasta, fasta+".fai");
+            fastaIndexed = new FastaIndexed(TOOL_NAME, fasta, fasta + ".fai");
         }
 //        System.err.println(fastaIndexed.getSequence("LOC_Os10g35790.1", null, null));
-        
-        domainHitsPerTarget.processDomainsPerStrand(true,(int)optSet.getOpt("g").getValueOrDefault(), fastaIndexed);
-        domainHitsPerTarget.processDomainsPerStrand(false,(int)optSet.getOpt("g").getValueOrDefault(), fastaIndexed);
+        int maxGap = (int) optSet.getOpt("g").getValueOrDefault();
+        ArrayList<HitsGroup> domainsGroupedPlusStrand = domainHitsPerTarget.processDomainsPerStrand(true, maxGap, fastaIndexed);
+        ArrayList<HitsGroup> domainsGroupedMinusStrand = domainHitsPerTarget.processDomainsPerStrand(false, maxGap, fastaIndexed);
 
+        for (HitsGroup hitsGroup : domainsGroupedPlusStrand) {
+            System.err.println("");
+            System.err.println("group:  "+hitsGroup.getSummary("\t"));
+            Long extractStart = new Long(hitsGroup.getFrom())-maxGap/2;
+//            long mod = extractStart % 3;
+//            extractStart -= mod;
+            Long extractEnd = new Long(hitsGroup.getTo())+maxGap/2;
+            Sequence s = new Sequence(hitsGroup.getTargetId(), fastaIndexed.getSequence(hitsGroup.getTargetId(), extractStart, extractEnd));
+            ArrayList<Orf> orfs = s.getOrfs();
+            Collections.sort(orfs);
+            for (Orf orf : orfs) {
+                ArrayList<DomainHit> domainsInOrf = new ArrayList<>();
+                ArrayList<DomainHit> domainsOverlapOrf = new ArrayList<>();
+                ArrayList<DomainHit> domainsOutOrf = new ArrayList<>();
+//                int domainsOverlapOrf = 0;
+                long orfFrom = orf.getFrom() + extractStart - 1;
+                long orfTo = orf.getTo() + extractStart - 1;
+//                System.err.println("ORF:" + orf.getParenId() + "\t" + orf.getFrom() + "\t" + orf.getTo() + "\t" + orf.getLength() + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + orf.hasStopCodon());
+                int orfFrame = orf.getFrame();
+                for (DomainHit hit : hitsGroup.getDomainHits()) {
+                    int hitFrame = hit.getTargetFrame();
+                    if ((orfFrame > 0 && hitFrame > 0) || (orfFrame < 0 && hitFrame < 0)) {
+                        int hitFrom = hit.getCorrectedStart();
+                        int hitTo = hit.getCorrectedEnd();
+                        if (orfFrom <= hitFrom && orfTo >= hitTo) {
+//                            domainsInOrf++;
+                            domainsInOrf.add(hit);
+                        } else if((orfFrom >= hitFrom && orfFrom <= hitTo) || (orfTo >= hitFrom && orfTo <= hitTo)) {
+                            domainsOverlapOrf.add(hit);
+                        } else {                            
+                            domainsOutOrf.add(hit);
+                        }
+                    }
+                }
+                if (domainsInOrf.size() > 0) {
+                    System.err.println("ORF:    " + orf.getParenId()  + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + (orf.hasStopCodon() ? "" : "non-stop"));
+//                    System.err.println(domainsInOrf.size() + " domainsInORF, len=" + orf.getLength() + ", frame=" + +orfFrame);
+                    for (int i = 0; i < domainsInOrf.size(); i++) {
+                        DomainHit dh = domainsInOrf.get(i);
+                        System.err.println("DOM_in :" +dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd()+"\t"+dh.getTargetFrame()+"\t<=== "+(i+1));
+                    }
+                    for (DomainHit dh : domainsOverlapOrf) {
+                        System.err.println("DOM_olp:" +dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd()+"\t"+dh.getTargetFrame()+"\t<--- o/lap ");
+                    }
+                    for (DomainHit dh : domainsOutOrf) {
+                        System.err.println("DOM_out:" +dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd()+"\t"+dh.getTargetFrame());
+                    }
+//                    System.err.println(s.getLength());
+                    System.err.println(s.getSequenceString().substring((int) orf.getFrom() - 1, Math.min(s.getLength(), (int) orf.getTo())));
+                }
+            }
+        }
+
+        System.err.println(domainsGroupedPlusStrand.size());
+        System.err.println(domainsGroupedMinusStrand.size());
     }
 
-    
- }
+}

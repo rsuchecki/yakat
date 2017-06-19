@@ -20,6 +20,7 @@ package hmmerdoms;
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class DomainHit {
+
     private String targetId; //1
     private int targetLength; //3
     private String queryId; //4
@@ -29,30 +30,84 @@ public class DomainHit {
     private double bias; //15
     private int profileFrom; //16
     private int profileTo; //17
+    private int alnFrom; //18
+    private int alnTo; //19
     private int envFrom; //20
     private int envTo; //21
     private double accPosterior;  //22  The mean posterior probability of aligned residues in the MEA alignment; a measure of how reliable  the  overall  alignment  is  (from  0  to  1,  with  1.00  indicating  a  completely  reliable  alignment according to the model).
     private String targetDescription; //23
 
+    //custom
+    private int targetFrame;
+
     public DomainHit(String[] domtblRecords) {
         for (int i = 0; i < domtblRecords.length; i++) {
-            int pos = i+1;
-            switch(pos) {
-                case  1: targetId = domtblRecords[i]; break;
-                case  3: targetLength = Integer.parseInt(domtblRecords[i]); break;
-                case  4: queryId = domtblRecords[i]; break;
-                case  6: queryLength = Integer.parseInt(domtblRecords[i]); break;
-                case 13: iEvalue = Double.parseDouble(domtblRecords[i]); break;
-                case 14: score = Double.parseDouble(domtblRecords[i]); break;
-                case 15: bias = Double.parseDouble(domtblRecords[i]); break;
-                case 16: profileFrom = Integer.parseInt(domtblRecords[i]); break;
-                case 17: profileTo = Integer.parseInt(domtblRecords[i]); break;
-                case 20: envFrom = Integer.parseInt(domtblRecords[i]); break;
-                case 21: envTo = Integer.parseInt(domtblRecords[i]); break;
-                case 22: accPosterior = Double.parseDouble(domtblRecords[i]); break;
-                case 23: targetDescription = domtblRecords[i];break;          
+            int pos = i + 1;
+            switch (pos) {
+                case 1:
+                    targetId = domtblRecords[i];
+                    break;
+                case 3:
+                    targetLength = Integer.parseInt(domtblRecords[i]);
+                    break;
+                case 4:
+                    queryId = domtblRecords[i];
+                    break;
+                case 6:
+                    queryLength = Integer.parseInt(domtblRecords[i]);
+                    break;
+                case 13:
+                    iEvalue = Double.parseDouble(domtblRecords[i]);
+                    break;
+                case 14:
+                    score = Double.parseDouble(domtblRecords[i]);
+                    break;
+                case 15:
+                    bias = Double.parseDouble(domtblRecords[i]);
+                    break;
+                case 16:
+                    profileFrom = Integer.parseInt(domtblRecords[i]);
+                    break;
+                case 17:
+                    profileTo = Integer.parseInt(domtblRecords[i]);
+                    break;
+                case 18:
+                    alnFrom = Integer.parseInt(domtblRecords[i]);
+                    break;
+                case 19:
+                    alnTo = Integer.parseInt(domtblRecords[i]);
+                    break;
+                case 20:
+                    envFrom = Integer.parseInt(domtblRecords[i]);
+                    break;
+                case 21:
+                    envTo = Integer.parseInt(domtblRecords[i]);
+                    break;
+                case 22:
+                    accPosterior = Double.parseDouble(domtblRecords[i]);
+                    break;
+                case 23:
+                    targetDescription = domtblRecords[i];
+                    // Assuming this can be picked up from the description line for the target,
+                    // BBMap translate6frames.sh appends fr{1,2,...,6} after a whitespace
+                    int frame = Integer.parseInt(targetDescription.replaceFirst("fr", ""));
+                    switch (frame) {
+                        case 4:
+                            targetFrame = -1;
+                            break;
+                        case 5:
+                            targetFrame = -2;
+                            break;
+                        case 6:
+                            targetFrame = -3;
+                            break;
+                        default:
+                            targetFrame = frame;
+                            break;
+                    }
+                    break;
             }
-            
+
         }
     }
 
@@ -92,6 +147,14 @@ public class DomainHit {
         return profileTo;
     }
 
+    public int getAlnFrom() {
+        return alnFrom;
+    }
+
+    public int getAlnTo() {
+        return alnTo;
+    }
+
     public int getEnvFrom() {
         return envFrom;
     }
@@ -107,30 +170,52 @@ public class DomainHit {
     public String getTargetDescription() {
         return targetDescription;
     }
-    
-    /**
-     * Assuming this can be picked up from the description line for the target, BBMap translate6frames.sh appends fr{1,2,...,6} after a whitespace
-     * @return 
-     */
+
     public int getTargetFrame() {
-        int frame  = Integer.parseInt(getTargetDescription().replaceFirst("fr", ""));
-        switch(frame) {
-            case 4: return -1;
-            case 5: return -2;
-            case 6: return -3;
-            default: return frame;
-        }
+        return targetFrame;
     }
-    
+
     /**
-     * Assuming this can be picked up from the identifier, expected format: >chromosome_contigOffset_Ns_length
-     * @return 
+     * Assuming this can be picked up from the identifier, expected format:
+     * >chromosome_contigOffset_Ns_length
+     *
+     * @return
      */
     public int getTargetOffset() {
         String[] toks = getTargetId().split("_");
-       return  Integer.parseInt(toks[1]);
+        return Integer.parseInt(toks[1]);
     }
-    
+
+    public int getStartLocal() {
+        int frame = getTargetFrame();
+        if (frame > 0) {
+            return getAlnFrom() * 3 - (3 - frame);
+        } else {
+            //TODO the adjustmant for frame might be off
+            return (getTargetLength() - getAlnTo() + 1) * 3 - (3 + frame);
+        }
+    }
+
+    public int getEndLocal() {
+        int frame = getTargetFrame();
+        if (frame > 0) {
+            return getAlnTo() * 3 + (frame - 1);
+        } else {
+            return (getTargetLength() - getAlnFrom() + 1) * 3 + (-frame - 1);
+        }
+    }
+
+    public int getCorrectedStart() {
+        return getTargetOffset() + getStartLocal();
+    }
+
+    public int getCorrectedEnd() {
+        return getTargetOffset() + getEndLocal();
+    }
+
+    public String getTargetIdCorrected() {
+        return getTargetId().replaceAll("_.*", "");
+    }
 }
 
 //From HMMER MANUAL, 1-indexed
