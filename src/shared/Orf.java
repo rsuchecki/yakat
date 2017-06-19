@@ -15,18 +15,21 @@
  */
 package shared;
 
+import java.util.Comparator;
+
 /**
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class Orf {
+public class Orf implements Comparable<Orf> {
+
     private String parenId;
-    private long from;
-    private long to;
+    private int from;
+    private int to;
     private int frame;
     private boolean hasStopCodon;
 
-    public Orf(String parenId, long from, long to, int frame, boolean hasStopCodon) {
+    public Orf(String parenId, int from, int to, int frame, boolean hasStopCodon) {
         this.parenId = parenId;
         this.from = from;
         this.to = to;
@@ -49,15 +52,19 @@ public class Orf {
     public int getFrame() {
         return frame;
     }
-    
+
     public long getLength() {
-        return getTo()-getFrom()+1;
+        return getTo() - getFrom() + 1;
     }
 
     public boolean hasStopCodon() {
         return hasStopCodon;
     }
-    
-    
-    
+
+
+    @Override
+    public int compareTo(Orf o) {
+        return (int) (o.getLength() - getLength());
+    }
+
 }
