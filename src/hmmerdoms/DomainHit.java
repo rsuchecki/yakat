@@ -39,6 +39,8 @@ public class DomainHit {
 
     //custom
     private int targetFrame;
+    private boolean assigned;
+
 
     public DomainHit(String[] domtblRecords) {
         for (int i = 0; i < domtblRecords.length; i++) {
@@ -216,6 +218,16 @@ public class DomainHit {
     public String getTargetIdCorrected() {
         return getTargetId().replaceAll("_.*", "");
     }
+
+    public boolean isAssigned() {
+        return assigned;
+    }
+
+    public void setAssigned(boolean assigned) {
+        this.assigned = assigned;
+    }
+    
+    
 }
 
 //From HMMER MANUAL, 1-indexed

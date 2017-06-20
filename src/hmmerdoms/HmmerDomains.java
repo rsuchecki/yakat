@@ -149,11 +149,9 @@ public class HmmerDomains {
     }
 
     private void processHmmerDomains(ArrayList<String> inputFilenamesList, OptSet optSet) {
-
+        //PARSE INPUT FROm HMMER
         DomainHitsPerTarget domainHitsPerTarget = new DomainHitsPerTarget();
-
         String inputFile = inputFilenamesList.get(0);
-
         Pattern spliPattern = Pattern.compile("\t| +");
         BufferedReader content = null;
         try {
@@ -165,15 +163,12 @@ public class HmmerDomains {
             }
             String line;
             while ((line = content.readLine()) != null && !line.isEmpty()) {
-//                String[] toks = line.split("\t");
                 if (!line.startsWith("#")) {
                     String[] toks = spliPattern.split(line);
                     DomainHit domainHit = new DomainHit(toks);
                     domainHitsPerTarget.addHit(domainHit);
-//                    System.out.println(line);
                 }
             }
-
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
             System.exit(1);
@@ -188,71 +183,80 @@ public class HmmerDomains {
                 System.err.println(ex.getMessage());
             }
         }
+        //PARSE FASTA FAI INDEX
         FastaIndexed fastaIndexed = null;
         if (optSet.getOpt("f").isUsed()) {
             String fasta = (String) optSet.getOpt("f").getValueOrDefault();
             fastaIndexed = new FastaIndexed(TOOL_NAME, fasta, fasta + ".fai");
         }
-//        System.err.println(fastaIndexed.getSequence("LOC_Os10g35790.1", null, null));
+        //GROUP DOMAINS BASED ON maxGap
         int maxGap = (int) optSet.getOpt("g").getValueOrDefault();
-        ArrayList<HitsGroup> domainsGroupedPlusStrand = domainHitsPerTarget.processDomainsPerStrand(true, maxGap, fastaIndexed);
-        ArrayList<HitsGroup> domainsGroupedMinusStrand = domainHitsPerTarget.processDomainsPerStrand(false, maxGap, fastaIndexed);
+        ArrayList<HitsGroup> domainsGrouped = domainHitsPerTarget.processDomainsPerStrand(true, maxGap, fastaIndexed);
+        domainsGrouped.addAll(domainHitsPerTarget.processDomainsPerStrand(false, maxGap, fastaIndexed));
+//        ArrayList<HitsGroup> domainsGroupedPlusStrand = domainHitsPerTarget.processDomainsPerStrand(true, maxGap, fastaIndexed);
+//        ArrayList<HitsGroup> domainsGroupedMinusStrand = domainHitsPerTarget.processDomainsPerStrand(false, maxGap, fastaIndexed);
 
-        for (HitsGroup hitsGroup : domainsGroupedPlusStrand) {
-            System.err.println("");
-            System.err.println("group:  "+hitsGroup.getSummary("\t"));
-            Long extractStart = new Long(hitsGroup.getFrom())-maxGap/2;
-//            long mod = extractStart % 3;
-//            extractStart -= mod;
-            Long extractEnd = new Long(hitsGroup.getTo())+maxGap/2;
-            Sequence s = new Sequence(hitsGroup.getTargetId(), fastaIndexed.getSequence(hitsGroup.getTargetId(), extractStart, extractEnd));
-            ArrayList<Orf> orfs = s.getOrfs();
-            Collections.sort(orfs);
-            for (Orf orf : orfs) {
-                ArrayList<DomainHit> domainsInOrf = new ArrayList<>();
-                ArrayList<DomainHit> domainsOverlapOrf = new ArrayList<>();
-                ArrayList<DomainHit> domainsOutOrf = new ArrayList<>();
-//                int domainsOverlapOrf = 0;
-                long orfFrom = orf.getFrom() + extractStart - 1;
-                long orfTo = orf.getTo() + extractStart - 1;
-//                System.err.println("ORF:" + orf.getParenId() + "\t" + orf.getFrom() + "\t" + orf.getTo() + "\t" + orf.getLength() + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + orf.hasStopCodon());
-                int orfFrame = orf.getFrame();
-                for (DomainHit hit : hitsGroup.getDomainHits()) {
-                    int hitFrame = hit.getTargetFrame();
-                    if ((orfFrame > 0 && hitFrame > 0) || (orfFrame < 0 && hitFrame < 0)) {
-                        int hitFrom = hit.getCorrectedStart();
-                        int hitTo = hit.getCorrectedEnd();
-                        if (orfFrom <= hitFrom && orfTo >= hitTo) {
-//                            domainsInOrf++;
-                            domainsInOrf.add(hit);
-                        } else if((orfFrom >= hitFrom && orfFrom <= hitTo) || (orfTo >= hitFrom && orfTo <= hitTo)) {
-                            domainsOverlapOrf.add(hit);
-                        } else {                            
-                            domainsOutOrf.add(hit);
-                        }
-                    }
-                }
-                if (domainsInOrf.size() > 0) {
-                    System.err.println("ORF:    " + orf.getParenId()  + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + (orf.hasStopCodon() ? "" : "non-stop"));
-//                    System.err.println(domainsInOrf.size() + " domainsInORF, len=" + orf.getLength() + ", frame=" + +orfFrame);
-                    for (int i = 0; i < domainsInOrf.size(); i++) {
-                        DomainHit dh = domainsInOrf.get(i);
-                        System.err.println("DOM_in :" +dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd()+"\t"+dh.getTargetFrame()+"\t<=== "+(i+1));
-                    }
-                    for (DomainHit dh : domainsOverlapOrf) {
-                        System.err.println("DOM_olp:" +dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd()+"\t"+dh.getTargetFrame()+"\t<--- o/lap ");
-                    }
-                    for (DomainHit dh : domainsOutOrf) {
-                        System.err.println("DOM_out:" +dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd()+"\t"+dh.getTargetFrame());
-                    }
-//                    System.err.println(s.getLength());
-                    System.err.println(s.getSequenceString().substring((int) orf.getFrom() - 1, Math.min(s.getLength(), (int) orf.getTo())));
-                }
-            }
+        for (HitsGroup hitsGroup : domainsGrouped) {
+            HashMap<Orf, ArrayList<DomainHit>> orfToCoveredDomains = hitsGroup.identifyOrfsOverlappingDomains(fastaIndexed, maxGap);
+//            System.err.println("");
+//            System.err.println("group:  " + hitsGroup.getSummary("\t"));
+//            Long extractStart = new Long(hitsGroup.getFrom()) - maxGap / 2;
+////            long mod = extractStart % 3;
+////            extractStart -= mod;
+//            Long extractEnd = new Long(hitsGroup.getTo()) + maxGap / 2;
+//            Sequence s = new Sequence(hitsGroup.getTargetId(), fastaIndexed.getSequence(hitsGroup.getTargetId(), extractStart, extractEnd));
+//            ArrayList<Orf> orfs = s.getOrfs();
+//            Collections.sort(orfs);
+////            HashMqap<Orf,ArrayList<>> selectedOrfs = new ArrayList<>();
+//            for (Orf orf : orfs) {
+//                ArrayList<DomainHit> domainsInOrf = new ArrayList<>();
+////                ArrayList<DomainHit> domainsOverlapOrf = new ArrayList<>();
+////                ArrayList<DomainHit> domainsOutOrf = new ArrayList<>();
+////                int domainsOverlapOrf = 0;
+//                long orfFrom = orf.getFrom() + extractStart - 1;
+//                long orfTo = orf.getTo() + extractStart - 1;
+////                System.err.println("ORF:" + orf.getParenId() + "\t" + orf.getFrom() + "\t" + orf.getTo() + "\t" + orf.getLength() + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + orf.hasStopCodon());
+//                int orfFrame = orf.getFrame();
+//                for (DomainHit hit : hitsGroup.getDomainHits()) {
+//                    int hitFrame = hit.getTargetFrame();
+//                    if ((orfFrame > 0 && hitFrame > 0) || (orfFrame < 0 && hitFrame < 0)) {
+//                        int hitFrom = hit.getCorrectedStart();
+//                        int hitTo = hit.getCorrectedEnd();
+//                        //IDENTIFY DOMAINS CONTAINED IN OR OVERLAPPING WITH THE ORF
+//                        if ((orfFrom <= hitFrom && orfTo >= hitTo) || (orfFrom >= hitFrom && orfFrom <= hitTo) || (orfTo >= hitFrom && orfTo <= hitTo)) {
+////                            domainsInOrf++;
+//                            if (!hit.isAssigned()) {
+//                                domainsInOrf.add(hit);
+//                                hit.setAssigned(true);
+//                            }
+////                        } else if((orfFrom >= hitFrom && orfFrom <= hitTo) || (orfTo >= hitFrom && orfTo <= hitTo)) {
+////                            domainsOverlapOrf.add(hit);
+////                        } else {                            
+////                            domainsOutOrf.add(hit);
+//                        }
+//                    }
+//                }
+//                if (domainsInOrf.size() > 0) {
+//                    System.err.println("ORF:    " + orf.getParenId() + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + (orf.hasStopCodon() ? "" : "non-stop"));
+////                    System.err.println(domainsInOrf.size() + " domainsInORF, len=" + orf.getLength() + ", frame=" + +orfFrame);
+//                    for (int i = 0; i < domainsInOrf.size(); i++) {
+//                        DomainHit dh = domainsInOrf.get(i);
+//                        System.err.println("DOM_in :" + dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd() + "\t" + dh.getTargetFrame() + "\t<=== " + (i + 1));
+//                    }
+////                    for (DomainHit dh : domainsOverlapOrf) {
+////                        System.err.println("DOM_olp:" +dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd()+"\t"+dh.getTargetFrame()+"\t<--- o/lap ");
+////                    }
+////                    for (DomainHit dh : domainsOutOrf) {
+////                        System.err.println("DOM_out:" +dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd()+"\t"+dh.getTargetFrame());
+////                    }
+////                    System.err.println(s.getLength());
+//                    System.err.println(s.getSequenceString().substring((int) orf.getFrom() - 1, Math.min(s.getLength(), (int) orf.getTo())));
+//                }                
+//            }
+            System.err.println("Assigned "+hitsGroup.getNumAssigned()+" of "+hitsGroup.size()+" domainHits to "+orfToCoveredDomains.size()+" ORFs");
         }
 
-        System.err.println(domainsGroupedPlusStrand.size());
-        System.err.println(domainsGroupedMinusStrand.size());
+        System.err.println(domainsGrouped.size());
     }
 
 }

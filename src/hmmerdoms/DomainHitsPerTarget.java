@@ -75,7 +75,7 @@ public class DomainHitsPerTarget {
                     int correctedStart = hit.getCorrectedStart();
                     int correctedEnd = hit.getCorrectedEnd();
                     
-                    if(prevEnd != null)
+
 //                    System.err.println("dist = "+NumberFormat.getInstance().format( correctedStart - prevEnd));
                     //If this is the first record or within maximum gap distance to the last one                    
                     if (prevEnd != null &&  correctedStart - prevEnd > maxGap) {
