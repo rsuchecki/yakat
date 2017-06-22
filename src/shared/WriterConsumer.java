@@ -23,6 +23,8 @@ import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import shared.Reporter;
 /**
  *
@@ -48,9 +50,10 @@ public class WriterConsumer implements Runnable {
 
     @Override
     public void run() {
+        BufferedWriter out = null;
         try {
 //            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(java.io.FileDescriptor.out), "ASCII"), 512);
-            BufferedWriter out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(java.io.FileDescriptor.out)), BUFFER_SIZE);
+            out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(java.io.FileDescriptor.out)), BUFFER_SIZE);
             ArrayList<String> list;
             long outputCount = 0L;
             while (!(list = outputQueue.take()).isEmpty()) {
@@ -68,6 +71,14 @@ public class WriterConsumer implements Runnable {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         } catch (IOException e) {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
+        } finally {
+            if(out != null) {
+                try {
+                    out.close();
+                } catch (IOException ex) {
+                    Reporter.report("[ERROR]", ex.getMessage(), TOOL_NAME);
+                }
+            }
         }
     }
 
