@@ -18,7 +18,6 @@ package hmmerdoms;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import shared.FastaIndexed;
 import shared.Orf;
 import shared.Sequence;
@@ -27,12 +26,26 @@ import shared.Sequence;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class HitsGroup {
+public class HitsGroup implements Comparable<HitsGroup>{
 
     private ArrayList<DomainHit> domainHits;
     private int from;
     private int to;
+    private Long orfPredictionRangeFrom;
+    private Long orfPredictionToPosition;
     private Strand strand;
+
+    ArrayList<OrfWithDomainHits> orfsWithDomainsHits;
+
+    @Override
+    public int compareTo(HitsGroup o) {
+        int lexId = getTargetId().compareTo(o.getTargetId());
+        if(lexId == 0) {
+            return getFrom() - o.getFrom();
+        } else {
+            return lexId;
+        }
+    }
 
     private enum Strand {
         plus, minus
@@ -95,6 +108,10 @@ public class HitsGroup {
     public String getStrand() {
         return strand.toString();
     }
+    
+    public String getStrandSymbol() {
+        return strand == Strand.plus ? "+" : "-";
+    }
 
     public CharSequence getSummary(String sep) {
         StringBuilder sb = new StringBuilder(getTargetId());
@@ -120,19 +137,25 @@ public class HitsGroup {
         return assigned;
     }
 
-    public HashMap<Orf, ArrayList<DomainHit>> identifyOrfsOverlappingDomains(FastaIndexed fastaIndexed, int maxGap) {
-        HashMap<Orf, ArrayList<DomainHit>> orfToDomainsMap = new HashMap<>(size());
-        Long extractStart = new Long(getFrom()) - maxGap / 2;
-//            long mod = extractStart % 3;
-//            extractStart -= mod;
-        Long extractEnd = new Long(getTo()) + maxGap / 2;
-        Sequence s = new Sequence(getTargetId(), fastaIndexed.getSequence(getTargetId(), extractStart, extractEnd));
+    private void identifyOrfsOverlappingDomains(FastaIndexed fastaIndexed, int upstreamDownstreamBases, boolean allowRecursiveExtending) {
+        orfsWithDomainsHits = new ArrayList<>();
+        orfPredictionRangeFrom = new Long(getFrom()) - upstreamDownstreamBases;
+//        int mod = (int) (orfPredictionFromPosition % 3);
+//        switch(mod) {
+//            case 0: orfPredictionFromPosition -= 2; break;
+//            case 1: break;
+//            case 2: orfPredictionFromPosition -= 1; break;
+//        }
+//        orfPredictionFromPosition -= mod+1;
+        orfPredictionToPosition = new Long(getTo()) + upstreamDownstreamBases;
+        Sequence s = new Sequence(getTargetId(), fastaIndexed.getSequence(getTargetId(), orfPredictionRangeFrom, orfPredictionToPosition));
         ArrayList<Orf> orfs = s.getOrfs();
         Collections.sort(orfs);
+        boolean extendFurther = false;
         for (Orf orf : orfs) {
             ArrayList<DomainHit> domainsInOrf = new ArrayList<>();
-            long orfFrom = orf.getFrom() + extractStart - 1;
-            long orfTo = orf.getTo() + extractStart - 1;
+            long orfFrom = orf.getFrom() + orfPredictionRangeFrom - 1;
+            long orfTo = orf.getTo() + orfPredictionRangeFrom - 1;
 //                System.err.println("ORF:" + orf.getParenId() + "\t" + orf.getFrom() + "\t" + orf.getTo() + "\t" + orf.getLength() + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + orf.hasStopCodon());
             int orfFrame = orf.getFrame();
             for (DomainHit hit : getDomainHits()) {
@@ -154,18 +177,48 @@ public class HitsGroup {
                     }
                 }
             }
-            if (domainsInOrf.size() > 0) {
-                orfToDomainsMap.put(orf, domainsInOrf);
-//                System.err.println("ORF:    " + orf.getParenId() + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + (orf.hasStopCodon() ? "" : "non-stop"));
-                for (int i = 0; i < domainsInOrf.size(); i++) {
-                    DomainHit dh = domainsInOrf.get(i);
-//                    System.err.println("DOM_in :" + dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd() + "\t" + dh.getTargetFrame() + "\t<=== " + (i + 1));
+            //IF a domain-containing ORF is unterminated, try extending             
+            if (allowRecursiveExtending && domainsInOrf.size() > 0) {
+                if (!orf.hasStopCodon()) {
+                    extendFurther = true;
+                    break;
                 }
+                orfsWithDomainsHits.add(new OrfWithDomainHits(orf, domainsInOrf));
+//                System.err.println("ORF:    " + orf.getParenId() + "\t" + orfFrom + "\t" + orfTo + "\t" + orf.getFrame() + "\t" + (orf.hasStopCodon() ? "" : "non-stop"));
+//                for (int i = 0; i < domainsInOrf.size(); i++) {
+//                    DomainHit dh = domainsInOrf.get(i);
+////                    System.err.println("DOM_in :" + dh.getTargetIdCorrected() + "\t" + dh.getCorrectedStart() + "\t" + dh.getCorrectedEnd() + "\t" + dh.getTargetFrame() + "\t<=== " + (i + 1));
+//                }
 //                System.err.println(s.getSequenceString().substring((int) orf.getFrom() - 1, Math.min(s.getLength(), (int) orf.getTo())));
             }
         }
-        return orfToDomainsMap;
-                
+        if (extendFurther) {
+            for (DomainHit hit : getDomainHits()) {
+                hit.setAssigned(false); //resret previous assignment to ORFs 
+            }
+//            System.err.println("Further extending +- "+(upstreamDownstreamBases*2));
+            identifyOrfsOverlappingDomains(fastaIndexed, upstreamDownstreamBases*2, allowRecursiveExtending);
+        }
+
+    }
+
+    public ArrayList<OrfWithDomainHits> getOrfsWithDomainsHits(FastaIndexed fastaIndexed, int upstreamDownstreamBases, boolean allowRecursiveExtending) {
+        if (orfsWithDomainsHits == null) {
+            identifyOrfsOverlappingDomains(fastaIndexed, upstreamDownstreamBases, allowRecursiveExtending);
+        }
+        return orfsWithDomainsHits;
+    }
+
+    public Long getOrfPredictionFromPosition() {
+        return orfPredictionRangeFrom;
+    }
+
+    public Long getOrfPredictionToPosition() {
+        return orfPredictionToPosition;
+    }
+
+    public CharSequence getGff3() {
+        return "";
     }
 
 }
