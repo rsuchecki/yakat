@@ -15,6 +15,11 @@
  */
 package argparser;
 
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.zip.GZIPOutputStream;
 import shared.CommonMaths;
 import shared.Reporter;
 
@@ -197,7 +203,7 @@ public class OptSet {
             opt = longToOptMap.get(key.toLowerCase());
         }
         if (opt == null) {
-            Reporter.report("[FATAL]", "Unknown option requested: " + key, this.getClass().getSimpleName());            
+            Reporter.report("[FATAL]", "Unknown option requested: " + key, this.getClass().getSimpleName());
             System.exit(1);
         }
         return opt;
@@ -331,7 +337,7 @@ public class OptSet {
                 if (helpLine.length() > 0) {
                     helpLine.append("; ");
                 }
-                helpLine.append("default=").append(opt.hasDefaultValue()  ? opt.getFormattedValue(opt.getDefaultValue()) : opt.getDefaultValueDescription());
+                helpLine.append("default=").append(opt.hasDefaultValue() ? opt.getFormattedValue(opt.getDefaultValue()) : opt.getDefaultValueDescription());
             } else if (opt.getMaxValueArgs() > 0 && !opt.isRequired()) {
                 if (helpLine.length() > 0) {
                     helpLine.append("; ");
@@ -456,7 +462,7 @@ public class OptSet {
         return mutuallyExclusiveGroups.get(group);
     }
 
-    public void printUserSettings(String TOOL_NAME) {        
+    public void printUserSettings(String TOOL_NAME) {
         int currentListingGroup = -1;
         for (Opt o : getOptsList()) {
             if (o.getListingGroup() > currentListingGroup) {
@@ -497,5 +503,36 @@ public class OptSet {
                 Reporter.reportNoMem("[OPTS]", sb.toString(), TOOL_NAME);
             }
         }
+        
+        for(PositionalOpt opt: getPositionalOptsList()) {
+            if(opt.isUsed()) {                
+                Reporter.reportNoMem("[OPTS]", "[Positional settings]", TOOL_NAME);                    
+                for (String value : opt.getValues()) {
+                    Reporter.reportNoMem("[OPTS]", value, TOOL_NAME);                    
+                }
+            }
+        }
+        
+        
+    }
+
+    /**
+     * Get plain text or compressed buffer writer for a file specified by opt via its key
+     * @param key
+     * @param WRITER_BUFFER_SIZE
+     * @return null if opt not used
+     * @throws FileNotFoundException
+     * @throws IOException
+     */
+    public BufferedWriter getBufferedWriterForOpt(String key, int WRITER_BUFFER_SIZE) throws FileNotFoundException, IOException {
+        if (getOpt(key).isUsed()) {
+            String outputFastaAA = (String) getOpt(key).getValueOrDefault();
+            if (outputFastaAA.endsWith(".gz")) {
+                return new BufferedWriter(new OutputStreamWriter(new GZIPOutputStream(new FileOutputStream(outputFastaAA)), "UTF-8"), WRITER_BUFFER_SIZE);
+            } else {
+                return new BufferedWriter(new OutputStreamWriter(new FileOutputStream(outputFastaAA), "UTF-8"), WRITER_BUFFER_SIZE);
+            }
+        }
+        return null;
     }
 }

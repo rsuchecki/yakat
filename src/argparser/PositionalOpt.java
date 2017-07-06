@@ -59,6 +59,11 @@ public class PositionalOpt implements Comparable<PositionalOpt> {
         this.required = required;
     }
 
+    public PositionalOpt setRequired() {
+        this.required = true;
+        return this;
+    }
+       
     public boolean isRequired() {
         return required;
     }

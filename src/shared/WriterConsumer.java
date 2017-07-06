@@ -23,9 +23,6 @@ import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import shared.Reporter;
 /**
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
