@@ -15,8 +15,6 @@
  */
 package shared;
 
-import java.util.Comparator;
-
 /**
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
@@ -66,5 +64,8 @@ public class Orf implements Comparable<Orf> {
     public int compareTo(Orf o) {
         return (int) (o.getLength() - getLength());
     }
+    
+    
+    
 
 }

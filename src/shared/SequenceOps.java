@@ -117,7 +117,14 @@ public class SequenceOps {
         return isCanonical(sequence, 0, sequence.length()-1);
     }
     
-
+    public static CharSequence translate(CharSequence sequence) {        
+        StringBuilder sb = new StringBuilder(sequence.length());
+        CodonDictionary cd = new CodonDictionary();
+        for (int i = 0; i < sequence.length()-2; i+=3) {
+            sb.append(cd.translate(sequence.subSequence(i, i+3)));
+        }
+        return sb;
+    }
 
     
 }
