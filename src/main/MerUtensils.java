@@ -15,6 +15,7 @@
  */
 package main;
 
+import allorfs.AllOrfs;
 import argparser.ParserTest;
 import fastqmatchid.FastqMatchId;
 import gbssplit.SplitGBS;
@@ -71,6 +72,8 @@ public class MerUtensils {
             new SeedMers(args, name, "seedmers");
         } else if (args.length != 0 && args[0].matches("h(a)?mmerdom(ain)?s")) {
             new HmmerDomains(args, name, "hmmerdoms");
+        } else if (args.length != 0 && args[0].matches("(all)?orfs")) {
+            new AllOrfs(args, name, "allorfs");
         } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {
 //            new (args, name, "vclustersvars");
             new MsaParserListVariants(args, name, "vclust");
