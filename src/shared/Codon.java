@@ -15,14 +15,16 @@
  */
 package shared;
 
+import java.util.regex.Pattern;
+
 /**
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class Codon {    
-    private String seq;
-    private int pos;
-    private int frame;
+    private final String seq;
+    private final int pos;
+    private final int frame;
     
     
     public Codon(String seq, int pos, int frame) {
@@ -47,7 +49,10 @@ public class Codon {
         return (frame > 0 && getSeq().equalsIgnoreCase("ATG")) || (frame < 0 && getSeq().equalsIgnoreCase("CAT"));
     }
     
-    public boolean isStop() {
-        return (frame > 0 && getSeq().toUpperCase().matches("T(AA|AG|GA)")) || (frame < 0 && getSeq().toUpperCase().matches("(TT|TC|CT)A"));
+    public boolean isStop(Pattern stopForward, Pattern stopReverse) {
+//        Pattern p = Pattern.compile("");
+//        p.matcher(getSeq().toUpperCase()).;
+//        return (frame > 0 && getSeq().toUpperCase().matches("T(AA|AG|GA)")) || (frame < 0 && getSeq().toUpperCase().matches("(TT|TC|CT)A"));
+        return (frame > 0 && stopForward.matcher(getSeq()).matches()) || (frame < 0 && stopReverse.matcher(getSeq()).matches());
     }
 }

@@ -21,6 +21,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 /**
@@ -41,8 +42,10 @@ public class FastaIndexed {
     private HashMap<String, Long> offsetsMap = new HashMap<>();
     private HashMap<String, Long> lineBasesMap = new HashMap<>();
     private HashMap<String, Long> lineWidthsMap = new HashMap<>();
-
+    private ArrayList<String> ids;
+    
     public FastaIndexed(String TOOL_NAME, String fasta, String fai) {
+        this.ids = new ArrayList<>();
         this.TOOL_NAME = TOOL_NAME;
         fastaFile = fasta;
         if (fai == null) {
@@ -52,6 +55,7 @@ public class FastaIndexed {
         }
     }
 
+    
     private void readIndex(String fai) {
         BufferedReader index = null;
         try {
@@ -60,6 +64,7 @@ public class FastaIndexed {
             while ((line = index.readLine()) != null && !line.isEmpty()) {
 
                 String[] toks = line.split("\t");
+                ids.add(toks[0]);
                 lengthsMap.put(toks[0], Long.parseLong(toks[1]));
                 offsetsMap.put(toks[0], Long.parseLong(toks[2]));
                 lineBasesMap.put(toks[0], Long.parseLong(toks[3]));
@@ -83,6 +88,13 @@ public class FastaIndexed {
         }
 
     }
+
+    public ArrayList<String> getIds() {
+        return ids;
+    }
+
+
+    
     
     public String getSequence(String id) {
         return getSequence(id, null, null);

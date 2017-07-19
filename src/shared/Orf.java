@@ -21,13 +21,13 @@ package shared;
  */
 public class Orf implements Comparable<Orf> {
 
-    private String parenId;
-    private int from;
-    private int to;
-    private int frame;
-    private boolean hasStopCodon;
+    private final CharSequence parenId;
+    private final int from;
+    private final int to;
+    private final int frame;
+    private final boolean hasStopCodon;
 
-    public Orf(String parenId, int from, int to, int frame, boolean hasStopCodon) {
+    public Orf(CharSequence parenId, int from, int to, int frame, boolean hasStopCodon) {
         this.parenId = parenId;
         this.from = from;
         this.to = to;
@@ -35,15 +35,15 @@ public class Orf implements Comparable<Orf> {
         this.hasStopCodon = hasStopCodon;
     }
 
-    public String getParenId() {
+    public CharSequence getParenId() {
         return parenId;
     }
 
-    public long getFrom() {
+    public int getFrom() {
         return from;
     }
 
-    public long getTo() {
+    public int getTo() {
         return to;
     }
 
@@ -59,11 +59,20 @@ public class Orf implements Comparable<Orf> {
         return hasStopCodon;
     }
 
+    
+    public StringBuilder getFastaHeader() {
+        StringBuilder sb = new StringBuilder(">");
+        sb.append(getParenId()).append(":").append(getFrom()).append("-").append(getTo()).append(" frame=").append(getFrame());
+        return sb;
+    }
+    
 
     @Override
     public int compareTo(Orf o) {
         return (int) (o.getLength() - getLength());
     }
+    
+    
     
     
     
