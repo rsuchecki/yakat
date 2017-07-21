@@ -187,7 +187,11 @@ public class SnpFilter {
             snpCalls = new HashMap<>();
 //            callDetails = new HashMap<>();
         }
-
+//        System.out.println();
+//        System.out.printf("%15s%30s%30s\n", clusterId, sequence1.getId(), sequence2.getId());
+//        System.out.println(sequence1.getSequenceString());
+//        System.out.println(sequence2.getSequenceString());
+//        System.out.println("Calling "+sampleName+" parent calls "+getBase1()+"/"+getBase2());
         BaseCall call = call(minTotal, minMinor, minCoverage, maxError);
         BaseCall put = snpCalls.put(sampleName, call);
 
@@ -256,14 +260,16 @@ public class SnpFilter {
 
 //    private BaseCall call(int minTotal, int minMinor, int minKmers, String TOOL_NAME) {
     private BaseCall call(int minTotal, int minMinor, double minCoverageRatio, double maxError) {        
+//        System.out.println(Arrays.toString(getMers1()).replaceAll(",|\\[|\\]", ""));
+//        System.out.println(Arrays.toString(getMers2()).replaceAll(",|\\[|\\]", ""));
+        
         ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
         ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
         double cov1 = shared.CommonMaths.getMedian(nonZeroKmerFreqs1);
         double cov2 = shared.CommonMaths.getMedian(nonZeroKmerFreqs2);
 //        double cov1 = getMax(nonZeroKmerFreqs1);
 //        double cov2 = getMax(nonZeroKmerFreqs2);
-//        int uniqeMersParent1 = getUniqeMersParent1();
-//        int uniqeMersParent2 = getUniqeMersParent2();
+
 //        if(mersParent1 < 10 &&  mersParent2 < 10) {
 //            int x =0;
 //        }
@@ -271,6 +277,7 @@ public class SnpFilter {
         double coverageRatio2 = (double)nonZeroKmerFreqs2.size() / getMersParent2();
         //QUICKLY DISCARD IF LOW FREQUENCY/LOW COVERAGE 
         if (cov1 + cov2 < minTotal || (coverageRatio1 < minCoverageRatio && coverageRatio2 < minCoverageRatio)) {
+//            System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" _/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
             return new BaseCall(null, null);
         }
         Character base1 = getBase1();
@@ -287,14 +294,18 @@ public class SnpFilter {
         }
         //CLEAR-CUT HOMOZYGOUS CASES
         if (cov1 == 0 && coverageRatio2 >= minCoverageRatio) { //homozygous
+//        System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" "+base2+"/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
             return new BaseCall(base2, null);
         } else if (cov2 == 0 && coverageRatio1 >= minCoverageRatio) { //homozygous
+//            System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" "+base1+"/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
             return new BaseCall(base1, null);
         }
         
         if (cov1 >= minMinor && cov2 >= minMinor && coverageRatio1 >= minCoverageRatio && coverageRatio2 >= minCoverageRatio) {
+//            System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" "+base1+" "+base2 +" "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
             return new BaseCall(base1, base2);
         }
+//        System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" _/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
         return new BaseCall(null, null);
 
     }

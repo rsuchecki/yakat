@@ -245,7 +245,8 @@ public class SnpMers {
                 ex.printStackTrace();
             }
         }
-        Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map, purging non-unique ones", TOOL_NAME);
+        Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map", TOOL_NAME);
+//        Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map, purging non-unique ones", TOOL_NAME);
         
 
 //PURGE NON-UNIQUE k-mers (these can only be non-unique due to merging of non conflicting, clustered seeds from vsearch)
@@ -322,7 +323,7 @@ public class SnpMers {
 //                
 //            }                       
 //        }
-        Reporter.report("[INFO]", intFormat(map.size()) + " unique k-mer-links in map", TOOL_NAME);
+//        Reporter.report("[INFO]", intFormat(map.size()) + " unique k-mer-links in map", TOOL_NAME);
 
     }
 
@@ -438,7 +439,7 @@ public class SnpMers {
     }
 
     private ArrayList<String> threadKmersThroughMap(OptSet optSet, ArrayList<String> kmersFileNames,
-            int minTotal, int minMinor, double minCoverage, double minError) {
+            int minTotal, int minMinor, double minCoverage, double maxError) {
         ArrayList<String> samples = new ArrayList<>();
         int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
         int IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
@@ -477,7 +478,7 @@ public class SnpMers {
         ArrayList<Message> finalMessages = new ArrayList<>(threads * 5);
 //        for (int i = 0; i < threads; i++) {
         futures.add(execService.submit(new CallerConsumer(inputQueue, TOOL_NAME, samples, map, snpFilters,
-                minTotal, minMinor, minCoverage, minError)));
+                minTotal, minMinor, minCoverage, maxError)));
 //        }
         execService.shutdown();
         ioExecutorService.shutdown();
