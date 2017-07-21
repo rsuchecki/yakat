@@ -18,6 +18,7 @@ package hmmerdoms;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.regex.Pattern;
 import shared.FastaIndexed;
 import shared.Orf;
 import shared.Sequence;
@@ -149,7 +150,12 @@ public class HitsGroup implements Comparable<HitsGroup>{
 //        orfPredictionFromPosition -= mod+1;
         orfPredictionToPosition = new Long(getTo()) + upstreamDownstreamBases;
         Sequence s = new Sequence(getTargetId(), fastaIndexed.getSequence(getTargetId(), orfPredictionRangeFrom, orfPredictionToPosition));
-        ArrayList<Orf> orfs = s.getOrfs();
+                Pattern startStopCodonsForward = Pattern.compile("ATG|(T(AA|AG|GA))", Pattern.CASE_INSENSITIVE);
+        Pattern startStopCodonsReverse = Pattern.compile("CAT|((TT|TC|CT)A)", Pattern.CASE_INSENSITIVE);
+        Pattern stopCodonsForward = Pattern.compile("T(AA|AG|GA)", Pattern.CASE_INSENSITIVE);
+        Pattern stopCodonsReverse = Pattern.compile("(TT|TC|CT)A", Pattern.CASE_INSENSITIVE);
+        
+        ArrayList<Orf> orfs = s.getOrfs(0, startStopCodonsForward, startStopCodonsReverse, stopCodonsForward, stopCodonsReverse);
         Collections.sort(orfs);
         boolean extendFurther = false;
         for (Orf orf : orfs) {

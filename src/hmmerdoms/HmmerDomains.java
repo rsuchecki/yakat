@@ -258,7 +258,7 @@ public class HmmerDomains {
                 boolean hasOrfs = false;
                 for (int j = 0; j < orfToCoveredDomainsList.size(); j++) {
                     StringBuilder orfAttributes = new StringBuilder(groupId);
-                    orfAttributes.append("_ORF_").append((j + 1));;
+                    orfAttributes.append("_ORF_").append((j + 1));
                     OrfWithDomainHits orfToCoveredDomains = orfToCoveredDomainsList.get(j);
                     int domsInOrf = orfToCoveredDomains.getDomainHits().size();
                     if (domsInOrf < minDomsInOrf || domsInOrf > maxDomsInOrf) {
@@ -285,11 +285,14 @@ public class HmmerDomains {
                     if (outNucl != null || outAA != null) {
                         StringBuilder fastaId = new StringBuilder(">");
                         fastaId.append(orfAttributes.substring(3));
+                        fastaId.append(" ").append(hitsGroup.getTargetId());
+                        fastaId.append(":").append(orfFrom);
+                        fastaId.append("-").append(orfTo);
                         fastaId.append(System.lineSeparator());
 
                         sbNuclOrfs.append(fastaId);
                         sbAAOrfs.append(fastaId);
-                        Sequence orfSequence = new Sequence(orf.getParenId(), fastaIndexed.getSequence(orf.getParenId(), orfFrom, orfTo));
+                        Sequence orfSequence = new Sequence(orf.getParenId().toString(), fastaIndexed.getSequence(orf.getParenId().toString(), orfFrom, orfTo));
                         String sequenceString = orfSequence.getSequenceString();
                         int frame = orfToCoveredDomains.getOrf().getFrame();
                         if (frame > 0) {

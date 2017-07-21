@@ -92,7 +92,7 @@ public class DomainHit {
                     targetDescription = domtblRecords[i];
                     // Assuming this can be picked up from the description line for the target,
                     // BBMap translate6frames.sh appends fr{1,2,...,6} after a whitespace
-                    int frame = Integer.parseInt(targetDescription.replaceFirst("fr", ""));
+                    int frame = Integer.parseInt(targetDescription.replaceFirst("frame=", "").replaceFirst("fr", ""));
                     switch (frame) {
                         case 4:
                             targetFrame = -1;
