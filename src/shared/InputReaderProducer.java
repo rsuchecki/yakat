@@ -237,8 +237,22 @@ public class InputReaderProducer implements Runnable {
                 } else {
                     content = new BufferedReader(new FileReader(new File(inputFile)), READER_BUFFER_SIZE);//reading from a text file
                 }
+
+                content.mark(65535);
+                char[] header = new char[65535];
+                content.read(header);
+                for (int i = 0; i < header.length; i++) {
+                    char c = header[i];
+                    if (c == '\r') {
+                        Reporter.report("[FATAL]", "Non-UNIX line ending (\\r) detected, terminating...", TOOL_NAME);
+                        putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+                        System.exit(1);
+                    }
+                }
+                content.reset();
+
                 String line1;
-                //TAKE UP TO 4 FIRST LINES AND TRY TO GUESS THE INPUT FORMAT
+                //TAKE UP TO 8 FIRST LINES AND TRY TO GUESS THE INPUT FORMAT
                 ArrayList<String> testLines = new ArrayList<>(numTestLines);
                 for (int i = 0; i < numTestLines; i++) {
                     if ((line1 = content.readLine()) != null && !line1.isEmpty()) {
@@ -257,11 +271,11 @@ public class InputReaderProducer implements Runnable {
                 }
                 if (guessedInFormat == InFormat.EMPTY) {
                     Reporter.report("[WARNING]", "Empty input file/stream...", TOOL_NAME);
-                    putOnQueue(new ArrayList<String>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING                    
+                    putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING                    
                 }
                 if (guessedInFormat == InFormat.UNSUPPORTED_OR_UNRECOGNIZED) {
-                    Reporter.report("[ERROR]", "Unrecognized or unsupported input, terminating...", TOOL_NAME);
-                    putOnQueue(new ArrayList<String>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+                    Reporter.report("[FATAL]", "Unrecognized or unsupported input, terminating...", TOOL_NAME);
+                    putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
                     System.exit(1);
                 }
 
@@ -279,7 +293,7 @@ public class InputReaderProducer implements Runnable {
                     //READ KMERS (or any other input that can simply be processed line by line)
                     readLines(content, testLines);
                 } else if (!kMerIsSet()) {
-                    Reporter.report("[ERROR]", "Fatal error, k-mer lenght must be specified for input other than a list of k-mers, terminating!", TOOL_NAME);
+                    Reporter.report("[FATAL]", "Fatal error, k-mer length must be specified for input other than a list of k-mers, terminating!", TOOL_NAME);
                     putOnQueue(new ArrayList<String>(0)); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
                     System.exit(1);
                 } else if (guessedInFormat == InFormat.FASTA) {
@@ -296,7 +310,7 @@ public class InputReaderProducer implements Runnable {
                     processFastaLine(">", sb);
                 } else if (guessedInFormat == InFormat.FASTQ) {
                     //READ FASTQ
-                    readFastq(content, testLines);
+                    readSequenceFromFastq(content, testLines);
                 }
             }
 //            queue.put(new ArrayList<String>()); //TELLS CONSUMERS, NO MORE DATA
@@ -430,7 +444,7 @@ public class InputReaderProducer implements Runnable {
         putOnQueue(new LabelledInputBuffer(sampleLabel, bufferList));
     }
 
-    private void readFastq(BufferedReader content, ArrayList<String> testLines)
+    private void readSequenceFromFastq(BufferedReader content, ArrayList<String> testLines)
             throws InterruptedException, IOException {
         long fastqCount = 0L;
         long reportThreshold = (long) FASTQ_BUFFER_SIZE;
@@ -518,7 +532,7 @@ public class InputReaderProducer implements Runnable {
         }
 
         if (testLines.size() >= 4) {
-            if (testLines.get(0).startsWith("@") && testLines.get(2).startsWith("+")) {
+            if (testLines.get(0).startsWith("@") && (testLines.get(2).startsWith("+") || testLines.get(2).equals(testLines.get(0)))) {
                 return InFormat.FASTQ;
             }
         }
@@ -545,7 +559,7 @@ public class InputReaderProducer implements Runnable {
             }
         } else if (split.length == 12) {
             if (split[0].startsWith("@") && (split[2].equals("+") || split[2].startsWith("@"))
-                    && split[4].startsWith("@") && (split[6].equals("+") || split[6].startsWith("@")) 
+                    && split[4].startsWith("@") && (split[6].equals("+") || split[6].startsWith("@"))
                     && split[8].startsWith("@") && (split[10].equals("+") || split[10].startsWith("@"))) {
                 return InFormat.FASTQ_PE_WITH_INDEX_ONE_LINE;
             }
