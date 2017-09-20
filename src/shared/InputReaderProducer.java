@@ -559,8 +559,8 @@ public class InputReaderProducer implements Runnable {
             }
         } else if (split.length == 12) {
             if (split[0].startsWith("@") && (split[2].startsWith("+") || split[2].startsWith("@"))
-                    && split[4].startsWith("@") && (split[6].equals("+") || split[6].startsWith("@"))
-                    && split[8].startsWith("@") && (split[10].equals("+") || split[10].startsWith("@"))) {
+                    && split[4].startsWith("@") && (split[6].startsWith("+") || split[6].startsWith("@"))
+                    && split[8].startsWith("@") && (split[10].startsWith("+") || split[10].startsWith("@"))) {
                 return InFormat.FASTQ_PE_WITH_INDEX_ONE_LINE;
             }
         }
