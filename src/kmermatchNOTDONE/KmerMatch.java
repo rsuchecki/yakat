@@ -121,7 +121,7 @@ public class KmerMatch {
         optSet.addOpt(new Opt('M', "min-matches", "Set minimum number of reference k-mers matching each targeted sequence", 1, 1, Integer.MAX_VALUE));
         optSet.addOpt(new Opt('V', "invert-matching", "Invert matching: output targets that contain fewer than [-M] k-mers matching the reference set"));
         optSet.addOpt(new Opt('B', "match-both-mates", "Relevant for PE input only. Demand each mate to have [-M] k-mers matching the reference set, by default, both mates are caught if at least one has [-M] kmer(s) matching the reference"));
-        optSet.addOpt(new Opt('A', "report-all", "Report all input sequences, with the number of matching k-mers appended to the identifier, other matchin settings will be ignored"));
+        optSet.addOpt(new Opt('A', "report-all", "Report all input sequences, with the number of matching k-mers appended to the identifier, other matching settings will be ignored"));
 
 //        int footId = 1;
 //        String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";

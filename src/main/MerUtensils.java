@@ -60,7 +60,7 @@ public class MerUtensils {
         } else if (args.length != 0 && args[0].matches("pileupstats")) {
             new PileupStats(args, name, "pileup");
         } else if (args.length != 0 && args[0].matches("(p)?mpileup")) {
-            new ProcessPileup(args, name, "mpileup counts");
+            new ProcessPileup(args, name, "pmpileup");
         } else if (args.length != 0 && args[0].matches("pileupstatsmerge")) {
             new PileupStatsMerge(args, name, "pileupstatsmerge");
         } else if (args.length != 0 && args[0].matches("test")) {
@@ -94,20 +94,34 @@ public class MerUtensils {
         System.out.println();
         String version = this.getClass().getPackage().getImplementationVersion();
         System.out.println("java -jar " + this.getClass().getSimpleName().toLowerCase() + "-" + version + ".jar <command> ");
-        System.out.println("Commands:");
-        System.out.println("   kextend       : extend k-mers to unambiguous contigs (optionally extend input \"seed\" sequences only)");
+        System.out.println("Commands/modules:");
+        System.out.println("  k-mer based utils");
+        System.out.println("    kextend       : extend k-mers to unambiguous contigs (optionally extend input \"seed\" sequences only)");
+        System.out.println("    snpmers       : given parental SNPs and the corresponding FASTA sequences (e.g. from NIKS), call offspring genotypes by overlapping their k-mers with parental SNP sequences ");
+        System.out.println("    kmatch        : [UNFINISHED] [TODO: port from older code base]");        
+        System.out.println("    seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers to genotype presumed mutations at positions k bases from the seed edges");
+        System.out.println("    kmerge        : [DEPRECATED - use KMC tools for k-mer set operations] given sorted input, merge k-mer sets summing frequencies if available");
 //        System.out.println("   kmatch     : a.k.a bait");
-        System.out.println("   kmerge        : given sorted input, merge k-mer sets summing frequencies if available [THIS CAN NOW BE DONE USING kmc_tools complex]");
-        System.out.println("                 :");
-        System.out.println("   split         : split FASTQ GBS reads by barcodes, trim barcodes and adapters");
-        System.out.println("   idmatch       : match FASTQ records by id");
-        System.out.println("   pmpileup      : count and call bases from mpileup");
-        System.out.println("   pileupstats   : extract some stats from (m)pileup");
-        System.out.println("   snpmers       : given parental SNPs and the corresponding FASTA sequences from NIKS, call F2s genotypes by overlapping their k-mers with parental SNP sequences ");
-        System.out.println("   seedmers      : given seed seequences interrogare sets of k-mers to genotype presumed mutations at positions k bases from the seed edges");
-        System.out.println("   vclusters     : call variants from vsearch clustering msa output");
+        System.out.println();
+        System.out.println("  FASTQ processing utils:");
+        System.out.println("    idmatch       : match FASTQ records by id");
+        System.out.println("    split         : split FASTQ GBS/ddRAD reads by barcodes, trim barcodes and adapters");
+        System.out.println();
+        System.out.println("  MPILEUP processing utils:");
+        System.out.println("    pileupstats   : extract some stats from (m)pileup");
+        System.out.println("    pmpileup      : count and call bases from (m)pileup");
+        System.out.println();
+        System.out.println("  HMMER, VSEARCH output post-processing utils:");
+        System.out.println("    hmmerdoms     : Process and group domain-hits from HMMER");
+        System.out.println("    vclusters     : call variants from VSEARCH clustering msa output");
+        System.out.println();
+        System.out.println("  Miscellaneous utils:");
+        System.out.println("    allorfs       : Identify and extract all (longest) ORFs from a genome");
+        System.out.println("    kexpress      : [UNTESTED] Calculate expresion values (TPM) from read counts and a (not quite) GFF description of features ");
 //        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");
-        System.out.println("   version       : print the version and build time then exit");
+        System.out.println();
+        System.out.println("  Info:");
+        System.out.println("   version       : print the version and exit");
 
 //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
 //                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "

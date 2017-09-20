@@ -238,14 +238,15 @@ public class InputReaderProducer implements Runnable {
                     content = new BufferedReader(new FileReader(new File(inputFile)), READER_BUFFER_SIZE);//reading from a text file
                 }
 
+                //Non-UNIX line endings detected
                 content.mark(65535);
                 char[] header = new char[65535];
                 content.read(header);
                 for (int i = 0; i < header.length; i++) {
                     char c = header[i];
                     if (c == '\r') {
-                        Reporter.report("[FATAL]", "Non-UNIX line ending (\\r) detected, terminating...", TOOL_NAME);
-                        putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+                        Reporter.report("[FATAL]", "Non-UNIX line ending char detected (\\r), terminating...", TOOL_NAME);
+                        putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREADS WILL KEEP GOING
                         System.exit(1);
                     }
                 }
@@ -271,11 +272,11 @@ public class InputReaderProducer implements Runnable {
                 }
                 if (guessedInFormat == InFormat.EMPTY) {
                     Reporter.report("[WARNING]", "Empty input file/stream...", TOOL_NAME);
-                    putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING                    
+                    putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREADS WILL KEEP GOING                    
                 }
                 if (guessedInFormat == InFormat.UNSUPPORTED_OR_UNRECOGNIZED) {
                     Reporter.report("[FATAL]", "Unrecognized or unsupported input, terminating...", TOOL_NAME);
-                    putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+                    putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREADS WILL KEEP GOING
                     System.exit(1);
                 }
 
