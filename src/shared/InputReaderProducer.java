@@ -25,7 +25,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
 import java.util.zip.GZIPInputStream;
 
@@ -554,12 +553,12 @@ public class InputReaderProducer implements Runnable {
                 return InFormat.FASTQ_SE_ONE_LINE;
             }
         } else if (split.length == 8) {
-            if (split[0].startsWith("@") && (split[2].equals("+") || split[2].startsWith("@"))
+            if (split[0].startsWith("@") && (split[2].startsWith("+") || split[2].startsWith("@"))
                     && split[4].startsWith("@") && (split[6].startsWith("+") || split[6].startsWith("@"))) {
                 return InFormat.FASTQ_PE_ONE_LINE;
             }
         } else if (split.length == 12) {
-            if (split[0].startsWith("@") && (split[2].equals("+") || split[2].startsWith("@"))
+            if (split[0].startsWith("@") && (split[2].startsWith("+") || split[2].startsWith("@"))
                     && split[4].startsWith("@") && (split[6].equals("+") || split[6].startsWith("@"))
                     && split[8].startsWith("@") && (split[10].equals("+") || split[10].startsWith("@"))) {
                 return InFormat.FASTQ_PE_WITH_INDEX_ONE_LINE;
