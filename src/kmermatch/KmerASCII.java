@@ -28,8 +28,6 @@ public class KmerASCII extends Kmer implements Comparable<KmerASCII>{
     public KmerASCII(String canonical) {
         ascii = canonical.getBytes(StandardCharsets.US_ASCII);
     }
-
-    
     
     public byte[] getAscii() {
         return ascii;
@@ -42,22 +40,13 @@ public class KmerASCII extends Kmer implements Comparable<KmerASCII>{
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
         final KmerASCII other = (KmerASCII) obj;
         return Arrays.equals(this.ascii, other.ascii);
     }
     
     @Override
-    public int compareTo(KmerASCII o) {
-        byte[] asciiOther = o.getAscii();
+    public int compareTo(KmerASCII another) {
+        byte[] asciiOther = another.getAscii();
         int len = ascii.length < asciiOther.length ? ascii.length :asciiOther.length;
         for (int i = 0; i < len; i++) {
             if(ascii[i] < asciiOther[i]) {

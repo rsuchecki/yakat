@@ -15,7 +15,6 @@
  */
 package kmermatch;
 
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
@@ -30,24 +29,44 @@ public class KmerSetPopulatorConsumer implements Runnable {
 
     private final ConcurrentSkipListSet<Kmer> kmers;
     private final BlockingQueue<ArrayList<String>> inputQueue;
+    private final Integer k;
 
-    public KmerSetPopulatorConsumer(ConcurrentSkipListSet<Kmer> kmers, BlockingQueue<ArrayList<String>> inputQueue) {
+    /**
+     *
+     * @param kmers
+     * @param inputQueue
+     * @param k - set to null if no need to kmerize input
+     */
+    public KmerSetPopulatorConsumer(ConcurrentSkipListSet<Kmer> kmers, BlockingQueue<ArrayList<String>> inputQueue, Integer k) {
         this.kmers = kmers;
         this.inputQueue = inputQueue;
+        this.k = k;
     }
 
     @Override
     public void run() {
         try {
             List<String> list;
-            while (!(list = inputQueue.take()).isEmpty()) {
-                for (String id : list) {                                       
-                    kmers.add(new KmerASCII(SequenceOps.getCanonical(id)));
+            if (k ==null) { //KMERS INPUT, NO NEED TO KMERIZE
+                while (!(list = inputQueue.take()).isEmpty()) {
+                    for (String line : list) {
+                        kmers.add(new KmerASCII(SequenceOps.getCanonical(line)));
+                    }
                 }
-            }            
+            } else {  //KMERIZE
+                while (!(list = inputQueue.take()).isEmpty()) {
+                    for (String line : list) {
+                        int maxKmer = line.length() - k + 1;
+                        for (int i = 0; i < maxKmer; i++) {
+                            kmers.add(new KmerASCII(SequenceOps.getCanonical(line.subSequence(i, i + k).toString())));
+                        }
+                    }
+                }
+            }
             inputQueue.put(new ArrayList<>()); //inform other threads
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }
+
 }

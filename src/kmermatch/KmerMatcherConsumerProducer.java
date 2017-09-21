@@ -126,15 +126,22 @@ public class KmerMatcherConsumerProducer implements Runnable {
 //    }
     
     private int kmerMatches(CharSequence sequence) {
-        int maxKmer = sequence.length() - k + 1;
         int startAt = 0;
+        int maxKmer = sequence.length() - k + 1;
         int matches = 0;
+//        System.err.println(sequence);
+//        String format = "%s\n";
         for (int i = startAt; i < maxKmer; i++) {
-//            String s = (String) sequence.subSequence(i, i + k);            
+//            if(i>0) {
+//                format = "%"+i+"s%s\n";
+//                System.err.printf(format, "",sequence.subSequence(i, i + k));            
+//            } else
+//                System.err.printf(format, sequence.subSequence(i, i + k));            
             if(map.contains(new KmerASCII(SequenceOps.getCanonical(sequence.subSequence(i, i+k).toString())))) {
                 matches++;
             } 
         }
+//        System.exit(1);
         return matches;
     }
 

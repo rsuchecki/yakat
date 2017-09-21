@@ -76,7 +76,8 @@ public class KmerMatch {
         OptSet optSet = new OptSet("Given a set of k-mers and (by default one-per-line) FASTQ input, output FASTQ records if sufficient matching k-mers are present ");
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
-        optSet.addOpt(new Opt('K', "k-mers", "Set of k-mers to be used as reference for matching the reads", 1).setRequired(true));
+        optSet.addOpt(new Opt('K', "k-mers", "Sequence(s) to be used as reference for matching the reads, by default a set of k-mers is expected. If <arg> needs to be k-merized then -k / --k-mer-length is also required. ", 1).setRequired(true));
+        optSet.addOpt(new Opt('k', "k-mer-length", "Specify required k-mer size if reference is to be k-merized", 1).setMinValue(2).setMaxValue(1024));
 //        optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGAT"));
 //        optSet.addOpt(new Opt(null, "adapter-prefix-length", "Length of the adapter prefix used to identify 3' read-through", 1).setDefaultValue(9));
 //        optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
@@ -125,27 +126,18 @@ public class KmerMatch {
     }
 
     private void match(ArrayList<String> inputFilenamesList, OptSet optSet) {
-        ArrayList<String> inputFilesToMatch = new ArrayList<>();
-        ArrayList<PositionalOpt> positionalOptsList = optSet.getPositionalOptsList();
-        for (PositionalOpt po : positionalOptsList) {
-            if (po.getValues() != null) {
-                inputFilesToMatch.addAll(po.getValues());
-            }
-        }
         //READ INPUT AND POPULATE IDs MAP
-        
-        
-        
+
         BlockingQueue inputKmersQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
 
         //SPAWN IDS INPUT READING THREAD        
         ArrayList<Future<?>> inputKmersFutures = new ArrayList<>(1);
         final ExecutorService inputKmersExecutorService = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
-        InputReaderProducer inputReaderProducer  = new InputReaderProducer(inputKmersQueue, new ArrayList<Integer>(), optSet.getOpt("-K").getValues() , IN_BUFFER_SIZE, TOOL_NAME); 
-        
+        InputReaderProducer inputReaderProducer = new InputReaderProducer(inputKmersQueue, new ArrayList<Integer>(), optSet.getOpt("-K").getValues(), IN_BUFFER_SIZE, TOOL_NAME);
+
         inputKmersFutures.add(inputKmersExecutorService.submit(inputReaderProducer));
 
-        
+        Integer k = (Integer) optSet.getOpt("-k").getValueIfSingle();
 
         //SPAWN MAP - POPULATOR THREADS
         ConcurrentSkipListSet<Kmer> kmers = new ConcurrentSkipListSet();
@@ -153,7 +145,7 @@ public class KmerMatch {
         ArrayList<Future<?>> populatorFutures = new ArrayList<>(MATCHER_THREADS);
         ArrayList<Message> finalMessages = new ArrayList<>(MATCHER_THREADS * 5);
         for (int i = 0; i < MATCHER_THREADS; i++) {
-            populatorFutures.add(populatorExecutorService.submit(new KmerSetPopulatorConsumer(kmers, inputKmersQueue)));
+            populatorFutures.add(populatorExecutorService.submit(new KmerSetPopulatorConsumer(kmers, inputKmersQueue, k)));
         }
         populatorExecutorService.shutdown();
         inputKmersExecutorService.shutdown();
@@ -178,14 +170,12 @@ public class KmerMatch {
 
         Reporter.report("[INFO]", "Finished populating kmers set, n=" + NumberFormat.getNumberInstance().format(kmers.size()), TOOL_NAME);
 
-        
-             
-        
-        
-        //NOW PROCESS INPUT READS
+//        for(String inputFileName: inputFilenamesList) {
+//            
+//        }
+        //NOW PROCESS INPUT READS, BUT FIRST SET-UP OUTPUT WRITING 
         String outFile = (String) optSet.getOpt("out-file").getValueOrDefault();
         BlockingQueue outputQueue = new ArrayBlockingQueue(OUT_Q_CAPACITY);
-
         BlockingQueue inputQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
         ArrayList<Future<?>> ioFutures = new ArrayList<>(2);
         final ExecutorService ioExecutorService = new ThreadPoolExecutor(2, 2, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
@@ -193,7 +183,6 @@ public class KmerMatch {
         InputReaderProducer inputReaderProducer2 = new InputReaderProducer(inputQueue, inputFilenamesList, TOOL_NAME, "records", IN_BUFFER_SIZE);
         ioFutures.add(ioExecutorService.submit(inputReaderProducer2));
 
-        
         long timeStart = System.currentTimeMillis();
         int count = 0;
         while (inputReaderProducer2.getGuessedInputFormat() == null) {
@@ -206,9 +195,9 @@ public class KmerMatch {
             } catch (InterruptedException ex) {
             }
         }
-        
-        
-        
+
+        k = k == null ? inputReaderProducer.getKmerLengths().get(0) : k;
+
         //WRITER THREAD
         ioFutures.add(ioExecutorService.submit(new WriterConsumer(outputQueue, outFile, MATCHER_THREADS, TOOL_NAME)));
 //        ioFutures.add(ioExecutorService.submit(new shared.WriterConsumer(outputQueue, "MATCHED_FASTQ", TOOL_NAME)));
@@ -216,9 +205,9 @@ public class KmerMatch {
         //SPAWN MATCHER-THREADS
         final ExecutorService matcherExecutorService = new ThreadPoolExecutor(MATCHER_THREADS, MATCHER_THREADS, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         ArrayList<Future<?>> matcherFutures = new ArrayList<>(MATCHER_THREADS);
-        for (int i = 0; i < MATCHER_THREADS; i++) {            
-            matcherFutures.add(matcherExecutorService.submit(new KmerMatcherConsumerProducer(inputQueue, outputQueue, kmers, IN_BUFFER_SIZE, TOOL_NAME, 
-                    finalMessages, optSet.getOpt("v").isUsed(), inputReaderProducer.getGuessedInputFormat(), inputReaderProducer.getKmerLengths().get(0))));
+        for (int i = 0; i < MATCHER_THREADS; i++) {
+            matcherFutures.add(matcherExecutorService.submit(new KmerMatcherConsumerProducer(inputQueue, outputQueue, kmers, IN_BUFFER_SIZE, TOOL_NAME,
+                    finalMessages, optSet.getOpt("v").isUsed(), inputReaderProducer.getGuessedInputFormat(), k)));
         }
 
         matcherExecutorService.shutdown();
