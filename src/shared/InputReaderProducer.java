@@ -86,7 +86,7 @@ public class InputReaderProducer implements Runnable {
     }
 
     /**
-     * Used by splitgbs
+     * Used by splitgbs, KmerMatch, FastqIdMatch
      *
      * @param queue
      * @param inputFiles
@@ -124,6 +124,7 @@ public class InputReaderProducer implements Runnable {
     }
 
     /**
+     * Used by KmerSetMerge - which is no longer needed
      *
      * @param queue
      * @param inputFiles
@@ -145,7 +146,7 @@ public class InputReaderProducer implements Runnable {
     }
 
     /**
-     * used by (unfinished) kmer-match
+     * used by (unfinished version of) kmer-match
      *
      * @param queue
      * @param inputFiles
@@ -166,7 +167,7 @@ public class InputReaderProducer implements Runnable {
     }
 
     /**
-     * Used by SnpMers
+     * Used by SnpMers, SeedMers
      *
      * @param queue
      * @param inputFiles
@@ -186,7 +187,7 @@ public class InputReaderProducer implements Runnable {
     }
 
     /**
-     * Used for kmer extender
+     * Used by kextender, kmerMatch
      *
      * @param queue
      * @param kSizes
@@ -266,7 +267,7 @@ public class InputReaderProducer implements Runnable {
                     guessedInFormat = InFormat.ONE_RECORD_PER_LINE;
                     Reporter.report("[INFO]", "Input format forced: " + guessedInFormat.toString(), TOOL_NAME);
                 } else {
-                    guessedInFormat = guessInputFormat(testLines);
+                    guessedInFormat = guessInputFormat(testLines, null);
                     Reporter.report("[INFO]", "Input format guessed: " + guessedInFormat.toString(), TOOL_NAME);
                 }
                 if (guessedInFormat == InFormat.EMPTY) {
@@ -285,6 +286,8 @@ public class InputReaderProducer implements Runnable {
                     readKmersPerSample(content, testLines, inputFile);
                     empty = new LabelledInputBuffer("", new ArrayList()); //making sure that the type of "done reading" flag matches the input type
                 } else if (guessedInFormat == InFormat.KMERS
+                        || (guessedInFormat == InFormat.FASTA_SE_ONE_LINE && !kMerIsSet())
+                        || (guessedInFormat == InFormat.FASTA_PE_ONE_LINE && !kMerIsSet())
                         || (guessedInFormat == InFormat.FASTQ_PE_ONE_LINE && !kMerIsSet())
                         || (guessedInFormat == InFormat.FASTQ_PE_WITH_INDEX_ONE_LINE && !kMerIsSet())
                         || (guessedInFormat == InFormat.FASTQ_SE_ONE_LINE && !kMerIsSet())
@@ -293,21 +296,33 @@ public class InputReaderProducer implements Runnable {
                     //READ KMERS (or any other input that can simply be processed line by line)
                     readLines(content, testLines);
                 } else if (!kMerIsSet()) {
-                    Reporter.report("[FATAL]", "Fatal error, k-mer length must be specified for input other than a list of k-mers, terminating!", TOOL_NAME);
+                    Reporter.report("[FATAL]", "Fatal error, k-mer length must be specified if input is to be k-merized (alternatively you can input a list of pre-computed k-mers). Terminating!", TOOL_NAME);
                     putOnQueue(new ArrayList<String>(0)); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
                     System.exit(1);
                 } else if (guessedInFormat == InFormat.FASTA) {
                     StringBuilder sb = new StringBuilder();
+                    long count =0;
+                    long reportThreshold = (long) KMER_BUFFER_SIZE;
                     //Don't forget the test lines 
                     for (String string : testLines) {
                         sb = processFastaLine(string, sb);
+                        if(string.startsWith(">"))
+                            count++;
                     }
-                    //read subsequent lines
+                    //read subsequent lines                    
                     while ((line = content.readLine()) != null && !line.isEmpty()) {
                         sb = processFastaLine(line, sb);
+                        if(line.startsWith(">") && ++count % reportThreshold == 0) {
+                            if (reportThreshold < 1e8) {
+                                reportThreshold <<= 1; // *= 2
+                            }
+                            Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(count) + " " + guessedInFormat.toString() + " read-in so far", TOOL_NAME);
+                        }
                     }
                     //make sure last record is put on the queue
                     processFastaLine(">", sb);
+                    Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(count) + " " + guessedInFormat.toString() + " read-in", TOOL_NAME);
+
                 } else if (guessedInFormat == InFormat.FASTQ) {
                     //READ FASTQ
                     readSequenceFromFastq(content, testLines);
@@ -505,16 +520,16 @@ public class InputReaderProducer implements Runnable {
     /**
      * Attempt to guess the input format and set KMER_LNGTH if KMERS input
      *
-     * @param testLines
+     * @param testLines1
      * @return
      */
-    private InFormat guessInputFormat(ArrayList<String> testLines) {
-        if (testLines.isEmpty()) {
+    private InFormat guessInputFormat(ArrayList<String> testLines1, ArrayList<String> testLines2) {
+        if (testLines1.isEmpty()) {
             return InFormat.EMPTY;
         }
-        if (!testLines.get(0).startsWith("@") && !testLines.get(0).startsWith(">") & testLines.size() > 1) {
-            String[] split0 = testLines.get(0).split("\t| ");
-            String[] split1 = testLines.get(1).split("\t| ");
+        if (!testLines1.get(0).startsWith("@") && !testLines1.get(0).startsWith(">") & testLines1.size() > 1) {
+            String[] split0 = testLines1.get(0).split("\t| ");
+            String[] split1 = testLines1.get(1).split("\t| ");
             if (split0[0].matches("^[A|T|C|G]+$") && split1[0].matches("^[A|T|C|G]+$") && split0[0].length() == split1[0].length()) {
 //                setKmerLength(split0[0].trim().length());
                 addKmerLength(split0[0].trim().length());
@@ -522,8 +537,8 @@ public class InputReaderProducer implements Runnable {
 //            } else {
 //                return InFormat.UNSUPPORTED_OR_UNRECOGNIZED;
             }
-            if (testLines.size() > 2) {
-                String[] split2 = testLines.get(2).split("\t| ");
+            if (testLines1.size() > 2) {
+                String[] split2 = testLines1.get(2).split("\t| ");
                 if (split0.length == 1 && split1[0].matches("^[A|T|C|G]+$") && split2[0].matches("^[A|T|C|G]+$") && split1[0].length() == split2[0].length()) {
                     addKmerLength(split1[0].trim().length());
                     return InFormat.PER_SAMPLE_KMERS;
@@ -531,18 +546,18 @@ public class InputReaderProducer implements Runnable {
             }
         }
 
-        if (testLines.size() >= 4) {
-            if (testLines.get(0).startsWith("@") && (testLines.get(2).startsWith("+") || testLines.get(2).equals(testLines.get(0)))) {
+        if (testLines1.size() >= 4) {
+            if (testLines1.get(0).startsWith("@") && (testLines1.get(2).startsWith("+") || testLines1.get(2).equals(testLines1.get(0)))) {
                 return InFormat.FASTQ;
             }
         }
-        if (testLines.size() > 1) {
-            if (testLines.get(0).startsWith(">") && !testLines.get(1).startsWith(">")) {
+        if (testLines1.size() > 1) {
+            if (testLines1.get(0).startsWith(">") && !testLines1.get(1).startsWith(">")) {
                 return InFormat.FASTA;
             }
         }
 
-        String[] split = testLines.get(0).split("\t");
+        String[] split = testLines1.get(0).split("\t");
         if (split.length == 2 && split[0].startsWith(">")) {
             return InFormat.FASTA_SE_ONE_LINE;
         } else if (split.length == 4) {
