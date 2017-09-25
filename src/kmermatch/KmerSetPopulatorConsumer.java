@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.regex.Pattern;
 import shared.SequenceOps;
 
 /**
@@ -46,6 +47,7 @@ public class KmerSetPopulatorConsumer implements Runnable {
     @Override
     public void run() {
         try {
+            Pattern nonNuclPattern = Pattern.compile(".*[^acgtACGT]+.*");
             List<String> list;
             if (k ==null) { //KMERS INPUT, NO NEED TO KMERIZE
                 while (!(list = inputQueue.take()).isEmpty()) {
@@ -57,8 +59,11 @@ public class KmerSetPopulatorConsumer implements Runnable {
                 while (!(list = inputQueue.take()).isEmpty()) {
                     for (String line : list) {
                         int maxKmer = line.length() - k + 1;
-                        for (int i = 0; i < maxKmer; i++) {
-                            kmers.add(new KmerASCII(SequenceOps.getCanonical(line.subSequence(i, i + k).toString())));
+                        for (int i = 0; i < maxKmer; i++) {                            
+                            String canonical = SequenceOps.getCanonical(line.subSequence(i, i + k).toString());
+                            if(!nonNuclPattern.matcher(canonical).matches()) {
+                                kmers.add(new KmerASCII(canonical));
+                            }
                         }
                     }
                 }

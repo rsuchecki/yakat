@@ -49,15 +49,19 @@ public class KmerMatcherConsumerProducer implements Runnable {
     private final BlockingQueue<ArrayList<String>> inputQueue;
     private final BlockingQueue<ArrayList<String>> outputQueue;
     private final ConcurrentSkipListSet<Kmer> map;
-    private final boolean invertMatch;
     private final String TOOL_NAME;
     private final ArrayList<Message> finalMessages;
-    private final int BUFFER_SIZE;
+    private final int BUFFER_SIZE;    
+    private final boolean invertMatch;
+    private final int minMatches;
+    private final double minMatchesFraction;
     private final InFormat inFormat;
     private final int k;
 
     public KmerMatcherConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue, BlockingQueue<ArrayList<String>> outputQueue,
-            ConcurrentSkipListSet<Kmer> kmers, int BUFFER_SIZE, String TOOL_NAME, ArrayList<Message> finalMessages, boolean invertMatch, InFormat inFormat, int k) {
+            ConcurrentSkipListSet<Kmer> kmers, int BUFFER_SIZE, String TOOL_NAME, ArrayList<Message> finalMessages, boolean invertMatch, 
+            int minMatches, double minMatchesFraction, 
+            InFormat inFormat, int k) {
         this.inputQueue = inputQueue;
         this.outputQueue = outputQueue;
         this.map = kmers;
@@ -65,6 +69,8 @@ public class KmerMatcherConsumerProducer implements Runnable {
         this.finalMessages = finalMessages;
         this.BUFFER_SIZE = BUFFER_SIZE;
         this.invertMatch = invertMatch;
+        this.minMatchesFraction = minMatchesFraction;
+        this.minMatches = minMatches;
         this.inFormat = inFormat;
         this.k = k;
     }
@@ -76,8 +82,8 @@ public class KmerMatcherConsumerProducer implements Runnable {
             ArrayList<String> list;
             ArrayList<String> buffer = new ArrayList<>(BUFFER_SIZE);
 
-            long countIn = 0;
-            long countOut = 0;
+//            long countIn = 0;
+//            long countOut = 0;
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     String toks[] = spliPattern.split(line);
@@ -92,17 +98,19 @@ public class KmerMatcherConsumerProducer implements Runnable {
 
                     
                     
-                    int minMatches = 1;
                     int matches = kmerMatches(toks[1]);
-                    if (matches >= minMatches && !invertMatch || matches < minMatches && invertMatch) {
+                    double mFrac = (double)matches / (toks[1].length()-k);
+                  
+                    
+                    if ((matches >= minMatches && mFrac>= minMatchesFraction && !invertMatch) || ((matches < minMatches || mFrac < minMatchesFraction) && invertMatch)) {
                         if (buffer.size() >= BUFFER_SIZE) {
                             putOneQueue(outputQueue, buffer);
                             buffer = new ArrayList<>();
                         }
-                        countIn++;
+//                        countIn++;
                         buffer.add(line);
-                    } else {
-                        countOut++;
+//                    } else {
+////                        countOut++;
                     }
                 }
             }
@@ -111,7 +119,7 @@ public class KmerMatcherConsumerProducer implements Runnable {
             }
             putOneQueue(inputQueue, new ArrayList<>(0)); //inform other threads                
             putOneQueue(outputQueue, new ArrayList<>(0)); //inform other threads                
-            System.err.println(countIn + "=In  Out=" + countOut);
+//            System.err.println(countIn + "=In  Out=" + countOut);
         } catch (InterruptedException ex) {
             Logger.getLogger(KmerMatcherConsumerProducer.class.getName()).log(Level.SEVERE, null, ex);
         }
