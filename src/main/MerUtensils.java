@@ -23,7 +23,8 @@ import hmmerdoms.HmmerDomains;
 import kexpression.KeXpression;
 import kmerextender.CoreCoder;
 import kmerextender.KmerExtender;
-import kmermatchNOTDONE.KmerMatch;
+import kmermatch.KmerMatch;
+//import kmermatchNOTDONE.KmerMatch;
 import kmerger.KmerSetMerge;
 import processpileup.ProcessPileup;
 import processpileup.PileupStats;
@@ -51,6 +52,7 @@ public class MerUtensils {
         } else if (args.length != 0 && args[0].matches("(k)?match(er)?")) {
             args[0] = "";
             new KmerMatch(args, name, "kmatch");
+//            new KmerMatch(args, name, "kmatch");
         } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {
             new KmerSetMerge(args, name, "kmerge");
         } else if (args.length != 0 && args[0].matches("split(er)?")) {
@@ -121,7 +123,7 @@ public class MerUtensils {
 //        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");
         System.out.println();
         System.out.println("  Info:");
-        System.out.println("   version       : print the version and exit");
+        System.out.println("    version       : print the version and exit");
 
 //        String s = "Currently k-mer frequency is not taken into consideration, so use of a dedicated k-mer counting program, "
 //                + "such as KMC or Jellyfish is recommended. It is best to exclude low frequency k-mers before passing "

@@ -57,11 +57,11 @@ public class KmerMatcherConsumerProducer implements Runnable {
     private final double minMatchesFraction;
     private final InFormat inFormat;
     private final int k;
+    private final boolean storeASCII;
 
     public KmerMatcherConsumerProducer(BlockingQueue<ArrayList<String>> inputQueue, BlockingQueue<ArrayList<String>> outputQueue,
             ConcurrentSkipListSet<Kmer> kmers, int BUFFER_SIZE, String TOOL_NAME, ArrayList<Message> finalMessages, boolean invertMatch, 
-            int minMatches, double minMatchesFraction, 
-            InFormat inFormat, int k) {
+            int minMatches, double minMatchesFraction, InFormat inFormat, int k, boolean storeASCII) {
         this.inputQueue = inputQueue;
         this.outputQueue = outputQueue;
         this.map = kmers;
@@ -73,6 +73,7 @@ public class KmerMatcherConsumerProducer implements Runnable {
         this.minMatches = minMatches;
         this.inFormat = inFormat;
         this.k = k;
+        this.storeASCII = storeASCII;
     }
 
     @Override
@@ -145,7 +146,7 @@ public class KmerMatcherConsumerProducer implements Runnable {
 //                System.err.printf(format, "",sequence.subSequence(i, i + k));            
 //            } else
 //                System.err.printf(format, sequence.subSequence(i, i + k));            
-            if(map.contains(new KmerASCII(SequenceOps.getCanonical(sequence.subSequence(i, i+k).toString())))) {
+            if(map.contains(new KmerBytes(SequenceOps.getCanonical(sequence.subSequence(i, i+k).toString()), storeASCII))) {
                 matches++;
             } 
         }

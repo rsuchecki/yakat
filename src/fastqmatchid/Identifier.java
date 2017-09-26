@@ -28,8 +28,6 @@ public class Identifier implements Comparable<Identifier>{
     public Identifier(String s) {
         ascii = s.getBytes(StandardCharsets.US_ASCII);
     }
-
-    
     
     public byte[] getAscii() {
         return ascii;
@@ -41,23 +39,13 @@ public class Identifier implements Comparable<Identifier>{
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) {
-            return true;
-        }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final Identifier other = (Identifier) obj;
-        return Arrays.equals(this.ascii, other.ascii);
+    public boolean equals(Object another) {
+        return Arrays.equals(this.ascii, ((Identifier) another).ascii);
     }
     
     @Override
-    public int compareTo(Identifier o) {
-        byte[] asciiOther = o.getAscii();
+    public int compareTo(Identifier another) {
+        byte[] asciiOther = another.getAscii();
         int len = ascii.length < asciiOther.length ? ascii.length :asciiOther.length;
         for (int i = 0; i < len; i++) {
             if(ascii[i] < asciiOther[i]) {

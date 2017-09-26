@@ -31,6 +31,7 @@ public class KmerSetPopulatorConsumer implements Runnable {
     private final ConcurrentSkipListSet<Kmer> kmers;
     private final BlockingQueue<ArrayList<String>> inputQueue;
     private final Integer k;
+    private final boolean storeASCII;
 
     /**
      *
@@ -38,10 +39,12 @@ public class KmerSetPopulatorConsumer implements Runnable {
      * @param inputQueue
      * @param k - set to null if no need to kmerize input
      */
-    public KmerSetPopulatorConsumer(ConcurrentSkipListSet<Kmer> kmers, BlockingQueue<ArrayList<String>> inputQueue, Integer k) {
+    public KmerSetPopulatorConsumer(ConcurrentSkipListSet<Kmer> kmers, BlockingQueue<ArrayList<String>> inputQueue, Integer k, boolean storeASCII) {
         this.kmers = kmers;
         this.inputQueue = inputQueue;
         this.k = k;
+        this.storeASCII = storeASCII;
+
     }
 
     @Override
@@ -52,7 +55,7 @@ public class KmerSetPopulatorConsumer implements Runnable {
             if (k ==null) { //KMERS INPUT, NO NEED TO KMERIZE
                 while (!(list = inputQueue.take()).isEmpty()) {
                     for (String line : list) {
-                        kmers.add(new KmerASCII(SequenceOps.getCanonical(line)));
+                        kmers.add(new KmerBytes(SequenceOps.getCanonical(line), storeASCII));
                     }
                 }
             } else {  //KMERIZE
@@ -62,7 +65,7 @@ public class KmerSetPopulatorConsumer implements Runnable {
                         for (int i = 0; i < maxKmer; i++) {                            
                             String canonical = SequenceOps.getCanonical(line.subSequence(i, i + k).toString());
                             if(!nonNuclPattern.matcher(canonical).matches()) {
-                                kmers.add(new KmerASCII(canonical));
+                                kmers.add(new KmerBytes(canonical, storeASCII));
                             }
                         }
                     }

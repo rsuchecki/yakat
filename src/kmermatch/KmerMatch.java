@@ -25,6 +25,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import kmerextender.CoreCoder;
 import shared.InputReaderProducer;
 import shared.Message;
 import shared.Reporter;
@@ -93,6 +94,7 @@ public class KmerMatch {
         optSet.addOpt(new Opt('m', "min-matches", "Minimum number of k-mers from the targeted sequence (pair) present in the reference",1).setMinValue(0).setDefaultValue(1));
         optSet.addOpt(new Opt('M', "min-matches-fraction", "Minimum fraction of k-mers from the targeted sequence (pair) present in the reference", 0.0, 0.0, 1.0));
         optSet.addOpt(new Opt('v', "invert-matching", "Invert matching: output targets that contain fewer than -m <arg> k-mers matching the reference set"));
+        optSet.addOpt(new Opt('a', "ascii-encoding", "Store k-mers in plain ascii - possibly faster than the default encoding, but will consume more memory."));
         
 //                optSet.addOpt(new Opt('S', "stranded-matching", "Do not reverse-complement k-mers (by default canonical representation of a k-mer is stored and matched)"));
 //        optSet.addOpt(new Opt('B', "match-both-mates", "Relevant for PE input only. Demand each mate to have -m <arg> k-mers matching the reference set, by default, both mates are caught if at least one has [-M] kmer(s) matching the reference"));
@@ -111,7 +113,7 @@ public class KmerMatch {
 //        optSet.addOpt(new Opt('S', "out-suffix-se", "Output file suffix for SE/orphaned reads", 1).setDefaultValue("_SE.fastq.gz"));
 //        optSet.addOpt(new Opt(null, "append", "If output file(s) exist(s) for a given sample, append"));
 //        optSet.addOpt(new Opt(null, "force", "If output file(s) exist(s) for a given sample, force overwrite"));
-        optSet.addOpt(new Opt('d', "dump-kmers", "Dump reference k-mers on stdout"));
+        optSet.addOpt(new Opt('d', "dump-kmers", "Dump reference k-mers to stdout - implemented for debugging purposes only so not optimized"));
 
 //        footId++;
         optSet.addOpt(new Opt('o', "out-file", "Send output to <arg> file", 1).setDefaultValue("/dev/stdout"));
@@ -129,7 +131,7 @@ public class KmerMatch {
 
     private void match(ArrayList<String> inputFilenamesList, OptSet optSet) {
         //READ INPUT AND POPULATE IDs MAP
-
+        boolean storeASCII = optSet.getOpt("-a").isUsed();
         Integer k = (Integer) optSet.getOpt("-k").getValueIfSingle();
         ArrayList<Integer> kValues = new ArrayList<>();
         kValues.add(k);
@@ -150,7 +152,7 @@ public class KmerMatch {
         ArrayList<Future<?>> populatorFutures = new ArrayList<>(MATCHER_THREADS);
         ArrayList<Message> finalMessages = new ArrayList<>(MATCHER_THREADS * 5);
         for (int i = 0; i < MATCHER_THREADS; i++) {
-            populatorFutures.add(populatorExecutorService.submit(new KmerSetPopulatorConsumer(kmers, inputKmersQueue, k)));
+            populatorFutures.add(populatorExecutorService.submit(new KmerSetPopulatorConsumer(kmers, inputKmersQueue, k, storeASCII)));
         }
         populatorExecutorService.shutdown();
         inputKmersExecutorService.shutdown();
@@ -215,7 +217,7 @@ public class KmerMatch {
             matcherFutures.add(matcherExecutorService.submit(new KmerMatcherConsumerProducer(inputQueue, outputQueue, kmers, IN_BUFFER_SIZE, TOOL_NAME,
                     finalMessages, optSet.getOpt("v").isUsed(), (int) optSet.getOpt("m").getValueOrDefault(),
                     (double) optSet.getOpt("M").getValueOrDefault(),
-                    inputReaderProducer.getGuessedInputFormat(), k)));
+                    inputReaderProducer.getGuessedInputFormat(), k, storeASCII)));
         }
 
         matcherExecutorService.shutdown();
@@ -248,8 +250,12 @@ public class KmerMatch {
         if(optSet.getOpt("d").isUsed()) {
             Iterator<Kmer> iterator = kmers.iterator();
             while (iterator.hasNext()) {
-                KmerASCII next = (KmerASCII) iterator.next();
-                System.out.println(new String(next.getAscii(), StandardCharsets.US_ASCII));                                            
+                KmerBytes next = (KmerBytes) iterator.next();
+                if(storeASCII) {
+                    System.out.println(new String(next.getBytes(), StandardCharsets.US_ASCII));                                            
+                } else {
+                    System.out.println(CoreCoder.decodeCore(k, next.getBytes()));                                                                
+                }
             }
         }
     }

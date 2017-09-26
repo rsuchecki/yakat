@@ -22,7 +22,6 @@ import argparser.PositionalOpt;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Random;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -37,19 +36,91 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import shared.InputReaderProducer;
 import shared.Reporter;
-import shared.SequenceOps;
 
 /**
- * CAREFUL! - using all bits in signed fields, may cause errors if used for
- * comparisons without decoding (for example lex order of core vs its RC)
- *
- *
  *
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
 public class CoreCoder {
 
+    public static byte[] encodeCoreByteArray(CharSequence kmerSequence) {
+        int BYTE_LENGTH = 8; 
+        int stringLength = kmerSequence.length();
+        int bytesNeeded = (int) Math.ceil((double) stringLength * 2 / BYTE_LENGTH); 
+        int currentByte = 0;
+        int position = 0;
+        int positionInByte = bytesNeeded * BYTE_LENGTH - stringLength * 2;
+        byte kmerCoreBitsArray[] = new byte[bytesNeeded];
+//        char[] kmerCharArray = kmerSequence.toCharArray();
+        while (position < stringLength) {
+            while ((positionInByte < BYTE_LENGTH) && (position < stringLength)) {
+                kmerCoreBitsArray[currentByte] <<= 1;
+                switch (kmerSequence.charAt(position)) {
+                    case 'A':
+                    case 'a':                        
+                        kmerCoreBitsArray[currentByte] <<= 1; //if A : 00
+                        break;
+                    case 'C':
+                    case 'c':                        
+                        kmerCoreBitsArray[currentByte] <<= 1; //if C : 01
+                        kmerCoreBitsArray[currentByte]++;
+                        break;
+                    case 'G':
+                    case 'g':                        
+                        kmerCoreBitsArray[currentByte]++; //if G : 10
+                        kmerCoreBitsArray[currentByte] <<= 1;
+                        break;
+                    case 'T':
+                    case 't':                        
+                        kmerCoreBitsArray[currentByte]++; //if T : 11
+                        kmerCoreBitsArray[currentByte] <<= 1;
+                        kmerCoreBitsArray[currentByte]++;
+                        break;
+                    default:
+                        System.err.println("Failed ecoding kmerstring to byte array....");
+                        System.err.println("Offending char: " + kmerSequence.charAt(position));
+                        System.err.println("in " + kmerSequence);
+                        System.err.println("....exiting");
+                        System.exit(1);
+                }
+                positionInByte += 2;
+                position++;
+            }
+            currentByte++;
+            positionInByte = 0;
+        }
+        return kmerCoreBitsArray;
+    }
+    
+    public static String decodeCore(int encodedSequenceLength, byte kmerCoreBitsArray[]) {
+        int BYTE_LENGTH = 8; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
+        StringBuilder sb = new StringBuilder();
+        int lastChunkLength = encodedSequenceLength * 2 % BYTE_LENGTH;
+        for (int i = 0; i < kmerCoreBitsArray.length; i++) {
+            int startPrintingBitsFrom = BYTE_LENGTH - 1;
+            if (i == 0 && lastChunkLength != 0) {
+                startPrintingBitsFrom = lastChunkLength - 1;
+            }
+            for (int j = startPrintingBitsFrom; j > -1; j -= 2) {
+                int b1 = kmerCoreBitsArray[i] >> j & 1;
+                int b2 = kmerCoreBitsArray[i] >> j - 1 & 1;
+//                int b = (kmerCoreBitsArray[i] & (1 << j)) >> j;
+//                int m = (kmerCoreBitsArray[i] & (1 << j - 1)) >> j - 1;
+                if (b1 == 0 && b2 == 0) {
+                    sb.append("A");
+                } else if (b1 == 0 && b2 == 1) {
+                    sb.append("C");
+                } else if (b1 == 1 && b2 == 0) {
+                    sb.append("G");
+                } else if (b1 == 1 && b2 == 1) {
+                    sb.append("T");
+                }
+            }
+        }
+        return sb.toString();
+    }
+    
     public static int[] encodeCoreIntArray(CharSequence kmerSequence) {
         int INT_LENGTH = 32; //32 - sign bit -1 to make even as 2 bits stored per nucleotide
         int stringLength = kmerSequence.length();
@@ -234,12 +305,46 @@ public class CoreCoder {
 //        }
 //        return 0;
 //    }
+    public static int compareCores(byte[] core, byte[] anotherCore) {
+        for (int i = 0; i < core.length; i++) {
+            try {
+                //unisgned comparison to use all bits
+                if (core[i] == anotherCore[i]) {
+                    //keep going
+                } else if ((core[i] < anotherCore[i]) ^ (core[i] < 0) ^ (anotherCore[i] < 0)) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            } catch (IndexOutOfBoundsException e) {
+                System.err.println(e.getMessage());
+            }
+        }
+        return 0;
+    }
+    public static int compareCores(int[] core, int[] anotherCore) {
+        for (int i = 0; i < core.length; i++) {
+            try {
+                //unisgned comparison to use all bits
+                if (core[i] == anotherCore[i]) {
+                    //keep going
+                } else if ((core[i] < anotherCore[i]) ^ (core[i] < 0) ^ (anotherCore[i] < 0)) {
+                    return 1;
+                } else {
+                    return -1;
+                }
+            } catch (IndexOutOfBoundsException e) {
+                System.err.println(e.getMessage());
+            }
+        }
+        return 0;
+    }
     public static int compareCores(long[] core, long[] anotherCore) {
         for (int i = 0; i < core.length; i++) {
             try {
 //                if (core[i] < anotherCore[i]) {
 //                (longA < longB) ^ (longA < 0) ^ (longB< 0) ? 1 : -1;
-                //tryuing unisgned comparison to use all bits
+                //unisgned comparison to use all bits
                 if (core[i] == anotherCore[i]) {
                     //keep going
                 } else if ((core[i] < anotherCore[i]) ^ (core[i] < 0) ^ (anotherCore[i] < 0)) {
@@ -254,23 +359,6 @@ public class CoreCoder {
         return 0;
     }
 
-    public static int compareCores(int[] core, int[] anotherCore) {
-        for (int i = 0; i < core.length; i++) {
-            try {
-                //trying unisgned comparison to use all bits
-                if (core[i] == anotherCore[i]) {
-                    //keep going
-                } else if ((core[i] < anotherCore[i]) ^ (core[i] < 0) ^ (anotherCore[i] < 0)) {
-                    return 1;
-                } else {
-                    return -1;
-                }
-            } catch (IndexOutOfBoundsException e) {
-                System.err.println(e.getMessage());
-            }
-        }
-        return 0;
-    }
 
     public static int computeHash(long[] core) {
         int hash = 3;
