@@ -58,7 +58,6 @@ public class ClusteredSampleMSA {
         return snpsWithin == null ? 0 : snpsWithin.size();
     }
 
-
     public boolean mergeSequences() {
         boolean merged = false;
         int numSeqs = getSequences().size();
@@ -68,29 +67,72 @@ public class ClusteredSampleMSA {
             int alnLen = getSequences().get(0).getLength();
             StringBuilder consensus = new StringBuilder();
             //FOR EACH POSITION
+//            compare:
+//            for (int position = 0; position < alnLen; position++) {
+//                char[] bases = new char[numSeqs];
+//
+//                //RECORD BASES FROM ALL SEQS
+//                for (int i = 0; i < numSeqs; i++) {
+//                    bases[i] = getSequences().get(i).getSequenceString().charAt(position);
+//                }
+//                consensus.append(getBase(bases));
+//                //FOR RECORDED BASE OF A SEQUENCE, COMPARE WITH BASES IN OTHER SEQS                    
+//                for (int seq = 0; seq < bases.length - 1; seq++) {
+//                    char base = bases[seq];
+////                        boolean padding = paddingList.get(seq)[position];
+//                    for (int anotherSeq = seq + 1; anotherSeq < bases.length; anotherSeq++) {
+////                            boolean anotherSeqPadding = paddingList.get(anotherSeq)[position];
+//                        if (base != bases[anotherSeq] && base != '-' && bases[anotherSeq] != '-') {
+////                            if (base != bases[anotherSeq] && !padding && !anotherSeqPadding) {
+//                            mismatch = true;
+//                            break compare;
+//                        }
+//                    }
+//                }
+//            }
+//            consensus = haveMismatches(false);
+            //WE MIGHT HAVE MISSED MISMATCHES DUE TO INTERNAL PADDING 
+//            consensus = haveMismatches(true) == null ? null : consensus;
+            //CREATE NEW MsaSequence OBJECTS AS PADDING ARRAY IS PERSISTANT AND FOR THIS PURPOSE WE ONLY TREAT TERMINAL DASHES AS PADDING
+            ArrayList<MsaSequence> seqs = new ArrayList<>(numSeqs);
+            for (MsaSequence sequence : getSequences()) {
+                MsaSequence msaSequence = new MsaSequence(sequence.getId(), sequence.getSequenceString());
+                seqs.add(msaSequence);
+//                boolean[] paddingArray = msaSequence.getPaddingArray(Integer.MAX_VALUE, 1);
+//                System.err.println(Arrays.toString(paddingArray));
+//                int x = 0;
+            }
+
             compare:
             for (int position = 0; position < alnLen; position++) {
-                char[] bases = new char[numSeqs];
+                char bases[] = new char[numSeqs];
+                boolean padding[] = new boolean[numSeqs];
+
                 //RECORD BASES FROM ALL SEQS
                 for (int i = 0; i < numSeqs; i++) {
-                    bases[i] = getSequences().get(i).getSequenceString().charAt(position);
+                    bases[i] = seqs.get(i).getSequenceString().charAt(position);                    
+                    padding[i] = seqs.get(1).getPaddingArray(Integer.MAX_VALUE, 0)[position];
                 }
                 consensus.append(getBase(bases));
                 //FOR RECORDED BASE OF A SEQUENCE, COMPARE WITH BASES IN OTHER SEQS                    
                 for (int seq = 0; seq < bases.length - 1; seq++) {
                     char base = bases[seq];
+                    boolean pad = padding[seq];
 //                        boolean padding = paddingList.get(seq)[position];
                     for (int anotherSeq = seq + 1; anotherSeq < bases.length; anotherSeq++) {
 //                            boolean anotherSeqPadding = paddingList.get(anotherSeq)[position];
-                        if (base != bases[anotherSeq] && base != '-' && bases[anotherSeq] != '-') {
+//                    if (base != bases[anotherSeq] && base != '-' && bases[anotherSeq] != '-') {
+                        //MISMATCH & NEIGHTER OF POSITION IS TERMINAL PADDING
+                        if (base != bases[anotherSeq] && !pad && !padding[anotherSeq]) {
 //                            if (base != bases[anotherSeq] && !padding && !anotherSeqPadding) {
                             mismatch = true;
-                            break compare;
+//                            break compare;
                         }
                     }
                 }
             }
-            if (!mismatch) {
+
+            if (!mismatch) {            
                 StringBuilder id = new StringBuilder(getSampleId());
                 for (MsaSequence sequence : getSequences()) {
                     id.append(sequence.getId().replaceFirst(getSampleId(), ""));
@@ -100,7 +142,6 @@ public class ClusteredSampleMSA {
                 MsaSequence msaSequence = new MsaSequence(id.toString(), consensus.toString());
 
                 //IF PADDING WITHIN MERGED SEQUENCE -> DO NOT OVERWRITE THE ORIGINAL SEQS
-                
                 if (msaSequence.getNonTipPaddingLength() > 0) {
 //                    System.out.println("PADDING: "+Arrays.toString(split));                    
                 } else {
@@ -127,19 +168,61 @@ public class ClusteredSampleMSA {
         return '-';
     }
 
+    private StringBuilder haveMismatches() {
+        int numSeqs = getSequences().size();
+        int alnLen = getSequences().get(0).getLength();
+        StringBuilder consensus = new StringBuilder();
+        ArrayList<MsaSequence> seqs = new ArrayList<>(numSeqs);
+        for (MsaSequence sequence : getSequences()) {
+            MsaSequence msaSequence = new MsaSequence(sequence.getId(), sequence.getSequenceString());
+            boolean[] paddingArray = msaSequence.getPaddingArray(Integer.MAX_VALUE, 1);
+            System.err.println(Arrays.toString(paddingArray));
+            int x = 0;
+        }
+
+        for (int position = 0; position < alnLen; position++) {
+            char bases[] = new char[numSeqs];
+            boolean padding[] = new boolean[numSeqs];
+
+            //RECORD BASES FROM ALL SEQS
+            for (int i = 0; i < numSeqs; i++) {
+                bases[i] = seqs.get(i).getSequenceString().charAt(position);
+                padding[i] = seqs.get(1).getPaddingArray(Integer.MAX_VALUE, 1)[position];
+            }
+            consensus.append(getBase(bases));
+            //FOR RECORDED BASE OF A SEQUENCE, COMPARE WITH BASES IN OTHER SEQS                    
+            for (int seq = 0; seq < bases.length - 1; seq++) {
+                char base = bases[seq];
+                boolean pad = padding[seq];
+//                        boolean padding = paddingList.get(seq)[position];
+                for (int anotherSeq = seq + 1; anotherSeq < bases.length; anotherSeq++) {
+//                            boolean anotherSeqPadding = paddingList.get(anotherSeq)[position];
+//                    if (base != bases[anotherSeq] && base != '-' && bases[anotherSeq] != '-') {
+                    if (base != bases[anotherSeq] && !pad && !padding[anotherSeq]) {
+//                            if (base != bases[anotherSeq] && !padding && !anotherSeqPadding) {
+//                            mismatch = true;
+                        return null;
+//                            break compare;
+                    }
+                }
+            }
+        }
+        return consensus;
+    }
+
     public void callSNPsWithinSample(int maxIndelLength, int minIndelDistFromEnds) {
         if (size() > 1) {
             snpsWithin = new ArrayList<>(size());
             int len = getSequences().get(0).getLength();
             for (int k = 0; k < getSequences().size() - 1; k++) {
                 MsaSequence s1 = getSequences().get(k);
-                if(s1.getNonTipPaddingLength() > 0) {
+                if (s1.getNonTipPaddingLength() > 0) {
                     continue;
                 }
                 boolean[] padding1 = s1.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
                 for (int l = 1; l < getSequences().size(); l++) {
                     MsaSequence s2 = getSequences().get(l);
-                    if(s2.getNonTipPaddingLength() > 0) {
+                    if (s2.getNonTipPaddingLength() > 0) {
                         continue;
                     }
                     boolean[] padding2 = s2.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
