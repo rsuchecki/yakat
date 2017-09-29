@@ -121,9 +121,10 @@ public class SnpMers {
     }
 
     private OptSet populateOptSet() {
-        OptSet optSet = new OptSet("Given a list of NIKS-derived inter-parent SNPs and the corresponding "
-                + "sequences, read k-mers from each offspring sample and record frequencies of k-mers overlapping with "
-                + "the input SNPs. These are used to call offsping base for a given parental SNP.");
+        OptSet optSet = new OptSet("[A] Take a list of pre-defined SNPs and the associated sequences (e.g. NIKS calls). "
+                + "[B] Take a set of k-mers per sample of interest. "                
+                + "[C] Record frequencies of k-mers overlapping the input SNPs. "
+                + "[D] For each pre-defined SNP, genotype each sample of interest");
 
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");

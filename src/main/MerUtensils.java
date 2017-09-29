@@ -31,7 +31,7 @@ import processpileup.PileupStats;
 import pileupstatsmerge.PileupStatsMerge;
 import seedmers.SeedMers;
 import snpmers.SnpMers;
-import vsearchprocess.MsaParserListVariants;
+import vsearchprocess.VsearchClustersCaller;
 
 /**
  *
@@ -78,7 +78,7 @@ public class MerUtensils {
             new AllOrfs(args, name, "allorfs");
         } else if (args.length != 0 && args[0].matches("vclust(ers)?")) {
 //            new (args, name, "vclustersvars");
-            new MsaParserListVariants(args, name, "vclust");
+            new VsearchClustersCaller(args, name, "vclust");
         } else if (args.length != 0 && args[0].matches("(k)?express(ion)?")) {
             new KeXpression(args, name, "kexpress");
         } else if (args.length != 0 && args[0].matches("(v|ver)(sion)?")) {

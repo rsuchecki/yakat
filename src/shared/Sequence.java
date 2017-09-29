@@ -50,7 +50,7 @@ public class Sequence {
     public String getUnpaddedSequenceString() {
         return sequenceString.replaceAll("-", "");
     }
-
+   
     public void setSequenceString(String sequenceString) {
         this.sequenceString = sequenceString;
     }

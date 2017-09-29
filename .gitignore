@@ -1,8 +1,6 @@
 testfiles
 dist
 build
-out_split
-out_split2
+out_split*
 /tmp.out.fa
-out_split3/
 nbproject/private/profiler/*

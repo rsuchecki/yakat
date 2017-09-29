@@ -2,8 +2,8 @@ Manifest-Version: 1.0
 Ant-Version: Apache Ant 1.9.7
 Created-By: 1.8.0_121-b13 (Oracle Corporation)
 Bundle-Name: ${project.name}
-Bundle-Version: 0.7.4
-Bundle-Date: 2017-09-26 10:07:28 ACST
-Implementation-Title: 2017-09-26 10:07:28 ACST
-Implementation-Version: 0.7.4
+Bundle-Version: 0.7.5
+Bundle-Date: 2017-09-29 13:26:02 ACST
+Implementation-Title: 2017-09-29 13:26:02 ACST
+Implementation-Version: 0.7.5
 
