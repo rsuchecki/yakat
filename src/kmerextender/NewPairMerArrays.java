@@ -108,7 +108,7 @@ public class NewPairMerArrays {
         long singlePMs = 0;
         
         for (int i = 0; i < pairMerArrays.length; i++) {
-            CharSequence prefixSeq = decodeCore(prefixLen, i);
+//            CharSequence prefixSeq = decodeCore(prefixLen, i);
             if (pairMerArrays[i] != null) {
                 lev1load++;
 //                int localCount = 0;

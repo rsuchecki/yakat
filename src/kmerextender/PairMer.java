@@ -119,22 +119,6 @@ public class PairMer {//implements Comparable<PairMer> {
         return hasLeftClip() && hasRightClip();
     }
 
-//    protected void incrementStoredCount() {
-//        if (storedCount < Byte.MAX_VALUE) {
-//            storedCount++;
-//        }
-//    }
-//    protected void incrementStoredCount(boolean left) {
-//        if (left) {
-//            if (storedCountLeft < Byte.MAX_VALUE) {
-//                storedCountLeft++;
-//            }
-//        } else {
-//            if (storedCountRigth < Byte.MAX_VALUE) {
-//                storedCountRigth++;
-//            }            
-//        }
-//    }
     protected void incrementStoredCount(boolean left, int freq) {
         if (left) {
             storedCountLeft = (byte) Math.min(storedCountLeft + freq, Byte.MAX_VALUE);
@@ -191,9 +175,6 @@ public class PairMer {//implements Comparable<PairMer> {
         return invalid;
     }
 
-//    protected byte getStoredCount() {
-//        return storedCount;
-//    }
     protected byte getStoredCount() {
         return (byte) Math.min(storedCountLeft + storedCountRigth, Byte.MAX_VALUE);
     }
@@ -222,13 +203,6 @@ public class PairMer {//implements Comparable<PairMer> {
         return visitedBy != Byte.MAX_VALUE;
     }
 
-//    public synchronized boolean checkAndSetVisited() {
-//        if (!visited) {
-//            visited = true;
-//            return false;
-//        }
-//        return true;
-//    }
     public synchronized byte checkAndSetVisitedBy(byte id) {
         if (visitedBy == Byte.MAX_VALUE) {  //NODE NOT VISITED BEFORE
             visitedBy = id;
@@ -243,16 +217,6 @@ public class PairMer {//implements Comparable<PairMer> {
         return visitedBy; //NODE PREVIOUSLY VISITED BY A HIGHER PRIORITY THREAD 
     }
 
-//    public synchronized void setVisited() {
-//        this.visited = true;
-//    }
-//    public synchronized boolean setVisitedBy(byte id) {
-//        if (visitedBy > id) {
-//            visitedBy = id;
-//            return true;
-//        }
-//        return false;
-//    }
     public byte getVisitedBy() {
         return visitedBy;
     }

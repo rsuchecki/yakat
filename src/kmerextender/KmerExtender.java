@@ -29,6 +29,7 @@ import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -250,10 +251,12 @@ public class KmerExtender {
         //READ k-mers AND POPULATE A MAP FOR EACH SIZE OF k
         PairMerMaps pairMerMaps = new PairMerMaps(kSizes, TOOL_NAME);
         readKmersAndPopulatePairMersMaps(pairMerMaps);
+        
         for (Integer k : kSizes) {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 //            Reporter.report("[INFO]", "Finished populating map, counting elements... ", TOOL_NAME);
             Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getNumberInstance().format(pairMersMap.size()), TOOL_NAME);
+            
         }
 
         //PURGING ALSO IDENTIFIES MOST TERMINAl PAIRMERS -> ALLOWING EFFICIENT MULTI-THREADED TRAVERSAL
@@ -445,7 +448,7 @@ public class KmerExtender {
             while (it.hasNext()) {
                 Integer k = it.next();
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-
+                pairMersMap.storeSize(); //For stats after purging
                 if (pairMerMaps.size() >= threads) {
                     mapsQueue.put(pairMersMap);
                 } else { //WE HAVE MORE THREADS THAN MAPS SO LETS SPLIT THE MAPS
@@ -518,12 +521,12 @@ public class KmerExtender {
 //            System.err.println(k+"=k, |terminal|=" + pairMersMap.getTerminalPairMers().size());
             long size = pairMersMap.size();
             long terminals = pairMersMap.sizeTerminals();
-            double ratio = (double) terminals / size;
+            double ratio = (double) terminals / pairMersMap.getStoredSize();
             NumberFormat perc = NumberFormat.getPercentInstance();
             perc.setMaximumFractionDigits(4);
-            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size) + ", identified " + NumberFormat.getIntegerInstance().format(terminals)
-                    + " terminal PairMers (" + perc.format(ratio) + ")", TOOL_NAME);
-            Reporter.report("[INFO]", NumberFormat.getIntegerInstance().format(pairMersMap.getAmbiguous()) + " ambiguous extensions found", TOOL_NAME);
+            Reporter.report("[INFO]", "Identified " + NumberFormat.getIntegerInstance().format(terminals)+" terminal PairMers (" + perc.format(ratio) + ")", TOOL_NAME);
+            Reporter.report("[INFO]", "Found "+NumberFormat.getIntegerInstance().format(pairMersMap.getAmbiguous()) + " ambiguous extensions", TOOL_NAME);
+            Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size), TOOL_NAME);
             Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
             while (iterator.hasNext()) {
                 PairMer next = iterator.next();

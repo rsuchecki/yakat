@@ -86,7 +86,7 @@ public class PairMerToSeedMap {
                 }
                 message.append(seedSequence.getId());
                 message.append(", ").append(pairMer.getPairMerString(kmerTo - kmerFrom + 1, "_"));
-                Reporter.report("[WARNING]", message.toString(), TOOL_NAME);
+//                Reporter.report("[WARNING]", message.toString(), TOOL_NAME);
             }
         }
     }
