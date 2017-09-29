@@ -44,7 +44,8 @@ public class PairMersMap extends shared.MerMap {
     private AtomicLong ambiguous;
     private AtomicLong size;
     private AtomicLong sizeTerminal = new AtomicLong();
-
+    private long storedSize;
+    
 ////    private PairMer[] prefixToPairMers;
 //    private ChronicleMap<long[], Long> chronicleMap;
 //    BTreeMap<long[], Long> mapDB;
@@ -167,6 +168,8 @@ public class PairMersMap extends shared.MerMap {
     public AtomicLong getSize() {
         return size;
     }
+
+    
 
     public AtomicLong getSizeTerminal() {
         return sizeTerminal;
@@ -364,7 +367,7 @@ public class PairMersMap extends shared.MerMap {
     public long purge(int minKmerFrequency) {
 
         long count = 0L;
-
+//        prePurgeSize = getSize().longValue();
         Iterator<PairMer> it = pairMersSkipListMap.keySet().iterator();
 
 //        Reporter.report("[WARNING]", "Pointless map traversal started", getClass().getCanonicalName());
@@ -605,6 +608,8 @@ public class PairMersMap extends shared.MerMap {
     public PairMersMap getParentMap() {
         return parentMap == null ? this : parentMap;
     }
+    
+    
 
 //    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, ArrayBlockingQueue<PairMersMap> mapsQueue) {
 //        return recursiveSplitMap(pairMersSkipListMap, submaps, minChunk, maxChunk, k, mapsQueue, this);
@@ -661,4 +666,12 @@ public class PairMersMap extends shared.MerMap {
 //        }
 //        return count;
 //    }
+
+    public long getStoredSize() {
+        return storedSize;
+    }
+
+    public void storeSize() {
+        this.storedSize = size();
+    }
 }
