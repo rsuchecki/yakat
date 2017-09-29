@@ -38,7 +38,7 @@ import shared.StdRedirect;
  *
  * @author rad
  */
-public class MsaParserListVariants {
+public class VsearchClustersCaller {
 
     private final static String DELIMITER = "\t";
 //    private char[] getCharsAtPosition(int position) {
@@ -48,7 +48,7 @@ public class MsaParserListVariants {
     private final int WRITER_BUFFER_SIZE = 8192;
 
 //    }
-    public MsaParserListVariants(String[] args, String callerName, String toolName) {
+    public VsearchClustersCaller(String[] args, String callerName, String toolName) {
         TOOL_NAME = callerName + " " + toolName;
 
         OptSet optSet = populateOptSet();
@@ -77,15 +77,10 @@ public class MsaParserListVariants {
         // --sample-id-prefices
         //IF SNPS IN A GIVEN CLUSTER DISPLAY ONE-TO-MANY RELATIONSHIP, CONSIDER MERGING THE "MANY" INTO ONE SEQUENCE
 //>*ms5wt_445588
-//CATCTTGAGGACGTTGTAGCTATGGTGCGTCACGACCATGAAATTGGCCAGGGTCGGGTACCCGAGGATGACATTGTATGGCAGACGGATGTGAGCGATGTCGAAGTCAATGAGGTCGGTGCGGTAGTTGTCGTGTTGTTCGAAGGTGACGGGGAGGTGGACCTGCCCGATCGGGGTGGTGGAGCCGTCGGTCA
 //>ms5mut_154471
-//----------------------------------------------GCCAGGGTTGGGTACCCGAGGATGACATTGTATGGCAGACGGATGTGAGCGATGTCGA------------------------------------------------------------------------------------------
 //>ms5mut_161305
-//----TTGAGGACGTTGTAGCTATGGTGCGTCACGACCATGAAATTGGCCAGGGTTGGGTACC------------------------------------------------------------------------------------------------------------------------------------
 //>ms5mut_154274
-//-------------------------------------ATGAAATTGGCCAGGGTTGGGTACCCGAGGATGACATTGTATGGCAGACGGATGTG-----------------------------------------------------------------------------------------------------
 //>ms5mut_196156
-//----------------------------------------------------GTTGGGTACCCGAGGATGACATTGTATGGCAGACGGATGTGAGCGATGTCGAAGTC--------------------------------------------------------------------------------------
 //stdin	*ms5wt_445588	ms5mut_154471	55	C	T
 //stdin	*ms5wt_445588	ms5mut_161305	55	C	T
 //stdin	*ms5wt_445588	ms5mut_154274	55	C	T
@@ -115,7 +110,7 @@ public class MsaParserListVariants {
         optSet.addOpt(new Opt(null, "max-seqs-clustered-out", "Maximum number of sequences in an output cluster", 1).setMinValue(2).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "min-inter-identity", "Minimum inter sample identity ", 1).setMinValue(0.0).setDefaultValue(0.95));
         optSet.addOpt(new Opt(null, "max-inter-snps", "SNPs will be reported if at most <arg> inter-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(2));
-        optSet.addOpt(new Opt(null, "max-intra-snps", "SNPs will be reported if at most <arg> intra-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(1));
+        optSet.addOpt(new Opt(null, "max-intra-snps", "SNPs will be reported if at most <arg> intra-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(0));
         optSet.addOpt(new Opt(null, "max-indel-length", "Maximum length of an indel ", 1).setMinValue(0).setDefaultValue(1));
         optSet.addOpt(new Opt(null, "min-indel-distance", "Treat '-' positions less than <arg> bases from sequence ends as padding not indels", 1).setMinValue(1).setDefaultValue(3));
         optSet.addOpt(new Opt(null, "supress-inter-snps", "Do not report inter-sample SNPs"));
@@ -131,6 +126,7 @@ public class MsaParserListVariants {
 ////        optSet.addOpt(new Opt('u', "out-buffer-size", "Size of buffers put on out-queue ", 1024, 128, 32768));
 ////        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writing-out",64, 1, 256));
         optSet.addOpt(new Opt(null, "out-clusters-msa", "Output clustered sequences (for which SNPs were called) to <arg> MSA/FASTA file", 1));
+        optSet.addOpt(new Opt(null, "out-clusters-fasta", "Output clustered sequences (for which SNPs were called) to <arg> FASTA file", 1));
         optSet.addOpt(new Opt(null, "out-unclustered-fasta", "Output unclustered sequences to <arg> FASTA file", 1));
         optSet.addOpt(new Opt(null, "out-unclustered-min-len", "Minimum length required to output an unclustered sequence", 1).setMinValue(1).setDefaultValue(100));
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
@@ -188,15 +184,20 @@ public class MsaParserListVariants {
 
         BufferedWriter unclusteredFastaOut = null;
         BufferedWriter clustersFastaOut = null;
+        BufferedWriter clustersMsaOut = null;
         String unclusteredOutFile = (String) optSet.getOpt("out-unclustered-fasta").getValueOrDefault();
-        String clustersOutFile = (String) optSet.getOpt("out-clusters-msa").getValueOrDefault();
+        String clustersOutFileFasta = (String) optSet.getOpt("out-clusters-fasta").getValueOrDefault();
+        String clustersOutFileMSA = (String) optSet.getOpt("out-clusters-msa").getValueOrDefault();
         int unclusteredOutMinLength = (int) optSet.getOpt("out-unclustered-min-len").getValueOrDefault();
         try {
             if (unclusteredOutFile != null) {
                 unclusteredFastaOut = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(unclusteredOutFile))), WRITER_BUFFER_SIZE);
             }
-            if (clustersOutFile != null) {
-                clustersFastaOut = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(clustersOutFile))), WRITER_BUFFER_SIZE);
+            if (clustersOutFileFasta != null) {
+                clustersFastaOut = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(clustersOutFileFasta))), WRITER_BUFFER_SIZE);
+            }
+            if (clustersOutFileMSA != null) {
+                clustersMsaOut = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(new File(clustersOutFileMSA))), WRITER_BUFFER_SIZE);
             }
             String inputLine;
             if (fileName == null) {
@@ -231,7 +232,7 @@ public class MsaParserListVariants {
                     } else if (line.equals(">consensus")) {
                         //PROCESS PREVIOUS CLUSER 
 //                        if (sequencesList.size() > 1) {
-                        clusterNumber = processCluster(clusteredSeqs, optSet, clusterNumber, clustersFastaOut);
+                        clusterNumber = processCluster(clusteredSeqs, optSet, clusterNumber, clustersFastaOut, clustersMsaOut);
 
                         if (unclusteredFastaOut != null && clusteredSeqs.size() == 1) {
                             MsaSequence seq = clusteredSeqs.getSequencesList().get(0);
@@ -256,6 +257,10 @@ public class MsaParserListVariants {
             if (clustersFastaOut != null) {
                 clustersFastaOut.flush();
                 clustersFastaOut.close();
+            }
+            if (clustersMsaOut != null) {
+                clustersMsaOut.flush();
+                clustersMsaOut.close();
             }
 
             if (id.isEmpty()) {
@@ -284,7 +289,8 @@ public class MsaParserListVariants {
 
     }
 
-    private int processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber, BufferedWriter clustersFastaOut) throws IOException {
+    private int processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber, BufferedWriter clustersFastaOut, 
+            BufferedWriter clustersMsaOut) throws IOException {
 
         int minSamplesClustered = (int) optSet.getOpt("min-samples-clustered").getValueOrDefault();
         int minSeqsClusteredIn = (int) optSet.getOpt("min-seqs-clustered-in").getValueOrDefault();
@@ -337,11 +343,18 @@ public class MsaParserListVariants {
             
             int intra = clusteredSeqs.getIntraSnps().size();
             int inter = clusteredSeqs.getInterSnps().size();
+//             clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix, 0, appendSequencesToSnpList);
+            
             //PRINT            
             if (intra <= maxIntraSnps &&  inter <= maxInterSnps && clusteredSeqs.size() <= maxSeqsClusteredOut) {
+                ++clusterNumber;
 //                clusteredSeqs.printCluster((clusterNumber) + " " + clusterString, maxIndelLength);
                 if (clustersFastaOut != null && ((hasIntra && !supressIntra) || (hasInter && !supressInter))) {
-                    clustersFastaOut.write(clusteredSeqs.getClusterForPrint(++clusterNumber).toString());
+                    clustersFastaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, true).toString());
+//                    clustersFastaOut.newLine();
+                }
+                if (clustersMsaOut != null && ((hasIntra && !supressIntra) || (hasInter && !supressInter))) {
+                    clustersMsaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, false).toString());
 //                    clustersFastaOut.newLine();
                 }
                 if (!supressIntra) {

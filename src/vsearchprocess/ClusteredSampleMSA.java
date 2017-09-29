@@ -103,6 +103,7 @@ public class ClusteredSampleMSA {
 //                int x = 0;
             }
 
+//            System.err.println(seqs.get(0).getSequenceString());
             compare:
             for (int position = 0; position < alnLen; position++) {
                 char bases[] = new char[numSeqs];
@@ -111,7 +112,7 @@ public class ClusteredSampleMSA {
                 //RECORD BASES FROM ALL SEQS
                 for (int i = 0; i < numSeqs; i++) {
                     bases[i] = seqs.get(i).getSequenceString().charAt(position);                    
-                    padding[i] = seqs.get(1).getPaddingArray(Integer.MAX_VALUE, 0)[position];
+                    padding[i] = seqs.get(i).getPaddingArray(Integer.MAX_VALUE, 0)[position];
                 }
                 consensus.append(getBase(bases));
                 //FOR RECORDED BASE OF A SEQUENCE, COMPARE WITH BASES IN OTHER SEQS                    
@@ -123,14 +124,20 @@ public class ClusteredSampleMSA {
 //                            boolean anotherSeqPadding = paddingList.get(anotherSeq)[position];
 //                    if (base != bases[anotherSeq] && base != '-' && bases[anotherSeq] != '-') {
                         //MISMATCH & NEIGHTER OF POSITION IS TERMINAL PADDING
+                        
                         if (base != bases[anotherSeq] && !pad && !padding[anotherSeq]) {
 //                            if (base != bases[anotherSeq] && !padding && !anotherSeqPadding) {
+//                            System.err.print("|");
                             mismatch = true;
 //                            break compare;
+//                        } else {
+//                            System.err.print(" ");
                         }
                     }
                 }
             }
+//            System.err.println();
+//            System.err.println(seqs.get(1).getSequenceString());
 
             if (!mismatch) {            
                 StringBuilder id = new StringBuilder(getSampleId());
@@ -168,47 +175,6 @@ public class ClusteredSampleMSA {
         return '-';
     }
 
-    private StringBuilder haveMismatches() {
-        int numSeqs = getSequences().size();
-        int alnLen = getSequences().get(0).getLength();
-        StringBuilder consensus = new StringBuilder();
-        ArrayList<MsaSequence> seqs = new ArrayList<>(numSeqs);
-        for (MsaSequence sequence : getSequences()) {
-            MsaSequence msaSequence = new MsaSequence(sequence.getId(), sequence.getSequenceString());
-            boolean[] paddingArray = msaSequence.getPaddingArray(Integer.MAX_VALUE, 1);
-            System.err.println(Arrays.toString(paddingArray));
-            int x = 0;
-        }
-
-        for (int position = 0; position < alnLen; position++) {
-            char bases[] = new char[numSeqs];
-            boolean padding[] = new boolean[numSeqs];
-
-            //RECORD BASES FROM ALL SEQS
-            for (int i = 0; i < numSeqs; i++) {
-                bases[i] = seqs.get(i).getSequenceString().charAt(position);
-                padding[i] = seqs.get(1).getPaddingArray(Integer.MAX_VALUE, 1)[position];
-            }
-            consensus.append(getBase(bases));
-            //FOR RECORDED BASE OF A SEQUENCE, COMPARE WITH BASES IN OTHER SEQS                    
-            for (int seq = 0; seq < bases.length - 1; seq++) {
-                char base = bases[seq];
-                boolean pad = padding[seq];
-//                        boolean padding = paddingList.get(seq)[position];
-                for (int anotherSeq = seq + 1; anotherSeq < bases.length; anotherSeq++) {
-//                            boolean anotherSeqPadding = paddingList.get(anotherSeq)[position];
-//                    if (base != bases[anotherSeq] && base != '-' && bases[anotherSeq] != '-') {
-                    if (base != bases[anotherSeq] && !pad && !padding[anotherSeq]) {
-//                            if (base != bases[anotherSeq] && !padding && !anotherSeqPadding) {
-//                            mismatch = true;
-                        return null;
-//                            break compare;
-                    }
-                }
-            }
-        }
-        return consensus;
-    }
 
     public void callSNPsWithinSample(int maxIndelLength, int minIndelDistFromEnds) {
         if (size() > 1) {

@@ -198,15 +198,16 @@ public class ClusteredSequencesMSA {
                 boolean[] padding2 = s2.getPaddingArray(maxIndelLength, minIndelDistFromEnds);
                 for (int i = 0; i < len; i++) {
                     if (s1.getSequenceString().charAt(i) != s2.getSequenceString().charAt(i) && !padding1[i] && !padding2[i]) {
-                        interSnps.add(new Snp(s1, s2, i));
+                        Snp snp = new Snp(s1, s2, i);
+                        interSnps.add(snp);
                         //COUNT SNPS PER PAIR
                         MsaSeqPair pair = seqPairs.get(pairKey);
                         if (pair == null) {
                             pair = new MsaSeqPair(s1, s2);
-                            pair.addSnp();
+                            pair.addSnp(snp);
                             seqPairs.put(pairKey, pair);
                         } else {
-                            pair.addSnp();
+                            pair.addSnp(snp);
                         }
                     }
                 }
@@ -242,13 +243,17 @@ public class ClusteredSequencesMSA {
 //        return sb;
 //    }
 
-    public CharSequence getClusterForPrint(int clusterNumber) {
+    public CharSequence getClusterForPrint(int clusterNumber, boolean suppressPadding) {
 //        System.out.println("\nCLUSTER: " + clusterLabel);      
         StringBuilder sb = new StringBuilder();
         for (Sequence msaSequence : getSequencesList()) {
             sb.append(">Cluster_").append(clusterNumber).append("_").append(msaSequence.getId());
             sb.append(System.lineSeparator());
-            sb.append(msaSequence.getSequenceString()).append(System.lineSeparator());
+            if(suppressPadding) {
+                sb.append(msaSequence.getSequenceString().replaceAll("-", "")).append(System.lineSeparator());                
+            } else {
+                sb.append(msaSequence.getSequenceString()).append(System.lineSeparator());                
+            }
         }
         return sb;
     }
@@ -278,6 +283,8 @@ public class ClusteredSequencesMSA {
                     sb.append(DELIMITER).append(snp.getSequence1().getSequenceString());
                     sb.append(DELIMITER).append(snp.getSequence2().getSequenceString());
                 }
+//                sb.append(System.lineSeparator());
+//                sb.append(pair.getMinIdentity());
                 sb.append(System.lineSeparator());
             }
         }

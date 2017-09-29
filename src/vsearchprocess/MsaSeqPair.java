@@ -15,14 +15,17 @@
  */
 package vsearchprocess;
 
+import java.util.ArrayList;
+
 /**
  *
  * @author rad
  */
 public class MsaSeqPair {
+
     private MsaSequence s1;
     private MsaSequence s2;
-    private int snps = 0;
+    private ArrayList<Snp> snpsList;
 
     public MsaSeqPair(MsaSequence s1, MsaSequence s2) {
         if (s1.getId().compareTo(s2.getId()) < 0) {
@@ -32,6 +35,7 @@ public class MsaSeqPair {
             this.s1 = s2;
             this.s2 = s1;
         }
+        snpsList = new ArrayList<>();
     }
 
     public MsaSequence getS1() {
@@ -42,37 +46,56 @@ public class MsaSeqPair {
         return s2;
     }
 
-    public void addSnp() {
-        this.snps++;
+    public void addSnp(Snp snp) {
+        char n1 = getS1().getSequenceString().charAt(snp.getPositionZeroIndexed());
+        char n2 = getS2().getSequenceString().charAt(snp.getPositionZeroIndexed());
+        if (n1 == '-' || n2 == '-') {
+            if (!snpsList.isEmpty()) {
+                Snp last = snpsList.get(snpsList.size() - 1);
+                if (last instanceof Indel && snp.getPositionZeroIndexed() == last.getPositionZeroIndexed() + 1) {
+                    last.incrementLength();
+                } else {
+                    snpsList.add(new Indel(s1, s2, snp.getPositionZeroIndexed()));
+                }
+            } else {
+                snpsList.add(new Indel(s1, s2, snp.getPositionZeroIndexed()));
+            }
+        } else {
+            snpsList.add(snp);
+        }
+//        this.snps++;
     }
 
-    public int getSnps() {
-        return snps;
+    public int getSnpsCount() {
+        return snpsList.size();
     }
-    
+
     /**
-     * Identity based on unpadded length of longer sequence 
-     * 
-     * @return 
+     * Identity based on unpadded length of longer sequence
+     *
+     * @return
      */
     public double getMinIdentity() {
-        return Math.min(getIdentity1(), getIdentity2());    
+        System.err.println(s1.getId() + " " + getIdentity1() + " " + getIdentity2() + " " + s2.getId());
+        return Math.min(getIdentity1(), getIdentity2());
     }
-    
+
     /**
      * Identity based on unpadded length of sequence 1
-     * @return 
+     *
+     * @return
      */
     public double getIdentity1() {
-        return 1 - (double)snps/s1.getUnpaddedLength();
+        return 1 - (double) getSnpsCount() / s1.getUnpaddedLength();
     }
-    
+
     /**
      * Identity based on unpadded length of sequence 2
-     * @return 
+     *
+     * @return
      */
     public double getIdentity2() {
-        return 1 - (double)snps/s2.getUnpaddedLength();
+        return 1 - (double) getSnpsCount() / s2.getUnpaddedLength();
     }
 
 }

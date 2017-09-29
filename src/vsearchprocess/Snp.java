@@ -60,7 +60,7 @@ public class Snp {
 
     /**
      *
-     * @return 1-indexed position
+     * @return 1-indexed position for printing
      */
     public int getPositionOneIndexed() {
         return position + 1;
@@ -74,7 +74,7 @@ public class Snp {
         sb.append(DELIMITER).append(s1.getLength()); //Here the length refers to alignment and not necessarily the sequence
         int order = s1.getId().compareTo(s2.getId());
         order = reverseLex ? -order : order;
-        if (order > 0) {         
+        if (order > 0) {
             MsaSequence tmp = s1;
             s1 = s2;
             s2 = tmp;
@@ -83,13 +83,24 @@ public class Snp {
         sb.append(DELIMITER).append(s2.getId()).append(DELIMITER).append(s2.getUnpaddedLength());
         sb.append(DELIMITER).append(getPositionOneIndexed()).append(DELIMITER);
         sb.append(s1.getSequenceString().charAt(getPositionZeroIndexed())).append(DELIMITER).append(s2.getSequenceString().charAt(getPositionZeroIndexed()));
-        
+
         sb.append(DELIMITER);
-        if(suffix != null) {
+        if (suffix != null) {
             sb.append(suffix);
         } else {
-            sb.append("N/A");            
+            sb.append("N/A");
         }
         return sb;
+
     }
+
+    public int getLength() {
+        return -1;
+    }
+    
+    public int incrementLength() {
+        return 0;
+    }
+    
+    
 }
