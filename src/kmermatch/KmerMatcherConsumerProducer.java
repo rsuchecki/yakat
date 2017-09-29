@@ -98,7 +98,9 @@ public class KmerMatcherConsumerProducer implements Runnable {
 //                    }
 
                     
+
                     
+
                     int matches = kmerMatches(toks[1]);
                     double mFrac = (double)matches / (toks[1].length()-k);
                   
@@ -145,7 +147,11 @@ public class KmerMatcherConsumerProducer implements Runnable {
 //                format = "%"+i+"s%s\n";
 //                System.err.printf(format, "",sequence.subSequence(i, i + k));            
 //            } else
-//                System.err.printf(format, sequence.subSequence(i, i + k));            
+//                System.err.printf(format, sequence.subSequence(i, i + k));  
+            //Dont query N-containing k-mers
+            if(sequence.subSequence(i, i+k).chars().anyMatch(x -> x == 'N' || x =='n')) {
+                continue;
+            }
             if(map.contains(new KmerBytes(SequenceOps.getCanonical(sequence.subSequence(i, i+k).toString()), storeASCII))) {
                 matches++;
             } 
