@@ -51,19 +51,21 @@ public class KmerSetPopulatorConsumer implements Runnable {
     public void run() {
         try {
             Pattern nonNuclPattern = Pattern.compile(".*[^acgtACGT]+.*");
+            Pattern tab = Pattern.compile("\t");
             List<String> list;
             if (k ==null) { //KMERS INPUT, NO NEED TO KMERIZE
                 while (!(list = inputQueue.take()).isEmpty()) {
                     for (String line : list) {
-                        kmers.add(new KmerBytes(SequenceOps.getCanonical(line), storeASCII));
+                        kmers.add(new KmerBytes(SequenceOps.getCanonical(tab.split(line)[0]), storeASCII));
                     }
                 }
             } else {  //KMERIZE
                 while (!(list = inputQueue.take()).isEmpty()) {
                     for (String line : list) {
-                        int maxKmer = line.length() - k + 1;
+                        String kmer = tab.split(line)[0];
+                        int maxKmer = kmer.length() - k + 1;
                         for (int i = 0; i < maxKmer; i++) {                            
-                            String canonical = SequenceOps.getCanonical(line.subSequence(i, i + k).toString());
+                            String canonical = SequenceOps.getCanonical(kmer.subSequence(i, i + k).toString());
                             if(!nonNuclPattern.matcher(canonical).matches()) {
                                 kmers.add(new KmerBytes(canonical, storeASCII));
                             }
