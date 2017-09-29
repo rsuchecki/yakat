@@ -131,10 +131,10 @@ public class KmerMatch {
 
     private void match(ArrayList<String> inputFilenamesList, OptSet optSet) {
         //READ INPUT AND POPULATE IDs MAP
-        boolean storeASCII = optSet.getOpt("-a").isUsed();
+        boolean storeASCII = optSet.getOpt("-a").isUsed();        
         Integer k = (Integer) optSet.getOpt("-k").getValueIfSingle();
         ArrayList<Integer> kValues = new ArrayList<>();
-        kValues.add(k);
+        kValues.add(k != null ? k : 0);
         
         BlockingQueue inputKmersQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
         //SPAWN IDS INPUT READING THREAD        
