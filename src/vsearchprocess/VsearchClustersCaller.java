@@ -109,7 +109,7 @@ public class VsearchClustersCaller {
 //        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "max-seqs-clustered-out", "Maximum number of sequences in an output cluster", 1).setMinValue(2).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "min-inter-identity", "Minimum inter sample identity ", 1).setMinValue(0.0).setDefaultValue(0.95));
-        optSet.addOpt(new Opt(null, "max-inter-snps", "SNPs will be reported if at most <arg> inter-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(2));
+        optSet.addOpt(new Opt(null, "max-inter-snps", "SNPs will be reported if at most <arg> inter-sample SNPs are called in a cluster", 1).setMinValue(0));
         optSet.addOpt(new Opt(null, "max-intra-snps", "SNPs will be reported if at most <arg> intra-sample SNPs are called in a cluster", 1).setMinValue(0).setDefaultValue(0));
         optSet.addOpt(new Opt(null, "max-indel-length", "Maximum length of an indel ", 1).setMinValue(0).setDefaultValue(1));
         optSet.addOpt(new Opt(null, "min-indel-distance", "Treat '-' positions less than <arg> bases from sequence ends as padding not indels", 1).setMinValue(1).setDefaultValue(3));
@@ -298,7 +298,7 @@ public class VsearchClustersCaller {
         
         int maxSeqsClusteredOut = (int) optSet.getOpt("max-seqs-clustered-out").getValueOrDefault();
         int maxIntraSnps = (int) optSet.getOpt("max-intra-snps").getValueOrDefault();
-        int maxInterSnps = (int) optSet.getOpt("max-inter-snps").getValueOrDefault();
+        int maxInterSnps = (int) optSet.getOpt("max-inter-snps").getValueOrDefault(Integer.MAX_VALUE);
 
         int maxIndelLength = (int) optSet.getOpt("max-indel-length").getValueOrDefault();
         int minIndelDistFromEnds = (int) optSet.getOpt("min-indel-distance").getValueOrDefault();
