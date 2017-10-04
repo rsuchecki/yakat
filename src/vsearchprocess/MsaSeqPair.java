@@ -23,9 +23,9 @@ import java.util.ArrayList;
  */
 public class MsaSeqPair {
 
-    private MsaSequence s1;
-    private MsaSequence s2;
-    private ArrayList<Snp> snpsList;
+    private final MsaSequence s1;
+    private final MsaSequence s2;
+    private final ArrayList<Snp> snpsList;
 
     public MsaSeqPair(MsaSequence s1, MsaSequence s2) {
         if (s1.getId().compareTo(s2.getId()) < 0) {
@@ -66,8 +66,21 @@ public class MsaSeqPair {
 //        this.snps++;
     }
 
-    public int getSnpsCount() {
-        return snpsList.size();
+//    public int getSnpsCount() {
+//        return snpsList.size();
+//    }
+    
+    /**
+     * TODO - reduce gap extension penalty - currently weighted == gap open == mismatch
+     * @return 
+     */
+    private int getSnpsWeight() {
+        int weight = 0;
+        for (Snp snp : snpsList) {
+            int length = snp.getLength();
+            weight += length > 0 ? length : 1;
+        }
+        return weight;
     }
 
     /**
@@ -76,7 +89,8 @@ public class MsaSeqPair {
      * @return
      */
     public double getMinIdentity() {
-        System.err.println(s1.getId() + " " + getIdentity1() + " " + getIdentity2() + " " + s2.getId());
+//        System.err.println(getSnpsWeight()+" "+s1.getUnpaddedLength()+" "+s2.getUnpaddedLength());
+//        System.err.println(s1.getId() + " " + getIdentity1() + " " + getIdentity2() + " " + s2.getId());
         return Math.min(getIdentity1(), getIdentity2());
     }
 
@@ -85,8 +99,8 @@ public class MsaSeqPair {
      *
      * @return
      */
-    public double getIdentity1() {
-        return 1 - (double) getSnpsCount() / s1.getUnpaddedLength();
+    private double getIdentity1() {
+        return 1 - (double) getSnpsWeight()/ s1.getUnpaddedLength();
     }
 
     /**
@@ -94,8 +108,8 @@ public class MsaSeqPair {
      *
      * @return
      */
-    public double getIdentity2() {
-        return 1 - (double) getSnpsCount() / s2.getUnpaddedLength();
+    private double getIdentity2() {
+        return 1 - (double) getSnpsWeight()/ s2.getUnpaddedLength();
     }
 
 }
