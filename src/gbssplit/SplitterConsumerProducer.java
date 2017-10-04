@@ -98,7 +98,9 @@ public class SplitterConsumerProducer implements Runnable {
     public void run() {
         try {
             ArrayList<String> list;
-            Pattern spliPattern = Pattern.compile("\t");
+            Pattern splitPattern = Pattern.compile("\t");
+            Pattern splitId = Pattern.compile(":");
+//            Pattern spliPattern = Pattern.compile("\t");
             long noBarcodeMatch = 0L;
             long notPstIStart = 0L;
             long trimmedMspIcount = 0L;
@@ -114,8 +116,11 @@ public class SplitterConsumerProducer implements Runnable {
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
                     lines++;
-                    String toks[] = spliPattern.split(line);
-                    ConcurrentHashMap<String, Sample> barcodes = keyMap.getBarcodes(toks[0].substring(1).replaceAll(":.*", ""));
+                    String toks[] = splitPattern.split(line);
+//                    ConcurrentHashMap<String, Sample> barcodes = keyMap.getBarcodes(toks[0].substring(1).replaceAll(":.*", "")); //worked fro DP data
+                    String split[] = splitId.split(toks[0]);
+                    String flowcell = split.length>2 ? split[2] : toks[0].substring(1).replaceAll(":.*", ""); //IF standard illumina ELSE take whole id
+                    ConcurrentHashMap<String, Sample> barcodes = keyMap.getBarcodes(flowcell);
                     if (barcodes != null) {
                         int matchingBarcodes = 0;
                         for (Map.Entry<String, Sample> entrySet : barcodes.entrySet()) {
