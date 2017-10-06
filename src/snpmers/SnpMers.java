@@ -66,15 +66,17 @@ public class SnpMers {
     private final int REPORTING_SHIFT = 6; //input progress reporting every READER_BUFFER_SIZE*REPORTING_FACTOR records
     private final int READER_BUFFER_SIZE = 8192;
     private final int WRITER_BUFFER_SIZE = 8192;
-    private String parent1 = null;
-    private String parent2 = null;
+    private String allele1 = "Al_1";
+    private String allele2 = "Al_2";
+//    private String parent1 = null;
+//    private String parent2 = null;
     private HashMap<String, ArrayList<KmerLink>> map;
     private ArrayList<SnpFilter> snpFilters;
 
     private boolean DEBUG = false;
 
     private enum OutFmt {
-        IUPAC, AB, SLASH;
+        IUPAC, AB, SLASH, FREQ, COV;
     }
 
 //    }
@@ -116,13 +118,15 @@ public class SnpMers {
         reportResults(sampleNames, (String) optSet.getOpt("out-calls").getValueOrDefault(), OutFmt.SLASH);
         reportResults(sampleNames, (String) optSet.getOpt("out-calls-AB").getValueOrDefault(), OutFmt.AB);
         reportResults(sampleNames, (String) optSet.getOpt("out-calls-IUPAC").getValueOrDefault(), OutFmt.IUPAC);
+        reportResults(sampleNames, (String) optSet.getOpt("out-coverage-ratios").getValueOrDefault(), OutFmt.COV);
+        reportResults(sampleNames, (String) optSet.getOpt("out-k-mer-frequencies").getValueOrDefault(), OutFmt.FREQ);
 //        threadKmersThroughMap_BAK(optSet);
         Reporter.report("[INFO]", "Done!", TOOL_NAME);
     }
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet("[A] Take a list of pre-defined SNPs and the associated sequences (e.g. NIKS calls). "
-                + "[B] Take a set of k-mers per sample of interest. "                
+                + "[B] Take a set of k-mers per sample of interest. "
                 + "[C] Record frequencies of k-mers overlapping the input SNPs. "
                 + "[D] For each pre-defined SNP, genotype each sample of interest");
 
@@ -177,6 +181,8 @@ public class SnpMers {
         optSet.addOpt(new Opt(null, "out-calls-AB", "Output calls to this file (in AB format)", 1));
         optSet.addOpt(new Opt(null, "out-calls-IUPAC", "Output calls to this file (in IUPAC format) - due to the limitations "
                 + "of this format indels will be lost", 1));
+        optSet.addOpt(new Opt(null, "out-coverage-ratios", "Output base coverage ratios to this file ", 1));
+        optSet.addOpt(new Opt(null, "out-k-mer-frequencies", "Output k-mer frequencies to this file", 1));
         optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
         optSet.addOpt(new Opt('D', "debug", "Print additional info for debugging purposes"));
 //        boolean positionalArgumentRequired = true;
@@ -203,6 +209,9 @@ public class SnpMers {
             }
             Pattern spliPattern = Pattern.compile("\t");
 
+            SnpFilter previous = null;
+            String prevS1 = "";
+            String prevS2 = "";
             while ((inputLine = bufferdReader.readLine()) != null) {
                 if (!inputLine.startsWith("ClusterId")) {
                     String line = inputLine.trim();
@@ -216,20 +225,32 @@ public class SnpMers {
                     if (toks.length > 12) {
                         Reporter.report("[WARNING]", "Ignoring " + clusterId + " (" + toks.length + " cols)", TOOL_NAME);
                     } else {
-                        if (parent1 == null) {
-                            if (toks[2].contains("_")) {
-                                parent1 = toks[2].substring(0, toks[2].indexOf('_'));
-                                parent2 = toks[4].substring(0, toks[4].indexOf('_'));
-                            } else {
-                                parent1 = toks[2];
-                                parent2 = toks[4];
-                            }
-                        }
+//                        if (parent1 == null) {
+//                            if (toks[2].contains("_")) {
+//                                parent1 = toks[2].substring(0, toks[2].indexOf('_', 2));
+//                                parent2 = toks[4].substring(0, toks[4].indexOf('_', 2));
+//                            } else {
+//                                parent1 = toks[2];
+//                                parent2 = toks[4];
+//                            }
+//                        }
+                        //If SNPs were called from multiple samples it is possible that 
+                        //a SNP at a given position and involving the same nucleotides
+                        //was called more than once. 
                         int snpPosition = Integer.parseInt(toks[6]) - 1;
+                        String s1 = toks[7].compareTo(toks[8]) <= 0 ? toks[7] : toks[8];
+                        String s2 = toks[7].compareTo(toks[8]) <= 0 ? toks[8] : toks[7];
+                        if (previous != null && previous.getClusterId().equals(clusterId) && previous.getSnpPosition0() == snpPosition
+                                && s1.equals(prevS1) && s2.equals(prevS2)) {
+                            continue;
+                        }
                         SnpFilter snpFilter = new SnpFilter(clusterId, new Sequence(id1, toks[10]), new Sequence(id2, toks[11]), snpPosition, TOOL_NAME);
                         snpFilters.add(snpFilter);
-//                        kmerizeAndAddToMap(snpFilter, k, map, nonUniqueLinks);
+                        //                        kmerizeAndAddToMap(snpFilter, k, map, nonUniqueLinks);
                         kmerizeAndAddToMap(snpFilter, k, map);
+                        previous = snpFilter;
+                        prevS1 = s1;
+                        prevS2 = s2;
                     }
                 }
             }
@@ -248,7 +269,6 @@ public class SnpMers {
         }
         Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map", TOOL_NAME);
 //        Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map, purging non-unique ones", TOOL_NAME);
-        
 
 //PURGE NON-UNIQUE k-mers (these can only be non-unique due to merging of non conflicting, clustered seeds from vsearch)
 //        Iterator<Map.Entry<CharSequence, ArrayList<KmerLink>>> it = map.entrySet().iterator();
@@ -298,10 +318,6 @@ public class SnpMers {
 //                }
 //            }
 //        }
-
-
-
-
         //INVESTIGATING CASES WHERE NON-UNIQUE k-mers HAVE BEEN OBSERVED 
 //        Iterator<Map.Entry<String, ArrayList<KmerLink>>> iterator = nonUniqueLinks.entrySet().iterator();
 //        while (iterator.hasNext()) {
@@ -325,10 +341,9 @@ public class SnpMers {
 //            }                       
 //        }
 //        Reporter.report("[INFO]", intFormat(map.size()) + " unique k-mer-links in map", TOOL_NAME);
-
     }
+    //    private static void kmerizeAndAddToMap(CharSequence sequence, int k, int snpSite) {
 
-//    private static void kmerizeAndAddToMap(CharSequence sequence, int k, int snpSite) {
     private void kmerizeAndAddToMap(SnpFilter snpFilter, int k, HashMap<String, ArrayList<KmerLink>> map) { //,
 //            HashMap<String, ArrayList<KmerLink>> nonUniqueLinks) {
         //TWO PARENT SEQUENCES FOR EACH SNP
@@ -572,26 +587,26 @@ public class SnpMers {
             int lengthUnpadded2 = snpFilter.getSequence2().getLengthUnpadded();
             int positionUnpadded1 = snpFilter.getSnpPosition0UnpaddedSeq1();
             int positionUnpadded2 = snpFilter.getSnpPosition0UnpaddedSeq2();
-            
+
 //            int maxUniq1 = Math.min(positionUnpadded1 + 1, lengthUnpadded1 - positionUnpadded1);
 //            int maxUniq2 = Math.min(positionUnpadded2 + 1, lengthUnpadded2 - positionUnpadded2);
-            int leftDelatK1 = k - positionUnpadded1-1;
+            int leftDelatK1 = k - positionUnpadded1 - 1;
             int rightDelatK1 = k - (lengthUnpadded1 - positionUnpadded1);
             int maxUniq1 = k - Math.max(leftDelatK1, 0) - Math.max(rightDelatK1, 0);
-            int leftDelatK2 = k - positionUnpadded2-1;
+            int leftDelatK2 = k - positionUnpadded2 - 1;
             int rightDelatK2 = k - (lengthUnpadded2 - positionUnpadded2);
             int maxUniq2 = k - Math.max(leftDelatK2, 0) - Math.max(rightDelatK2, 0);
-            
+
             maxUniq1 = k < maxUniq1 ? k : maxUniq1;
             maxUniq2 = k < maxUniq2 ? k : maxUniq2;
             double uniqCov1 = (double) uniqeMersParent1 / maxUniq1;
             double uniqCov2 = (double) uniqeMersParent2 / maxUniq2;
 
             if (uniqCov1 < minUniqRatio || uniqCov2 < minUniqRatio) {
-                System.err.println("Removing\t" + uniqeMersParent1 + " of " + maxUniq1 + "\t" + uniqeMersParent2 + " of " + maxUniq2+ "\t" 
-                        + snpFilter.getClusterId() + "\t" + (snpFilter.getSnpPosition0UnpaddedSeq1()+ 1) + "\t" 
-                        + (snpFilter.getSequence1().getLength() - snpFilter.getSnpPosition0UnpaddedSeq2())+ "\t"
-                        + snpFilter.getSequence1().getSequenceString() + "\t" +snpFilter.getSequence2().getSequenceString());
+                System.err.println("Removing\t" + uniqeMersParent1 + " of " + maxUniq1 + "\t" + uniqeMersParent2 + " of " + maxUniq2 + "\t"
+                        + snpFilter.getClusterId() + "\t" + (snpFilter.getSnpPosition0UnpaddedSeq1() + 1) + "\t"
+                        + (snpFilter.getSequence1().getLength() - snpFilter.getSnpPosition0UnpaddedSeq2()) + "\t"
+                        + snpFilter.getSequence1().getSequenceString() + "\t" + snpFilter.getSequence2().getSequenceString());
                 snpFilter.setInvalid();
                 invalid++;
             } else {
@@ -619,8 +634,8 @@ public class SnpMers {
 
                 StringBuilder header = new StringBuilder("Ref:Pos");
                 header.append(DELIMITER).append("Phenotype");
-                header.append(DELIMITER).append(parent1);
-                header.append(DELIMITER).append(parent2);
+                header.append(DELIMITER).append(allele1);
+                header.append(DELIMITER).append(allele2);
                 for (String sample : samples) {
                     header.append(DELIMITER).append(sample);
                 }
@@ -658,6 +673,12 @@ public class SnpMers {
                                     break;
                                 case SLASH:
                                     sb.append(snpFilter.getBaseCall(sample).getCallString());
+                                    break;
+                                case COV:
+                                    sb.append(snpFilter.getBaseCall(sample).getCoverageRatioString());
+                                    break;
+                                case FREQ:
+                                    sb.append(snpFilter.getBaseCall(sample).getFreqString());
                                     break;
                                 default:
                                     break;

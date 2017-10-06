@@ -23,17 +23,34 @@ public class BaseCall {
 
     private final Character allele1;
     private final Character allele2;
+    private final double freq1;
+    private final double  freq2;
+    private final double  cov1;
+    private final double  cov2;
 
-    /**
-     *
-     * @param allele1
-     * @param allele2
-     */
-    public BaseCall(Character allele1, Character allele2) {
+    public BaseCall(Character allele1, Character allele2, double freq1, double freq2, double cov1, double cov2) {
         this.allele1 = allele1;
         this.allele2 = allele2;
+        this.freq1 = freq1;
+        this.freq2 = freq2;
+        this.cov1 = cov1;
+        this.cov2 = cov2;
     }
 
+    public BaseCall() {
+        this.allele1 = null;
+        this.allele2 = null;
+        this.freq1 = 0;
+        this.freq2 = 0;
+        this.cov1 = 0;
+        this.cov2 = 0;        
+    }
+ 
+    
+/**
+ * TODO - not dealing with coverage and freq
+ * @param iupac 
+ */
     public BaseCall(char iupac) {
         switch (iupac) {
             case 'W': 
@@ -80,7 +97,11 @@ public class BaseCall {
                 allele1 = null;
                 allele2 = null;
                 Reporter.report("[WARNING]", "Unable to convert IUPAC call "+iupac+" into a BaseCall object", this.getClass().getSimpleName());
-        }
+        }                
+        this.freq1 = 0;
+        this.freq2 = 0;
+        this.cov1 = 0;
+        this.cov2 = 0;  
     }
 
     public String getCallString() {
@@ -94,6 +115,13 @@ public class BaseCall {
             return allele1.toString();
         }
         return allele1 + "/" + allele2;
+    }
+    
+    public String getCoverageRatioString() {        
+        return getCov1()+ "/" + getCov2();
+    }
+    public String getFreqString() {        
+        return getFreq1() + "/" + getFreq2();
     }
 
     public String getCallAB(char parent1call, char parent2call) {
@@ -166,4 +194,22 @@ public class BaseCall {
             return '0';
         }
     }
+
+    public double getFreq1() {
+        return freq1;
+    }
+
+    public double getFreq2() {
+        return freq2;
+    }
+
+    public double getCov1() {
+        return cov1;
+    }
+
+    public double getCov2() {
+        return cov2;
+    }
+    
+    
 }
