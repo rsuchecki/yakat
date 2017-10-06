@@ -310,8 +310,8 @@ public class VsearchClustersCaller {
         boolean supressInter = optSet.getOpt("supress-inter-snps").getOptFlag();
 
         boolean appendSequencesToSnpList = true;
-        
-        if (clusteredSeqs.size() >= minSeqsClusteredIn && clusteredSeqs.size() <= maxSeqsClusteredIn && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
+        int size = clusteredSeqs.size();
+        if (size >= minSeqsClusteredIn && size <= maxSeqsClusteredIn && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
             //CALL WITHIN EACH SAMPLE
             clusteredSeqs.callSNPsWithinEachSample(maxIndelLength, minIndelDistFromEnds);
             String suffix = null;
@@ -324,6 +324,7 @@ public class VsearchClustersCaller {
             //MERGE NON-CONFLICTING SEQUENCES WITHIN EACH SAMPLE
             if (clusteredSeqs.mergeSequencesWithinSamples()) {
 //                clusterString = "MERGED";
+                suffix= "MERGED";
             }
             
             //CALL BETWEEN SAMPLES
