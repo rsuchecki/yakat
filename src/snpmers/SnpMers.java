@@ -66,8 +66,8 @@ public class SnpMers {
     private final int REPORTING_SHIFT = 6; //input progress reporting every READER_BUFFER_SIZE*REPORTING_FACTOR records
     private final int READER_BUFFER_SIZE = 8192;
     private final int WRITER_BUFFER_SIZE = 8192;
-    private String allele1 = "Al_1";
-    private String allele2 = "Al_2";
+    private String allele1 = "Al1";
+    private String allele2 = "Al2";
 //    private String parent1 = null;
 //    private String parent2 = null;
     private HashMap<String, ArrayList<KmerLink>> map;
@@ -76,7 +76,7 @@ public class SnpMers {
     private boolean DEBUG = false;
 
     private enum OutFmt {
-        IUPAC, AB, SLASH, FREQ, COV;
+        IUPAC, AB, SLASH, FREQ, COV, EVIDENCE, CALL_WITH_EVIDENCE;
     }
 
 //    }
@@ -118,8 +118,10 @@ public class SnpMers {
         reportResults(sampleNames, (String) optSet.getOpt("out-calls").getValueOrDefault(), OutFmt.SLASH);
         reportResults(sampleNames, (String) optSet.getOpt("out-calls-AB").getValueOrDefault(), OutFmt.AB);
         reportResults(sampleNames, (String) optSet.getOpt("out-calls-IUPAC").getValueOrDefault(), OutFmt.IUPAC);
-        reportResults(sampleNames, (String) optSet.getOpt("out-coverage-ratios").getValueOrDefault(), OutFmt.COV);
+        reportResults(sampleNames, (String) optSet.getOpt("out-k-mer-coverage").getValueOrDefault(), OutFmt.COV);
         reportResults(sampleNames, (String) optSet.getOpt("out-k-mer-frequencies").getValueOrDefault(), OutFmt.FREQ);
+        reportResults(sampleNames, (String) optSet.getOpt("out-calls-evidence").getValueOrDefault(), OutFmt.EVIDENCE);
+        reportResults(sampleNames, (String) optSet.getOpt("out-calls-with-evidence").getValueOrDefault(), OutFmt.CALL_WITH_EVIDENCE);
 //        threadKmersThroughMap_BAK(optSet);
         Reporter.report("[INFO]", "Done!", TOOL_NAME);
     }
@@ -166,9 +168,9 @@ public class SnpMers {
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Variant calling and reporting]");
         optSet.addOpt(new Opt(null, "min-k-mer-frequency-sum", "Minimum frequency of k-mers which overlap "
-                + "with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(5).addFootnote(footId, footText));
+                + "with a SNP (minor+major allele)", 1).setMinValue(1).setDefaultValue(3).addFootnote(footId, footText));
         optSet.addOpt(new Opt(null, "min-k-mer-frequency-minor", "Minimum frequency of k-mers "
-                + "which support the minor allele", 1).setMinValue(1).setDefaultValue(2).addFootnote(footId, footText));
+                + "which support the minor allele", 1).setMinValue(1).setDefaultValue(3).addFootnote(footId, footText));
 //        optSet.addOpt(new Opt(null, "min-overlapping-k-mers", "At least <arg> k-mers must overlap a locus (for each allele)", 1).setMinValue(1).setDefaultValue(1));
         optSet.addOpt(new Opt(null, "min-snp-coverage", "At least <arg> fraction of unique snp-covering k-mers must be present in a genotyped dataset (for each allele)", 1).setDefaultValue(0.9));
         optSet.addOpt(new Opt(null, "max-coverage-error", "Maximum fraction of unique snp-covering k-mers that will be ignored as errorneous assignment and not considered for genotyping", 1).setMinValue(0.00).setDefaultValue(0.05));
@@ -181,8 +183,10 @@ public class SnpMers {
         optSet.addOpt(new Opt(null, "out-calls-AB", "Output calls to this file (in AB format)", 1));
         optSet.addOpt(new Opt(null, "out-calls-IUPAC", "Output calls to this file (in IUPAC format) - due to the limitations "
                 + "of this format indels will be lost", 1));
-        optSet.addOpt(new Opt(null, "out-coverage-ratios", "Output base coverage ratios to this file ", 1));
-        optSet.addOpt(new Opt(null, "out-k-mer-frequencies", "Output k-mer frequencies to this file", 1));
+        optSet.addOpt(new Opt(null, "out-k-mer-coverage", "Output numbers ok k-mers covering each variant-base to this file ", 1));
+        optSet.addOpt(new Opt(null, "out-k-mer-frequencies", "Output median frequencies of k-mers covering each variant-base to this file", 1));
+        optSet.addOpt(new Opt(null, "out-calls-evidence", "Output base-call evidence to this file. This output is an amalgamation of the two previous ones", 1));
+        optSet.addOpt(new Opt(null, "out-calls-with-evidence", "Output base-call with evidence to this file. This output is an amalgamation of the two previous ones", 1));
         optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
         optSet.addOpt(new Opt('D', "debug", "Print additional info for debugging purposes"));
 //        boolean positionalArgumentRequired = true;
@@ -209,9 +213,9 @@ public class SnpMers {
             }
             Pattern spliPattern = Pattern.compile("\t");
 
-            SnpFilter previous = null;
-            String prevS1 = "";
-            String prevS2 = "";
+//            SnpFilter previous = null;
+//            String prevS1 = "";
+//            String prevS2 = "";
             while ((inputLine = bufferdReader.readLine()) != null) {
                 if (!inputLine.startsWith("ClusterId")) {
                     String line = inputLine.trim();
@@ -238,19 +242,22 @@ public class SnpMers {
                         //a SNP at a given position and involving the same nucleotides
                         //was called more than once. 
                         int snpPosition = Integer.parseInt(toks[6]) - 1;
-                        String s1 = toks[7].compareTo(toks[8]) <= 0 ? toks[7] : toks[8];
-                        String s2 = toks[7].compareTo(toks[8]) <= 0 ? toks[8] : toks[7];
-                        if (previous != null && previous.getClusterId().equals(clusterId) && previous.getSnpPosition0() == snpPosition
-                                && s1.equals(prevS1) && s2.equals(prevS2)) {
+//                        String s1 = toks[7].compareTo(toks[8]) <= 0 ? toks[7] : toks[8];
+//                        String s2 = toks[7].compareTo(toks[8]) <= 0 ? toks[8] : toks[7];
+//                        if (previous != null && previous.getClusterId().equals(clusterId) && previous.getSnpPosition0() == snpPosition
+//                                && s1.equals(prevS1) && s2.equals(prevS2)) {
+//                            continue;
+//                        }
+                        SnpFilter snpFilter = new SnpFilter(clusterId, new Sequence(id1, toks[10]), new Sequence(id2, toks[11]), snpPosition, TOOL_NAME);
+                        if (snpFilters.contains(snpFilter)) {
                             continue;
                         }
-                        SnpFilter snpFilter = new SnpFilter(clusterId, new Sequence(id1, toks[10]), new Sequence(id2, toks[11]), snpPosition, TOOL_NAME);
                         snpFilters.add(snpFilter);
                         //                        kmerizeAndAddToMap(snpFilter, k, map, nonUniqueLinks);
                         kmerizeAndAddToMap(snpFilter, k, map);
-                        previous = snpFilter;
-                        prevS1 = s1;
-                        prevS2 = s2;
+//                        previous = snpFilter;
+//                        prevS1 = s1;
+//                        prevS2 = s2;
                     }
                 }
             }
@@ -267,6 +274,7 @@ public class SnpMers {
                 ex.printStackTrace();
             }
         }
+        Reporter.report("[INFO]", intFormat(snpFilters.size()) + " unique variant positions to be genotyped", TOOL_NAME);
         Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map", TOOL_NAME);
 //        Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map, purging non-unique ones", TOOL_NAME);
 
@@ -633,11 +641,25 @@ public class SnpMers {
                 }
 
                 StringBuilder header = new StringBuilder("Ref:Pos");
-                header.append(DELIMITER).append("Phenotype");
+                if (fmt == OutFmt.AB) {
+                    header.append(DELIMITER).append("Phenotype");
+                }
                 header.append(DELIMITER).append(allele1);
+                if (fmt != OutFmt.AB) {
+                    header.append(DELIMITER).append("Cov1");
+                }
                 header.append(DELIMITER).append(allele2);
+                if (fmt != OutFmt.AB) {
+                    header.append(DELIMITER).append("Cov2");
+                }
                 for (String sample : samples) {
-                    header.append(DELIMITER).append(sample);
+                    header.append(DELIMITER).append(sample).append("_call");
+                    if (fmt == OutFmt.CALL_WITH_EVIDENCE) {
+                        header.append(DELIMITER).append(sample).append("_cov1");
+                        header.append(DELIMITER).append(sample).append("_cov2");
+                        header.append(DELIMITER).append(sample).append("_freq1");
+                        header.append(DELIMITER).append(sample).append("_freq2");
+                    }
                 }
 //            System.out.println(header);
                 out.write(header.toString());
@@ -650,17 +672,19 @@ public class SnpMers {
                         sb.append(snpFilter.getClusterId());
 //                sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
                         sb.append(":").append(snpFilter.getSnpPosition0() + 1).append(DELIMITER);
-                        sb.append("All").append(DELIMITER);
 
                         if (fmt == OutFmt.AB) {
-                            sb.append("AA").append(DELIMITER).append("BB");
+                            sb.append("All").append(DELIMITER);
+                            sb.append("AA").append(DELIMITER);//.append(snpFilter.getMersParent1()).append(DELIMITER);
+                            sb.append("BB");//.append(DELIMITER).append(snpFilter.getMersParent1());
                         } else {
                             if (fmt == OutFmt.IUPAC && snpFilter.isIndel()) {
                                 --snpsGenotyped;
                                 indelsLost++;
                                 continue;
                             }
-                            sb.append(snpFilter.getBase1()).append(DELIMITER).append(snpFilter.getBase2());
+                            sb.append(snpFilter.getBase1()).append(DELIMITER).append(snpFilter.getMersParent1()).append(DELIMITER);
+                            sb.append(snpFilter.getBase2()).append(DELIMITER).append(snpFilter.getMersParent2());
                         }
                         for (String sample : samples) {
                             sb.append(DELIMITER);
@@ -675,10 +699,26 @@ public class SnpMers {
                                     sb.append(snpFilter.getBaseCall(sample).getCallString());
                                     break;
                                 case COV:
-                                    sb.append(snpFilter.getBaseCall(sample).getCoverageRatioString());
+                                    sb.append(snpFilter.getBaseCall(sample).getCoverageString());
                                     break;
                                 case FREQ:
                                     sb.append(snpFilter.getBaseCall(sample).getFreqString());
+                                    break;
+                                case EVIDENCE:
+                                    sb.append(snpFilter.getBaseCall(sample).getEvidence());
+                                    break;
+                                case CALL_WITH_EVIDENCE:
+                                    sb.append(snpFilter.getBaseCall(sample).getCallString());
+                                    sb.append(DELIMITER);
+                                    sb.append(snpFilter.getBaseCall(sample).getCov1());
+                                    sb.append(DELIMITER);
+                                    sb.append(snpFilter.getBaseCall(sample).getCov2());
+//                                    sb.append(snpFilter.getBaseCall(sample).getCoverageString());
+                                    sb.append(DELIMITER);
+                                    sb.append(snpFilter.getBaseCall(sample).getFreq1String());
+                                    sb.append(DELIMITER);
+                                    sb.append(snpFilter.getBaseCall(sample).getFreq2String());
+//                                    sb.append(snpFilter.getBaseCall(sample).getFreqString());
                                     break;
                                 default:
                                     break;

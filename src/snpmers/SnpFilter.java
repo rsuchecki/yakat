@@ -27,7 +27,7 @@ import shared.Sequence;
  *
  * @author rad
  */
-public class SnpFilter {
+public class SnpFilter implements Comparable<SnpFilter>{
 
     private final Sequence sequence1;
     private final Sequence sequence2;
@@ -273,12 +273,14 @@ public class SnpFilter {
 //        if(mersParent1 < 10 &&  mersParent2 < 10) {
 //            int x =0;
 //        }
-        double coverageRatio1 = (double)nonZeroKmerFreqs1.size() / getMersParent1();
-        double coverageRatio2 = (double)nonZeroKmerFreqs2.size() / getMersParent2();
+        int cov1 = nonZeroKmerFreqs1.size();
+        int cov2 = nonZeroKmerFreqs2.size();
+        double coverageRatio1 = (double)cov1 / getMersParent1();
+        double coverageRatio2 = (double)cov2 / getMersParent2();
         //QUICKLY DISCARD IF LOW FREQUENCY/LOW COVERAGE 
         if (medianFreq1 + medianFreq2 < minTotal || (coverageRatio1 < minCoverageRatio && coverageRatio2 < minCoverageRatio)) {
 //            System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" _/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
-            return new BaseCall(null, null, medianFreq1, medianFreq2, coverageRatio1,coverageRatio2);
+            return new BaseCall(null, null, medianFreq1, medianFreq2, cov1, cov2);
         }
         Character base1 = getBase1();
         Character base2 = getBase2();
@@ -295,18 +297,18 @@ public class SnpFilter {
         //CLEAR-CUT HOMOZYGOUS CASES
         if (medianFreq1 == 0 && coverageRatio2 >= minCoverageRatio) { //homozygous
 //        System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" "+base2+"/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
-            return new BaseCall(base2, null, medianFreq1, medianFreq2, coverageRatio1,coverageRatio2);
+            return new BaseCall(base2, null, medianFreq1, medianFreq2, cov1, cov2);
         } else if (medianFreq2 == 0 && coverageRatio1 >= minCoverageRatio) { //homozygous
 //            System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" "+base1+"/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
-            return new BaseCall(base1, null, medianFreq1, medianFreq2, coverageRatio1,coverageRatio2);
+            return new BaseCall(base1, null, medianFreq1, medianFreq2, cov1, cov2);
         }
         
         if (medianFreq1 >= minMinor && medianFreq2 >= minMinor && coverageRatio1 >= minCoverageRatio && coverageRatio2 >= minCoverageRatio) {
 //            System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" "+base1+" "+base2 +" "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
-            return new BaseCall(base1, base2, medianFreq1, medianFreq2, coverageRatio1,coverageRatio2);
+            return new BaseCall(base1, base2, medianFreq1, medianFreq2, cov1, cov2);
         }
 //        System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" _/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
-        return new BaseCall(null, null, medianFreq1, medianFreq2, coverageRatio1,coverageRatio2);
+        return new BaseCall(null, null, medianFreq1, medianFreq2, cov1, cov2);
 
     }
 
@@ -341,6 +343,25 @@ public class SnpFilter {
     public int getMersParent2() {
         return mersParent2;
     }
-    
 
+    @Override
+    public int compareTo(SnpFilter o) {
+        int compareTo = getClusterId().compareTo(o.getClusterId());
+        if(compareTo == 0) {
+            return getSnpPosition0() - o.getSnpPosition0();
+        }
+        return compareTo;
+    }
+    
+    @Override
+    public boolean equals(Object o) {
+        return compareTo((SnpFilter) o) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        return getClusterId().hashCode()+getSnpPosition0();
+    }
+
+    
 }
