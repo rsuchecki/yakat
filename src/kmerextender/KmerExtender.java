@@ -184,7 +184,10 @@ public class KmerExtender {
     }
 
     private OptSet populateOptSet() {
-        OptSet optSet = new OptSet();
+        OptSet optSet = new OptSet("(k)extender is designed for rapid identification of unambiguous extensions (a.k.a. unitigs) "
+                + "from a set of k-mers. Note that due to specifics of the implementation it is best to use EVEN k values. "
+                + "");
+//                + "Each input k-mer is split and stored twice (as k-1-mer and the remaining on-base extension). "
 
         //INPUT
         optSet.setListingGroupLabel("[Input settings - general extender]");
