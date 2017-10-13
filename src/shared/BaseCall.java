@@ -24,11 +24,11 @@ public class BaseCall {
     private final Character allele1;
     private final Character allele2;
     private final double freq1;
-    private final double  freq2;
-    private final double  cov1;
-    private final double  cov2;
+    private final double freq2;
+    private final int cov1;
+    private final int cov2;
 
-    public BaseCall(Character allele1, Character allele2, double freq1, double freq2, double cov1, double cov2) {
+    public BaseCall(Character allele1, Character allele2, double freq1, double freq2, int cov1, int cov2) {
         this.allele1 = allele1;
         this.allele2 = allele2;
         this.freq1 = freq1;
@@ -43,37 +43,37 @@ public class BaseCall {
         this.freq1 = 0;
         this.freq2 = 0;
         this.cov1 = 0;
-        this.cov2 = 0;        
+        this.cov2 = 0;
     }
- 
-    
-/**
- * TODO - not dealing with coverage and freq
- * @param iupac 
- */
+
+    /**
+     * TODO - not dealing with coverage and freq
+     *
+     * @param iupac
+     */
     public BaseCall(char iupac) {
         switch (iupac) {
-            case 'W': 
+            case 'W':
                 allele1 = 'A';
                 allele2 = 'T';
                 break;
-            case 'S': 
+            case 'S':
                 allele1 = 'C';
                 allele2 = 'G';
                 break;
-            case 'M': 
+            case 'M':
                 allele1 = 'A';
                 allele2 = 'C';
                 break;
-            case 'K': 
+            case 'K':
                 allele1 = 'G';
                 allele2 = 'T';
                 break;
-            case 'R': 
+            case 'R':
                 allele1 = 'A';
                 allele2 = 'G';
                 break;
-            case 'Y': 
+            case 'Y':
                 allele1 = 'C';
                 allele2 = 'T';
                 break;
@@ -96,12 +96,12 @@ public class BaseCall {
             default:
                 allele1 = null;
                 allele2 = null;
-                Reporter.report("[WARNING]", "Unable to convert IUPAC call "+iupac+" into a BaseCall object", this.getClass().getSimpleName());
-        }                
+                Reporter.report("[WARNING]", "Unable to convert IUPAC call " + iupac + " into a BaseCall object", this.getClass().getSimpleName());
+        }
         this.freq1 = 0;
         this.freq2 = 0;
         this.cov1 = 0;
-        this.cov2 = 0;  
+        this.cov2 = 0;
     }
 
     public String getCallString() {
@@ -116,12 +116,31 @@ public class BaseCall {
         }
         return allele1 + "/" + allele2;
     }
-    
-    public String getCoverageRatioString() {        
-        return getCov1()+ "/" + getCov2();
+
+    public String getCoverageString() {
+        return getCov1() + "/" + getCov2();
     }
-    public String getFreqString() {        
+
+    public String getFreqString() {
         return getFreq1() + "/" + getFreq2();
+    }
+
+    public CharSequence getEvidence() {
+        String EMPTY = "\u2205"; 
+        String TIMES = "\u00D7";
+        StringBuilder sb = new StringBuilder();
+        if (getCov1() == 0) {
+            sb.append(EMPTY);
+        } else {
+            sb.append(getCov1()).append(TIMES).append(getFreq1());
+        }
+        sb.append("/");
+        if (getCov2() == 0) {
+            sb.append(EMPTY);
+        } else {
+            sb.append(getCov2()).append(TIMES).append(getFreq2());
+        }                
+        return sb;
     }
 
     public String getCallAB(char parent1call, char parent2call) {
@@ -199,17 +218,27 @@ public class BaseCall {
         return freq1;
     }
 
+    public String getFreq1String() {
+        String f = Double.toString(getFreq1());
+        return f.replaceAll("\\.0+$", "");
+    }
+    
+
     public double getFreq2() {
         return freq2;
     }
+    
+    public String getFreq2String() {
+        String f = Double.toString(getFreq2());
+        return f.replaceAll("\\.0+$", "");
+    }
 
-    public double getCov1() {
+    public int getCov1() {
         return cov1;
     }
 
-    public double getCov2() {
+    public int getCov2() {
         return cov2;
     }
-    
-    
+
 }
