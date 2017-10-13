@@ -89,7 +89,7 @@ public class PairMersExtender {
             namePrefix += "_";
         }
 
-        long clusterNumber = 0; //Connected-component in the de-bruijn graph, not the output cluster - change that?
+        long clusterNumber = 0; //Connected-component in the de-bruijn graph
         long extendedNumber = 0;
         long extendedLength = 0;
         long longEnough = 0;
@@ -116,7 +116,7 @@ public class PairMersExtender {
             BlockingQueue<List<ConnectedPairMers>> outqueue = new ArrayBlockingQueue(extenderThreads);
             ArrayList<Future<?>> futures = new ArrayList<>(extenderThreads + 1);
             final ExecutorService producerConsumerExecutor = new ThreadPoolExecutor(extenderThreads + 1, extenderThreads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
-            int BUFFER_SIZE = Math.max(1, (int) Math.min(1024, pairMersMap.sizeTerminals() / extenderThreads / 10));
+            int BUFFER_SIZE = Math.max(1, (int) Math.min(256, pairMersMap.sizeTerminals() / extenderThreads / 10));
             Reporter.report("[INFO]", "Passing "+NumberFormat.getNumberInstance().format(BUFFER_SIZE) + " terminal PairMers per buffer to each extender thread", TOOL_NAME);
             //SPAWN PRODUCER
             futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue, BUFFER_SIZE)));
@@ -176,7 +176,7 @@ public class PairMersExtender {
                                     longEnough++;
                                     longEnoughBp += len;
 
-                                    //SYNC THIS 
+                                    //SYNC THIS ?
                                     if (outputFasta) {
                                         out.write(">" + namePrefix + clusterNumber + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
                                         out.newLine();
@@ -186,8 +186,9 @@ public class PairMersExtender {
 //                            } else {
 //                                System.err.println("too short at "+len+" "+connectedMers.toString()+" given minlen = "+minLen);
                                 }
+                                
 
-                            } else {
+                            } else { //THIS IS NOT REALLY POSSIBLE HERE - REMOVE?
                                 String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
                                 Reporter.report("[WARNING]", message, TOOL_NAME);
                                 if (DEBUG_FILE != null) {
@@ -197,7 +198,7 @@ public class PairMersExtender {
                                         toReport.add(pm.getPairMerString(k));
                                     }
                                     Reporter.writeToFile(DEBUG_FILE, toReport, true);
-                                }
+                                }                                
                             }
                         } catch (StackOverflowError error) {
                             Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
