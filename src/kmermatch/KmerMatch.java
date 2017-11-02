@@ -78,10 +78,10 @@ public class KmerMatch {
     }
 
     private OptSet populateOptSet() {
-        OptSet optSet = new OptSet("Given a set of k-mers and (by default one-per-line) FASTQ input, output FASTQ records if sufficient matching k-mers are present ");
+        OptSet optSet = new OptSet("Given a set of k-mers (or FASTA/FASTQ to be k-merized) and (by default one-per-line) FAST[A|Q] input, output FAST[A|Q] records if sufficient matching k-mers are present. Do not mix different input types in one run (FASTA/FASTQ/PE/SE) as input format is recognized early on and subsequent records are assumed to be in the same format.");
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
-        optSet.addOpt(new Opt('K', "k-mers", "Sequence(s) to be used as reference for matching the reads, by default a set of k-mers is expected. If <arg> needs to be k-merized then -k / --k-mer-length is also required. ", 1).setRequired(true));
+        optSet.addOpt(new Opt('K', "k-mers", "Sequence(s) to be used as reference for matching the reads, by default a set of k-mers is expected. If <arg> needs to be k-merized then -k / --k-mer-length is also required.", 1).setRequired(true));
         optSet.addOpt(new Opt('k', "k-mer-length", "Specify required k-mer size if reference is to be k-merized", 1).setMinValue(2).setMaxValue(1024));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Number of FASTQ records (reads or pairs depending on input) "
                 + "passed to in-queue", 2048, 1, 8092));
