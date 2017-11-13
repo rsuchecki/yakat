@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import shared.Reporter;
 import shared.Sequence;
 
@@ -40,8 +41,8 @@ public class SnpFilter implements Comparable<SnpFilter>{
 //    private HashMap<String, String> callDetails;
     private boolean valid = true;
 
-    private int mersParent1;
-    private int mersParent2;
+    private final AtomicInteger mersCountParent1 = new AtomicInteger();
+    private final AtomicInteger mersCountParent2 = new AtomicInteger();
 
     /**
      *
@@ -275,8 +276,8 @@ public class SnpFilter implements Comparable<SnpFilter>{
 //        }
         int cov1 = nonZeroKmerFreqs1.size();
         int cov2 = nonZeroKmerFreqs2.size();
-        double coverageRatio1 = (double)cov1 / getMersParent1();
-        double coverageRatio2 = (double)cov2 / getMersParent2();
+        double coverageRatio1 = (double)cov1 / getMersCountParent1();
+        double coverageRatio2 = (double)cov2 / getMersCountParent2();
         //QUICKLY DISCARD IF LOW FREQUENCY/LOW COVERAGE 
         if (medianFreq1 + medianFreq2 < minTotal || (coverageRatio1 < minCoverageRatio && coverageRatio2 < minCoverageRatio)) {
 //            System.out.println(cov1+" "+cov2+" "+coverageRatio1+" "+coverageRatio2+" _/_ "+nonZeroKmerFreqs1.size()+"/"+getMersParent1()+" "+nonZeroKmerFreqs2.size()+"/"+getMersParent2());
@@ -330,18 +331,18 @@ public class SnpFilter implements Comparable<SnpFilter>{
 
     public void incrementMerCount(boolean parentOne) {
         if (parentOne) {
-            mersParent1++;
+            mersCountParent1.incrementAndGet();
         } else {
-            mersParent2++;
+            mersCountParent2.incrementAndGet();
         }
     }
 
-    public int getMersParent1() {
-        return mersParent1;
+    public int getMersCountParent1() {
+        return mersCountParent1.get();
     }
 
-    public int getMersParent2() {
-        return mersParent2;
+    public int getMersCountParent2() {
+        return mersCountParent2.get();
     }
 
     public HashMap<String, BaseCall> getSnpCalls() {

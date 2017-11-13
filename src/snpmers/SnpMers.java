@@ -46,6 +46,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -180,6 +182,7 @@ public class SnpMers {
         optSet.addOpt(new Opt(null, "max-coverage-error", "Maximum fraction of unique snp-covering k-mers that will be ignored as errorneous assignment and not considered for genotyping", 1).setMinValue(0.00).setDefaultValue(0.05));
 //
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime and output settings]");
+        optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()).addFootnote(1, "Multi-threading currently only implemented for initial snpMer map building"));
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
         optSet.addOpt(new Opt(null, "out-fasta", "Output relevant sequences to this file (in FASTA format)", 1));
@@ -205,33 +208,22 @@ public class SnpMers {
 
         String snpsFileName = (String) optSet.getOpt("s").getValueOrDefault();
         int k = (int) optSet.getOpt("k").getValueOrDefault();
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
-        int IN_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
-        BlockingQueue inputQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
+        int threads = (int) optSet.getOpt("t").getValueOrDefault();
+
+
+        int IN_Q_CAPACITY = threads; //(int) optSet.getOpt("Q").getValueOrDefault();
+        int BUFFER_SIZE = 128; //(int) optSet.getOpt("U").getValueOrDefault();
+        BlockingQueue snpFiltersQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
         int ioThreads = 1 + 1;
         ArrayList<Future<?>> ioFutures = new ArrayList<>(ioThreads);
         final ExecutorService ioExecutorService = new ThreadPoolExecutor(ioThreads, ioThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
-        int threads = 1;
         final ExecutorService execService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
         ArrayList<Future<?>> futures = new ArrayList<>(threads);
 //        for (int i = 0; i < threads; i++) {
-        futures.add(execService.submit(new MapPopulatorConsumer(map, inputQueue, TOOL_NAME)));
+        futures.add(execService.submit(new MapPopulatorConsumer(map, snpFiltersQueue, k, TOOL_NAME)));
 //        }
-        ArrayList<SnpFilter> snpFiltersBuffer = new ArrayList<>(8);
-        
-               
-        
-        
-        
+        ArrayList<SnpFilter> snpFiltersBuffer = new ArrayList<>(BUFFER_SIZE);
+
 //        HashMap<String, Sequence> sequences = shared.FastaReader.hashMapOfSequencesFromFasta(fastaFileName, null);
         BufferedReader bufferdReader = null;
 //        HashMap<String, ArrayList<KmerLink>> nonUniqueLinks = new HashMap<>();
@@ -286,16 +278,24 @@ public class SnpMers {
                         }
                         snpFilters.add(snpFilter);
                         //                        kmerizeAndAddToMap(snpFilter, k, map, nonUniqueLinks);
-                        kmerizeAndAddToMap(snpFilter, k, map);
+
+                        snpFiltersBuffer.add(snpFilter);
+                        if (snpFiltersBuffer.size() >= BUFFER_SIZE) {
+                            snpFiltersQueue.put(snpFiltersBuffer);
+                            snpFiltersBuffer = new ArrayList<>(BUFFER_SIZE);
+                        }
+
+//                        kmerizeAndAddToMap(snpFilter, k, map);
 //                        previous = snpFilter;
 //                        prevS1 = s1;
 //                        prevS2 = s2;
                     }
                 }
             }
+            snpFiltersQueue.put(new ArrayList());
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found: " + snpsFileName, TOOL_NAME);
-        } catch (IOException ex) {
+        } catch (IOException | InterruptedException ex) {
             ex.printStackTrace();
         } finally {
             try {
@@ -306,9 +306,7 @@ public class SnpMers {
                 ex.printStackTrace();
             }
         }
-        
-        
-        
+
         execService.shutdown();
         ioExecutorService.shutdown();
 
@@ -333,7 +331,7 @@ public class SnpMers {
 //        for (Message fm : finalMessages) {
 //            Reporter.report(fm.getLevel().toString(), fm.getBody(), fm.getCaller());
 //        }
-        
+
         Reporter.report("[INFO]", intFormat(snpFilters.size()) + " unique variant positions to be genotyped", TOOL_NAME);
         Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map", TOOL_NAME);
 //        Reporter.report("[INFO]", intFormat(map.size()) + " k-mer-links in map, purging non-unique ones", TOOL_NAME);
@@ -642,11 +640,11 @@ public class SnpMers {
         System.err.println("P1\tP2\tID\tpos\tpos_rev");
         while (iterator.hasNext()) {
             SnpFilter snpFilter = iterator.next();
-            int uniqeMersParent1 = snpFilter.getMersParent1();
+            int uniqeMersParent1 = snpFilter.getMersCountParent1();
 //            if (snpFilter.getBase1() == '-') {
 //                uniqeMersParent1++;
 //            }
-            int uniqeMersParent2 = snpFilter.getMersParent2();
+            int uniqeMersParent2 = snpFilter.getMersCountParent2();
 //            if (snpFilter.getBase2() == '-') {6
 //                uniqeMersParent2++;
 //            }
@@ -743,8 +741,8 @@ public class SnpMers {
                                 indelsLost++;
                                 continue;
                             }
-                            sb.append(snpFilter.getBase1()).append(DELIMITER).append(snpFilter.getMersParent1()).append(DELIMITER);
-                            sb.append(snpFilter.getBase2()).append(DELIMITER).append(snpFilter.getMersParent2());
+                            sb.append(snpFilter.getBase1()).append(DELIMITER).append(snpFilter.getMersCountParent1()).append(DELIMITER);
+                            sb.append(snpFilter.getBase2()).append(DELIMITER).append(snpFilter.getMersCountParent2());
                         }
                         for (String sample : samples) {
                             sb.append(DELIMITER);
@@ -897,7 +895,7 @@ public class SnpMers {
                         if (i == j) {
                             sb.append(" ").append(0);
                         } else {
-                            
+
                             double distance = 1 - (double) matches[i][j] / (double) called[i][j];
                             sb.append(" ").append(distance);
                         }

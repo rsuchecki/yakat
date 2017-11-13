@@ -20,39 +20,49 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import shared.Sequence;
 import shared.SequenceOps;
+import sun.awt.resources.awt_ja;
 
 /**
  *
  * @author rad
  */
 public class MapPopulatorConsumer implements Runnable {
+
     private final ConcurrentSkipListMap<String, ArrayList<KmerLink>> map;
     private final boolean DEBUG = false;
     private final BlockingQueue<ArrayList<SnpFilter>> inputQueue;
+    private final int k;
     private final String TOOL_NAME;
-    
+
     /**
      *
      * @param map
      * @param inputQueue
+     * @param k
      * @param TOOL_NAME
      */
-    public MapPopulatorConsumer(ConcurrentSkipListMap<String, ArrayList<KmerLink>> map, BlockingQueue<ArrayList<SnpFilter>> inputQueue, String TOOL_NAME) {
+    public MapPopulatorConsumer(ConcurrentSkipListMap<String, ArrayList<KmerLink>> map, BlockingQueue<ArrayList<SnpFilter>> inputQueue,
+        int k, String TOOL_NAME) {
         this.map = map;
         this.inputQueue = inputQueue;
+        this.k = k;
         this.TOOL_NAME = TOOL_NAME;
     }
-     @Override
+
+    @Override
     public void run() {
 
         try {
             ArrayList<SnpFilter> buffer = null;
             String previous = null;
             while (!(buffer = inputQueue.take()).isEmpty()) {
-                
+                for (SnpFilter snpFilter : buffer) {
+                    kmerizeAndAddToMap(snpFilter, k, map);
+                }
 
             }
 //            inputQueue.put(new LabelledInputBuffer(null, new ArrayList())); //inform other threads
+            inputQueue.put(new ArrayList()); //inform other threads
 //            Reporter.report("[INFO]", "Finished assigning k-mer frequencies to SNPs", TOOL_NAME);
 
         } catch (InterruptedException e) {
@@ -62,7 +72,7 @@ public class MapPopulatorConsumer implements Runnable {
         }
 
     }
-    
+
     private void kmerizeAndAddToMap(SnpFilter snpFilter, int k, ConcurrentSkipListMap<String, ArrayList<KmerLink>> map) { //,
 //            HashMap<String, ArrayList<KmerLink>> nonUniqueLinks) {
         //TWO PARENT SEQUENCES FOR EACH SNP
@@ -124,14 +134,23 @@ public class MapPopulatorConsumer implements Runnable {
                 int pos = i + offset; //position in the original/padded MSA sequence
 //                KmerLink kmerLink = new KmerLink(snpFilter, (parent == 1), pos, !kmer.equals(canonical));
                 KmerLink kmerLink = new KmerLink(snpFilter, (parent == 1), pos);
-                ArrayList<KmerLink> kmerLinks = map.get(canonical);
-                if (kmerLinks == null) {
-                    kmerLinks = new ArrayList();
-                }
+                ArrayList<KmerLink> kmerLinks = new ArrayList();
                 kmerLinks.add(kmerLink);
+                ArrayList<KmerLink> previousStored = map.putIfAbsent(canonical, kmerLinks);
+                if (previousStored != null) {
+                    synchronized (previousStored) {
+                        previousStored.add(kmerLink);
+                    }
+                }                
                 snpFilter.incrementMerCount(kmerLink.isParentOne());
-                map.put(canonical, kmerLinks);
 
+//                ArrayList<KmerLink> kmerLinks = map.get(canonical);
+//                if (kmerLinks == null) {
+//                    kmerLinks = new ArrayList();
+//                }
+//                kmerLinks.add(kmerLink);
+//                snpFilter.incrementMerCount(kmerLink.isParentOne());
+//                map.put(canonical, kmerLinks);
 //                if (map.containsKey(canonical)) {
 //                    kmerLink.setUnique(false);
 //                }
