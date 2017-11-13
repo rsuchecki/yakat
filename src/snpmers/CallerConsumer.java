@@ -54,7 +54,7 @@ public class CallerConsumer implements Runnable {
     private final String TOOL_NAME;
     private final ArrayList<SnpFilter> snpFilters;
 //    private final ConcurrentSkipListMap<CharSequence, KmerLink> map;
-    private final HashMap<String, ArrayList<KmerLink>> map;
+    private final ConcurrentSkipListMap<String, ArrayList<KmerLink>> map;
 //    private final OptSet optSet;
     private final ArrayList<String> samples;
     private final int minTotal;
@@ -65,8 +65,8 @@ public class CallerConsumer implements Runnable {
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
-            HashMap<String, ArrayList<KmerLink>> map, ArrayList<SnpFilter> snpFilters,
-            int minTotal, int minMinor, double minKmers, double maxError) {
+            ConcurrentSkipListMap<String, ArrayList<KmerLink>> map, ArrayList<SnpFilter> snpFilters,
+            int minTotal, int minMinor, double minCoverage, double maxError) {
         this.inputQueue = inputQueue;
         this.samples = samples;
         this.map = map;
@@ -79,7 +79,7 @@ public class CallerConsumer implements Runnable {
 //        sampleToQueueMap = keyMap.getSampleToQueueMap();
         this.minTotal = minTotal;
         this.minMinor = minMinor;
-        this.minCoverage = minKmers;
+        this.minCoverage = minCoverage;
         this.maxError = maxError;
     }
 

@@ -344,6 +344,13 @@ public class SnpFilter implements Comparable<SnpFilter>{
         return mersParent2;
     }
 
+    public HashMap<String, BaseCall> getSnpCalls() {
+        return snpCalls;
+    }
+    
+    
+    
+
     @Override
     public int compareTo(SnpFilter o) {
         int compareTo = getClusterId().compareTo(o.getClusterId());
