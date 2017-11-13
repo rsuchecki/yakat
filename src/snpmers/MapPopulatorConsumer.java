@@ -20,7 +20,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
 import shared.Sequence;
 import shared.SequenceOps;
-import sun.awt.resources.awt_ja;
 
 /**
  *

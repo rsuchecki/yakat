@@ -208,20 +208,20 @@ public class SnpMers {
 
         String snpsFileName = (String) optSet.getOpt("s").getValueOrDefault();
         int k = (int) optSet.getOpt("k").getValueOrDefault();
-        int threads = (int) optSet.getOpt("t").getValueOrDefault();
+        int threads = 2;//(int) optSet.getOpt("t").getValueOrDefault();
 
 
         int IN_Q_CAPACITY = threads; //(int) optSet.getOpt("Q").getValueOrDefault();
-        int BUFFER_SIZE = 128; //(int) optSet.getOpt("U").getValueOrDefault();
+        int BUFFER_SIZE = 256; //(int) optSet.getOpt("U").getValueOrDefault();
         BlockingQueue snpFiltersQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
         int ioThreads = 1 + 1;
         ArrayList<Future<?>> ioFutures = new ArrayList<>(ioThreads);
         final ExecutorService ioExecutorService = new ThreadPoolExecutor(ioThreads, ioThreads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
         final ExecutorService execService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
         ArrayList<Future<?>> futures = new ArrayList<>(threads);
-//        for (int i = 0; i < threads; i++) {
-        futures.add(execService.submit(new MapPopulatorConsumer(map, snpFiltersQueue, k, TOOL_NAME)));
-//        }
+        for (int i = 0; i < threads; i++) {
+            futures.add(execService.submit(new MapPopulatorConsumer(map, snpFiltersQueue, k, TOOL_NAME)));
+        }
         ArrayList<SnpFilter> snpFiltersBuffer = new ArrayList<>(BUFFER_SIZE);
 
 //        HashMap<String, Sequence> sequences = shared.FastaReader.hashMapOfSequencesFromFasta(fastaFileName, null);
