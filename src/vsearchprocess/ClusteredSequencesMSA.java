@@ -117,11 +117,11 @@ public class ClusteredSequencesMSA {
             }
         }
         if (added > 1) {
-            Reporter.report("[FATAL]", "Sequence added to more than one subset based on sample/bulk id - possible reason: one id being a substring of another", TOOL_NAME);
+            Reporter.report("[FATAL]", "Sequence "+sequence.getId()+" added to more than one subset based on sample/bulk id - possible reason: one id being a substring of another", TOOL_NAME);
             System.exit(1);
         }
         if (added < 1) {
-            Reporter.report("[FATAL]", "Sequence not added to a subset based on sample/bulk id - possible reason: id not specified or misspelled", TOOL_NAME);
+            Reporter.report("[FATAL]", "Sequence "+sequence.getId()+"  not added to a subset based on sample/bulk id - possible reason: id not specified or misspelled", TOOL_NAME);
             System.exit(1);
         }
     }

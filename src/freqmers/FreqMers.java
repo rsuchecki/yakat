@@ -32,6 +32,7 @@ import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
 import java.text.NumberFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -387,7 +388,9 @@ public class FreqMers {
 
                 StringBuilder header = new StringBuilder("SeqId");
                 for (String sample : samples) {
-                    header.append(DELIMITER).append(sample);
+                    header.append(DELIMITER).append(sample).append("_median_freq");
+                    header.append(DELIMITER).append(sample).append("_num_kmers");
+                    header.append(DELIMITER).append(sample).append("_kmer_ratio");
                 }
                 out.write(header.toString());
                 out.newLine();
@@ -403,7 +406,9 @@ public class FreqMers {
                         for (String sample : samples) {
                             sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getMedianFrequency());                            
                             sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getCoverage());                            
-                            sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getCoverageRatio());                            
+                            sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getCoverageRatio());  
+//                            sb.append(DELIMITER).append(Arrays.toString(kmerFilter.getKmerFilterStats(sample).getMers()).replaceAll(",|\\[|\\]", ""));  
+                            
                         }
 //                    System.out.println(sb);
                         out.write(sb.toString());

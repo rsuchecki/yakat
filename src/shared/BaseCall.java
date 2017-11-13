@@ -104,6 +104,10 @@ public class BaseCall {
         this.cov2 = 0;
     }
 
+    public boolean isCalled() {
+        return allele1 !=null || allele2 != null;
+    }
+    
     public String getCallString() {
         if (allele1 == null && allele2 == null) {
             return "N";

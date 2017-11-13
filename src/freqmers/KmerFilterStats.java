@@ -22,7 +22,8 @@ import java.util.ArrayList;
  * @author rad
  */
 public class KmerFilterStats {
-    private final short[] mers; 
+
+    private final short[] mers;
     private final int mersCount;
     private final int maxMers;
 
@@ -31,9 +32,7 @@ public class KmerFilterStats {
         this.mersCount = mersCount;
         this.maxMers = maxMers;
     }
-    
-    
-    
+
     private ArrayList<Short> getNonZeroKmerFreqs(short[] mers) {
         ArrayList<Short> nonZeroValues = new ArrayList<>(mers.length);
         for (Short value : mers) {
@@ -63,22 +62,24 @@ public class KmerFilterStats {
     public int getMaxMers() {
         return maxMers;
     }
-    
-    
-    
-    
+
     public double getMedianFrequency() {
         return shared.CommonMaths.getMedian(getNonZeroKmerFreqs(mers));
     }
-    
+
     public int getCoverage() {
         return getNonZeroKmerFreqs(mers).size();
     }
-    
+
     public double getCoverageRatio() {
-        int coverage = getCoverage();
-        int maxMers1 = getMaxMers();
-  return  (double)getCoverage() / (double)getMaxMers() ;
-        
+//        int coverage = getCoverage();
+//        int maxMers1 = getMaxMers();
+        return (double) getCoverage() / (double) getMaxMers();
     }
+
+    public short[] getMers() {
+        return mers;
+    }
+    
+    
 }
