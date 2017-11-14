@@ -62,17 +62,19 @@ public class ClusteredSequencesMSA {
     }
 
     public boolean hasInterSnps(double minIdentity) {
-        int count = 0;
+//        int count = 0;
         for (Snp snp : interSnps) {
             String id1 = snp.getSequence1().getId();
             String id2 = snp.getSequence2().getId();
             String key = id1.compareTo(id2) < 0 ? id1 + id2 : id2 + id1;
             MsaSeqPair pair = seqPairs.get(key);
             if (pair.getMinIdentity() > minIdentity) {
-                count++;
+                return true;
+//                count++;
             }
         }
-        return count > 0;
+//        return count > 0;
+        return false;
     }
 
     public ArrayList<Snp> getIntraSnps() {
@@ -117,11 +119,11 @@ public class ClusteredSequencesMSA {
             }
         }
         if (added > 1) {
-            Reporter.report("[FATAL]", "Sequence "+sequence.getId()+" added to more than one subset based on sample/bulk id - possible reason: one id being a substring of another", TOOL_NAME);
+            Reporter.report("[FATAL]", "Sequence " + sequence.getId() + " added to more than one subset based on sample/bulk id - possible reason: one id being a substring of another", TOOL_NAME);
             System.exit(1);
         }
         if (added < 1) {
-            Reporter.report("[FATAL]", "Sequence "+sequence.getId()+"  not added to a subset based on sample/bulk id - possible reason: id not specified or misspelled", TOOL_NAME);
+            Reporter.report("[FATAL]", "Sequence " + sequence.getId() + "  not added to a subset based on sample/bulk id - possible reason: id not specified or misspelled", TOOL_NAME);
             System.exit(1);
         }
     }
@@ -165,7 +167,7 @@ public class ClusteredSequencesMSA {
         ClusteredSampleMSA[] samples = map.values().toArray(new ClusteredSampleMSA[map.size()]);
         for (int i = 0; i < samples.length - 1; i++) {
 //                System.err.println("["+i+"] "+samples[i].getSampleId()+" VS ");
-            for (int j = i+1; j < samples.length; j++) {
+            for (int j = i + 1; j < samples.length; j++) {
 //                System.err.println("\t\t\t["+j+"]"+samples[j].getSampleId());
                 callSNPsBetween2Samples(samples[i], samples[j], maxIndelLength, minIndelDistFromEnds);
             }
@@ -261,7 +263,7 @@ public class ClusteredSequencesMSA {
     }
 
     public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER,
-            String suffix, boolean printSequence) {
+        String suffix, boolean printSequence) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : intraSnps) {
             sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix));
@@ -275,7 +277,7 @@ public class ClusteredSequencesMSA {
     }
 
     public void printInterSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix,
-            double minInterIdentity, boolean printSequence) {
+        double minInterIdentity, boolean printSequence) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : interSnps) {
             MsaSeqPair pair = seqPairs.get(snp.getSequence1().getId() + snp.getSequence2().getId());

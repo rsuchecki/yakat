@@ -88,7 +88,7 @@ public class VsearchClustersCaller {
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
         optSet.addOpt(new Opt(null, "sample-ids", "Space separated sample identifiers which form the prefices of the input FASTA identifiers")
-            .setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
+            .setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
         optSet.addOpt(new Opt(null, "clusters-msa", "The vsearch cluster msaout file, alternatively use stdin", 1));
 //        optSet.addOpt(new Opt(null, "original-fasta", "The original FASTA file gven to vsearch, if specified it will be used to extract the input sequences' lengths", 1));
 //        optSet.incrementLisitngGroup();
