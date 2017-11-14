@@ -108,6 +108,12 @@ public class BaseCall {
         return allele1 !=null || allele2 != null;
     }
     
+    public boolean isHomozygousCalled() {
+        return (allele1 !=null && allele2 == null) || (allele1 ==null && allele2 != null);
+    }
+    
+    
+    
     public String getCallString() {
         if (allele1 == null && allele2 == null) {
             return "N";

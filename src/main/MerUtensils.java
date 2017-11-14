@@ -103,6 +103,7 @@ public class MerUtensils {
         System.out.println("  k-mer based utils");
         System.out.println("    kextend       : extend k-mers to unambiguous contigs (optionally extend input \"seed\" sequences only)");
         System.out.println("    snpmers       : given parental SNPs and the corresponding FASTA sequences (e.g. from NIKS), call offspring genotypes by overlapping their k-mers with parental SNP sequences ");
+        System.out.println("    freqmers      : given a set of sequences and set(s) of k-mers, report k-mer coverage and frequency for the input sequences");
         System.out.println("    kmatch        : [UNFINISHED] [TODO: port from older code base]");        
         System.out.println("    seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers to genotype presumed mutations at positions k bases from the seed edges");
         System.out.println("    kmerge        : [DEPRECATED - use KMC tools for k-mer set operations] given sorted input, merge k-mer sets summing frequencies if available");

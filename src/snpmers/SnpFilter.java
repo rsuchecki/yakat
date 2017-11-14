@@ -40,6 +40,9 @@ public class SnpFilter implements Comparable<SnpFilter>{
     private HashMap<String, BaseCall> snpCalls;
 //    private HashMap<String, String> callDetails;
     private boolean valid = true;
+    private int heterozygousCalls = 0;
+    private int homozygousCalls = 0;
+    
 
     private final AtomicInteger mersCountParent1 = new AtomicInteger();
     private final AtomicInteger mersCountParent2 = new AtomicInteger();
@@ -195,7 +198,11 @@ public class SnpFilter implements Comparable<SnpFilter>{
 //        System.out.println("Calling "+sampleName+" parent calls "+getBase1()+"/"+getBase2());
         BaseCall call = call(minTotal, minMinor, minCoverage, maxError);
         BaseCall put = snpCalls.put(sampleName, call);
-
+        if(call.isHomozygousCalled()) {
+            homozygousCalls++;
+        } else if(call.isCalled()) {
+            heterozygousCalls++;
+        }
 //        //DEBUGGING ONLY
 //        ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
 //        ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
@@ -348,7 +355,16 @@ public class SnpFilter implements Comparable<SnpFilter>{
     public HashMap<String, BaseCall> getSnpCalls() {
         return snpCalls;
     }
+
+    public int getHeterozygousCalls() {
+        return heterozygousCalls;
+    }
+
+    public int getHomozygousCalls() {
+        return homozygousCalls;
+    }
     
+
     
     
 
