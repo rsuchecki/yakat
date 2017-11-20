@@ -77,6 +77,7 @@ public class MatcherConsumerProducer implements Runnable {
                     String toks[] = spliPattern.split(line);
 //                    countIn++;
 //                    String replaceFirst = toks[0].replaceFirst("\\/[1-2]", "");
+                    
                     boolean contains = ids.contains(new Identifier(toks[0].substring(1)));//.replaceFirst("\\/[1-2]", "")));
                     if (contains && !invertMatch || !contains && invertMatch) {
                         if (buffer.size() >= BUFFER_SIZE) {

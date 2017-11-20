@@ -39,7 +39,13 @@ public class IdSetPopulatorConsumer implements Runnable {
         try {
             List<String> list;
             while (!(list = inputQueue.take()).isEmpty()) {
-                for (String id : list) {                                       
+                for (String id : list) {     
+                    if(id.startsWith("@")){
+                        id = id.substring(1);
+                    }
+                    if(id.endsWith("/1") || id.endsWith("/2")) {
+                        id = id.substring(0, id.length()-2);
+                    }
                     ids.add(new Identifier(id));
                 }
             }            
