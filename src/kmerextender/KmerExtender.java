@@ -238,11 +238,7 @@ public class KmerExtender {
     private void runKmerExtender(OptSet optSet) {
         Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", TOOL_NAME);
 
-
-
-
-        int x = 0;
-
+        
         ArrayList<Integer> kSizes = new ArrayList<>();
         if (KMER_LENGTH_MIN != null) {
             for (int k = KMER_LENGTH_MIN; k < KMER_LENGTH_MAX + 1; k += KMER_LENGTH_STEP) {
@@ -634,6 +630,7 @@ public class KmerExtender {
 
             Iterator<PairMer> it = trimmedSeedPairMerMaps.getPairMersMap(k).iterator();
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
+            
 
             long removedCount = 0L;
             while (it.hasNext()) {
@@ -641,7 +638,7 @@ public class KmerExtender {
                     removedCount++;
                 }
             }
-            Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount), TOOL_NAME);
+            Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount)+" for k="+k, TOOL_NAME);
         }
     }
 
