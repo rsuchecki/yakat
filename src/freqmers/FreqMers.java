@@ -296,7 +296,7 @@ public class FreqMers {
             try {
                 //IF nothing happens after 5 seconds
                 if (System.currentTimeMillis() - timeStart > 2500 && (count++ % 25 == 0)) {
-                    Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", getClass().getSimpleName());
+                    Reporter.report("[WARNING]", "Stuck or waiting for standard input stream...", TOOL_NAME);
                 }
                 Thread.sleep(100); //wait for 1/10 of a second
             } catch (InterruptedException ex) {
