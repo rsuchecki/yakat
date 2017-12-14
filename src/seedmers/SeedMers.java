@@ -80,10 +80,10 @@ public class SeedMers {
         buildSeedMersMap(optSet);
 //        removeSnpMersPoorlyCoveredInParents(optSet); //DONE AFTER FALSE POSITIVE FILTERING
 
-        int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
-        int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
-        double minCoverage = (double) optSet.getOpt("min-snp-coverage").getValueOrDefault();
-        double maxError = (double) optSet.getOpt("max-coverage-error").getValueOrDefault();
+//        int minTotal = (int) optSet.getOpt("min-k-mer-frequency-sum").getValueOrDefault();
+//        int minMinor = (int) optSet.getOpt("min-k-mer-frequency-minor").getValueOrDefault();
+//        double minCoverage = (double) optSet.getOpt("min-snp-coverage").getValueOrDefault();
+//        double maxError = (double) optSet.getOpt("max-coverage-error").getValueOrDefault();
 
 //        ArrayList<String> sampleNames = threadKmersThroughMap(optSet, kmersFileNames, minTotal, minMinor, minCoverage, maxError);
         threadKmersThroughMap(optSet);
@@ -91,7 +91,9 @@ public class SeedMers {
     }
 
     private OptSet populateOptSet() {
-        OptSet optSet = new OptSet("description here");
+        OptSet optSet = new OptSet("Proof of concept only, work in progress. "
+            + "More conceptual work required. Now focusing on presumed SNPs in the middle of 2k-1 bp contigs. "
+            + "If useful, will require parallelization of reference building and k-mer threadding.");
 
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");

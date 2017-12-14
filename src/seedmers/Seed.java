@@ -152,10 +152,12 @@ public class Seed {
 //            sb.append(CommonMaths.round(covRatio,2));               
         }
         StringBuilder sb = new StringBuilder(id);        
+        sb.append("\t").append(getSequence().charAt(getSnpPosition()));
         sb.append("\t").append(Arrays.toString(numKmers));
         sb.append("\t").append(Arrays.toString(coverageMedian));
 //        sb.append("\t").append(Arrays.toString(coveredRatio));
         sb.append("\t").append(getIUPAC(numKmers));
+        sb.append("\t").append(sequence);        
         System.out.println(sb.toString());
 
         //QUICKLY DISCARD IF LOW FREQUENCY/LOW COVERAGE 
