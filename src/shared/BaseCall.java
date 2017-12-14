@@ -93,6 +93,10 @@ public class BaseCall {
                 allele1 = 'T';
                 allele2 = null;
                 break;
+            case '.':
+                allele1 = null;
+                allele2 = null;
+                break;
             default:
                 allele1 = null;
                 allele2 = null;
