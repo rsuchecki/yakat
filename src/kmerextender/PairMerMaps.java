@@ -64,6 +64,12 @@ public class PairMerMaps {
         }
         return map;
     }
+    
+    public synchronized PairMersMap removePairMersMap(int k) {
+        PairMersMap map = kSizeToPairMersMap.remove(k);        
+//        kSizes.remove(k);
+        return map;
+    }
 
     public synchronized void addToTotalPairMersGenerated(long add) {
         totalPairMersGenerated += add;

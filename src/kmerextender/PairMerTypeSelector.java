@@ -31,7 +31,7 @@ public class PairMerTypeSelector {
     private static final int MAX_1LONG_ENCODE = 32; //using all bits,  2bits per nucl. Previously skipping sign bit (and the adjacent one to make even) now comparioson is unsigned 
     private static final int MAX_2LONG_ENCODE = 64;
     private static final int MAX_3LONG_ENCODE = 96;
-//    private static final int MAX_4LONG_ENCODE = 128 - 1;
+//    private static final int MAX_4LONG_ENCODE = 128;
 //    private static final int MAX_5LONG_ENCODE = 160 - 1;
 
 //    /**
@@ -114,8 +114,8 @@ public class PairMerTypeSelector {
             return new PairMer2LongEncoded(sequence, kmerFrom, kmerTo, frontClip, freq);
         } else if (kmerTo -kmerFrom  <= MAX_3LONG_ENCODE) { // && kmerTo -kmerFrom > MAX_2LONG_ENCODE) {
             return new PairMer3LongEncoded(sequence, kmerFrom, kmerTo, frontClip, freq);
-//        } else if (kmerString.length() - 1 <= MAX_4LONG_ENCODE) {
-//            return new PairMer4LongEncoded(leftClip, core, rightClip);
+//        } else if (kmerTo -kmerFrom <= MAX_4LONG_ENCODE) {
+//            return new PairMer4LongEncoded(sequence, kmerFrom, kmerTo, frontClip, freq);
 //        } else if (kmerString.length() - 1 <= MAX_5LONG_ENCODE) {
 //            return new PairMer5LongEncoded(leftClip, core, rightClip);
         } else {

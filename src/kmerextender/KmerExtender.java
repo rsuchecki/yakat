@@ -251,11 +251,19 @@ public class KmerExtender {
         PairMerMaps pairMerMaps = new PairMerMaps(kSizes, TOOL_NAME);
         readKmersAndPopulatePairMersMaps(pairMerMaps);
         
-        for (Integer k : kSizes) {
+        Iterator<Integer> kIterator = kSizes.iterator();
+        while (kIterator.hasNext()) {
+            Integer k = kIterator.next();
+//            
+//        }
+//        for (Integer k : kSizes) {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 //            Reporter.report("[INFO]", "Finished populating map, counting elements... ", TOOL_NAME);
-            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getNumberInstance().format(pairMersMap.size()), TOOL_NAME);
-            
+            Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getNumberInstance().format(pairMersMap.size()), TOOL_NAME);            
+            if(pairMersMap.isEmpty()) {
+                pairMerMaps.removePairMersMap(k);
+                kIterator.remove();
+            }
         }
 
         //PURGING ALSO IDENTIFIES MOST TERMINAl PAIRMERS -> ALLOWING EFFICIENT MULTI-THREADED TRAVERSAL
@@ -447,6 +455,9 @@ public class KmerExtender {
             while (it.hasNext()) {
                 Integer k = it.next();
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
+                if(pairMersMap.getStoredSize()==0) {
+                    continue;
+                }
                 pairMersMap.storeSize(); //For stats after purging
                 if (pairMerMaps.size() >= threads) {
                     mapsQueue.put(pairMersMap);

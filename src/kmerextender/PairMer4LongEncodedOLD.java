@@ -19,11 +19,11 @@ import shared.SequenceOps;
 import shared.Reporter;
 
 /**
- * Storing PairMer core in 3 long fields
+ * Proof of concept structure to hold up to 2 k-mers paired
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class PairMer4LongEncoded extends PairMer implements Comparable<PairMer4LongEncoded> {
+public class PairMer4LongEncodedOLD extends PairMer implements Comparable<PairMer4LongEncodedOLD> {
 
     private long kmerCoreBits1;
     private long kmerCoreBits2;
@@ -33,57 +33,60 @@ public class PairMer4LongEncoded extends PairMer implements Comparable<PairMer4L
     /**
      * Proper constructor
      *
-     * @param sequence
-     * @param from
-     * @param to
-     * @param frontClip
-     * @param freq
+     * @param leftClip
+     * @param core
+     * @param rightClip
      */
-    public PairMer4LongEncoded(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
-        addFirstKmer(sequence, from, to, frontClip, freq);
+    public PairMer4LongEncodedOLD(char leftClip, String core, char rightClip, int freq) {
+        addFirstKmer(leftClip, core, rightClip, freq);
     }
 
-    public final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
+    public final void addFirstKmer(char leftClip, String core, char rightClip, int freq) {
         if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-            int coreStart = frontClip ? from + 1 : from;
-            int coreEnd = frontClip ? to : to - 1;
-            if (SequenceOps.isCanonical(sequence.subSequence(coreStart, coreEnd+1))) {
-                encodeCore(sequence.subSequence(coreStart, coreEnd+1));
-                if (frontClip) {
-                    setClipLeft(sequence.charAt(from));
-                } else {
-                    setClipRight(sequence.charAt(to));
-                }
-            } else {
-                encodeCore(SequenceOps.getReverseComplement(sequence.subSequence(coreStart, coreEnd+1)));
-                if (frontClip) {
-                    setClipRight(SequenceOps.complement(sequence.charAt(from)));
-                } else {
-                    setClipLeft(SequenceOps.complement(sequence.charAt(to)));
-                }
+            encodeCore(core);
+            if (leftClip != '#') {
+                setClipLeft(leftClip);
             }
-            incrementStoredCount(hasLeftClip(), freq);
+            if (rightClip != '#') {
+                setClipRight(rightClip);
+            }
+           incrementStoredCount(hasLeftClip(), freq);
         } else {
             Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
         }
     }
 
     /**
-     * Does not generate a complete PairMer, just the core, for Set/Map lookups
+     * Does not generate a complete PairMer, just the core, for Set/Maps lookups
      *
      * @param kmerCoreOnly
      */
-    public PairMer4LongEncoded(CharSequence kmerCoreOnly) {
-        if (SequenceOps.isCanonical(kmerCoreOnly)) {
-            encodeCore(kmerCoreOnly);
-        } else {
-            encodeCore(SequenceOps.getReverseComplement(kmerCoreOnly));
-        }
+    public PairMer4LongEncodedOLD(String kmerCoreOnly) {
+        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));
     }
 
+//    /**
+//     * Add first kmer (encoded as a SplitMer)
+//     *
+//     * @param split : SplitMer representation of a k-mer
+//     */
+//    private void addFirstKmer(SplitMer split) {
+//        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
+//            encodeCore(split.getCore());
+//            if (!split.getLeftClip().isEmpty()) {
+//                setClipLeft(split.getLeftClipChar());
+//            }
+//            if (!split.getRightClip().isEmpty()) {
+//                setClipRight(split.getRightClipChar());
+//            }
+//            incrementStoredCount();
+//        } else {
+//            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!! ",getClass().getSimpleName());
+//        }
+//    }
     @Override
     public boolean equals(Object anotherKmer) {
-        return compareTo((PairMer4LongEncoded) anotherKmer) == 0;
+        return compareTo((PairMer4LongEncodedOLD) anotherKmer) == 0;
     }
 
     @Override
@@ -92,7 +95,7 @@ public class PairMer4LongEncoded extends PairMer implements Comparable<PairMer4L
     }
 
     @Override
-    public int compareTo(PairMer4LongEncoded anotherKmer) {
+    public int compareTo(PairMer4LongEncodedOLD anotherKmer) {
         return CoreCoder.compareCores(getBitFields(), anotherKmer.getBitFields());
     }
 
@@ -107,19 +110,18 @@ public class PairMer4LongEncoded extends PairMer implements Comparable<PairMer4L
         return CoreCoder.decodeCore(coreLength, bitsArray);
     }
 
-    private void encodeCore(CharSequence kmerCoreOnly) {
+    private void encodeCore(String kmerCoreOnly) {
         long[] encodeCoreLong = CoreCoder.encodeCoreLongArray(kmerCoreOnly);
         if (encodeCoreLong.length != 4) {
-            Reporter.report("[BUG?]", " 4*long values expected from core encoding", getClass().getSimpleName());
+            Reporter.report("[BUG?]", " 3*long values expected from core encoding", getClass().getSimpleName());
         } else {
             kmerCoreBits1 = encodeCoreLong[0];
             kmerCoreBits2 = encodeCoreLong[1];
             kmerCoreBits3 = encodeCoreLong[2];
             kmerCoreBits4 = encodeCoreLong[3];
         }
-//        //Sanity check
 //        String decodeCore = decodeCore(kmerCoreOnly.length());
-//        if(!decodeCore.equals(kmerCoreOnly.toString())) {
+//        if(!decodeCore.equals(kmerCoreOnly)) {
 //            System.err.println("error");
 //            System.err.println(kmerCoreOnly);
 //            System.err.println(decodeCore);
