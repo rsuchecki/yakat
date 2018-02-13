@@ -24,14 +24,20 @@ import shared.SequenceOps;
 public class Sample {
     private final String barcode;
     private final String barcodeRC;
-    private final String batcodeAndPstI;
+    private final String barcodeAndRestrictionRemnant1;
+    private final String restrictionRemnant1;
+    private final String restrictionRemnant1RC;
     private final String sampleId;
 
-    public Sample(String barcode, String sampleId) {
+    public Sample(String barcode, String restrictionRemant1, String sampleId) {
         this.barcode = barcode;
         this.barcodeRC = SequenceOps.getReverseComplementString(barcode);
-        this.batcodeAndPstI = barcode + "TGCAG";
+        this.barcodeAndRestrictionRemnant1 = barcode + restrictionRemant1;
+//        this.batcodeAndRestrictionRemnant1 = barcode + "TGCAG";
         this.sampleId = sampleId;
+        this.restrictionRemnant1 = restrictionRemant1;
+        this.restrictionRemnant1RC = SequenceOps.getReverseComplementString(restrictionRemant1);
+        
     }
 
     public String getBarcode() {
@@ -42,8 +48,17 @@ public class Sample {
         return barcodeRC;
     }
 
-    public String getBatcodeAndPstI() {
-        return batcodeAndPstI;
+    public String getRestrictionRemnant1() {
+        return restrictionRemnant1;
+    }
+
+    public String getRestrictionRemnant1RC() {
+        return restrictionRemnant1RC;
+    }
+
+    
+    public String getBarcodeAndRestrictionRemnant1() {
+        return barcodeAndRestrictionRemnant1;
     }
 
     public String getSampleId() {

@@ -34,7 +34,6 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
@@ -65,6 +64,8 @@ public class SplitterConsumerProducer implements Runnable {
     private final int MIN_LENGTH_PAIR_SUM;
     private final int MIN_LENGTH_PAIR_EACH;
     private final String ADAPTER;
+    private final String RESTRICTION_REMNANT_I;
+    private final String RESTRICTION_REMNANT_II;
     private final int ADAPTER_PREFIX_LEN;
     private final ArrayList<Message> finalMessages;
     ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
@@ -81,9 +82,11 @@ public class SplitterConsumerProducer implements Runnable {
 
         TRIM_BARCODE = !optSet.getOpt("keep-barcodes").getOptFlag();
         TRIM_ADAPTERS = !optSet.getOpt("keep-adapters").getOptFlag();
-        OUTPUT_PSTI_STARTING_ONLY = !optSet.getOpt("keep-non-PstI-starting").getOptFlag();
-        ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();
+        OUTPUT_PSTI_STARTING_ONLY = !optSet.getOpt("keep-non-remnant-starting").getOptFlag();
+        ONLY_COUNT = optSet.getOpt("only-count").getOptFlag();        
 
+        RESTRICTION_REMNANT_I = (String) optSet.getOpt("restriction-remnant-I").getValueOrDefault();
+        RESTRICTION_REMNANT_II = (String) optSet.getOpt("restriction-remnant-II").getValueOrDefault();
         ADAPTER = (String) optSet.getOpt("A").getValueOrDefault();
         ADAPTER_PREFIX_LEN = (int) optSet.getOpt("adapter-prefix-length").getValueOrDefault();
         MIN_LENGTH_READ = (int) optSet.getOpt("r").getValueOrDefault();
@@ -92,6 +95,7 @@ public class SplitterConsumerProducer implements Runnable {
         this.finalMessages = finalMessages;
         sampleToBufferMap = new ConcurrentHashMap<>(keyMap.getSamplesTotal() * 2);
         sampleToQueueMap = keyMap.getSampleToQueueMap();
+        
     }
 
     @Override
@@ -102,8 +106,8 @@ public class SplitterConsumerProducer implements Runnable {
             Pattern splitId = Pattern.compile(":");
 //            Pattern spliPattern = Pattern.compile("\t");
             long noBarcodeMatch = 0L;
-            long notPstIStart = 0L;
-            long trimmedMspIcount = 0L;
+            long notPstIStart = 0L; //or whatever restriction enzyme remnant site I we expect
+            long trimmedMspIcount = 0L; //or whatever restriction enzyme remnant site II we expect
             long trimmedPstIcount = 0L;
             long trimmedBothCutSitesInPair = 0L;
             long pairUnderLenSum = 0L;
@@ -111,7 +115,12 @@ public class SplitterConsumerProducer implements Runnable {
             long singleUnderLength = 0L;
             long lines = 0L;
             String adapterPrefix = ADAPTER.substring(0, ADAPTER_PREFIX_LEN);
-            String msp1 = "CCG";
+            String msp1 = RESTRICTION_REMNANT_II;
+            int restrictionRemnantILength = RESTRICTION_REMNANT_I.length();
+            int restrictionRemnantIILength = RESTRICTION_REMNANT_II.length();
+//            String msp1 = "CCG";
+            
+
 //            String msp1PlusAdapterPrefix = msp1+adapterPrefix;
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (String line : list) {
@@ -128,7 +137,7 @@ public class SplitterConsumerProducer implements Runnable {
                             if (toks[1].startsWith(barcode)) {
                                 Sample sample = entrySet.getValue();
                                 matchingBarcodes++;
-                                if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(sample.getBatcodeAndPstI())) {
+                                if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(sample.getBarcodeAndRestrictionRemnant1())) {
 //                                if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(barcode + "TGCAG")) {
                                     notPstIStart++;
                                     break;
@@ -153,14 +162,15 @@ public class SplitterConsumerProducer implements Runnable {
                                 if (TRIM_ADAPTERS) {
 //                                    int trimFrom = toks[1].indexOf("CCG" + ADAPTER);
 //                                    if (trimFrom >= 0) {
+                                    //I think: iterate through occurances of second remnant site until one is followed by adapter sequence. trim-off adapter sequence, done 
                                     int idxMspI = 0;
                                     while (idxMspI != -1) {                                         
                                         idxMspI = toks[1].indexOf(msp1, idxMspI);
                                         if (idxMspI != -1) {
-                                            String toTrim = toks[1].substring(idxMspI + 3);
+                                            String toTrim = toks[1].substring(idxMspI + restrictionRemnantIILength);
                                             if (adapterPrefix.startsWith(toTrim) || toTrim.startsWith(adapterPrefix)) { //AGATCGGAA
-                                                toks[1] = toks[1].substring(0, idxMspI + 3);
-                                                toks[3] = toks[3].substring(0, idxMspI + 3);
+                                                toks[1] = toks[1].substring(0, idxMspI + restrictionRemnantIILength);
+                                                toks[3] = toks[3].substring(0, idxMspI + restrictionRemnantIILength);
                                                 trimmedMspI = true;
                                                 break;
                                             }
@@ -195,14 +205,16 @@ public class SplitterConsumerProducer implements Runnable {
                                         //TODO
                                         //FIND nBasesPrefix+CTGCA
                                         //IF BASES PRESENT BEYOND THE MATCH THEN TRIM THEM OFF 
-                                        int idxPstI = toks[5].lastIndexOf("CTGCA");
+                                        int idxPstI = toks[5].lastIndexOf(sample.getRestrictionRemnant1RC());
+//                                        int idxPstI = toks[5].lastIndexOf("CTGCA");
 //                                        int seqLen = toks[5].length();                                        
 //                                        int basesPastPstI = seqLen-idxPstI-5;
-                                        String toTrim = toks[5].substring(idxPstI + 5);
-                                        String barcodeRC = SequenceOps.getReverseComplementString(barcode);
+                                        String toTrim = toks[5].substring(idxPstI + restrictionRemnantILength);
+                                        String barcodeRC = sample.getBarcodeRC();
+//                                        String barcodeRC = SequenceOps.getReverseComplementString(barcode);
                                         if (barcodeRC.startsWith(toTrim) || toTrim.startsWith(barcodeRC)) {
-                                            toks[5] = toks[5].substring(0, idxPstI + 5); //+5 not to  trim the PstI site
-                                            toks[7] = toks[7].substring(0, idxPstI + 5);
+                                            toks[5] = toks[5].substring(0, idxPstI + restrictionRemnantILength); //+5 not to  trim the PstI site
+                                            toks[7] = toks[7].substring(0, idxPstI + restrictionRemnantILength);
                                             trimmedPstI = true;
                                         }
 //                                        int trimFrom = toks[5].indexOf("CTGCA" + SequenceOps.getReverseComplementString(barcode));
@@ -296,15 +308,15 @@ public class SplitterConsumerProducer implements Runnable {
                 String message = "[" + name + "] " + NumberFormat.getNumberInstance().format(lines)
                     + " records processed, no matching barcode in " + NumberFormat.getNumberInstance().format(noBarcodeMatch);
                 if (OUTPUT_PSTI_STARTING_ONLY) {
-                    message += ", non-PstI start detected in " + NumberFormat.getNumberInstance().format(notPstIStart);
+                    message += ", non "+RESTRICTION_REMNANT_I+" start detected in " + NumberFormat.getNumberInstance().format(notPstIStart);
                 }
                 finalMessages.add(new Message(Message.Level.INFO, message, TOOL_NAME));
                 if (TRIM_ADAPTERS) {
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Trimmed total " + NumberFormat.getNumberInstance().format(trimmedMspIcount + trimmedBothCutSitesInPair + trimmedPstIcount) + " fragments", TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Read-through detection with barcode and adapter trimming: ", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified MspI+3' Adapter in R1 and PstI+barcode in R2 in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified PstI+barcode in " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " R2 reads", TOOL_NAME));
-                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified MspI+3' Adapter in " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " R1 reads", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified "+RESTRICTION_REMNANT_II+" with 3' Adapter in R1 and "+SequenceOps.getReverseComplementString(RESTRICTION_REMNANT_I)+" with barcode in R2 in " + NumberFormat.getNumberInstance().format(trimmedBothCutSitesInPair) + " pairs", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified "+SequenceOps.getReverseComplementString(RESTRICTION_REMNANT_I)+" with barcode in " + NumberFormat.getNumberInstance().format(trimmedPstIcount) + " R2 reads", TOOL_NAME));
+                    finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  Identified "+RESTRICTION_REMNANT_II+" with 3' Adapter in " + NumberFormat.getNumberInstance().format(trimmedMspIcount) + " R1 reads", TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "] Length filtering breakdown: ", TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(pairUnderLenSum) + " pairs under combined length " + MIN_LENGTH_PAIR_SUM, TOOL_NAME));
                     finalMessages.add(new Message(Message.Level.INFO, "[" + name + "]  " + NumberFormat.getNumberInstance().format(pairedReadUnderLen) + " paired reads under length " + MIN_LENGTH_PAIR_EACH, TOOL_NAME));

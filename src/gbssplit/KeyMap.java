@@ -47,11 +47,13 @@ public class KeyMap {
     private final int OUT_Q_CAPACITY;
     private final String TOOL_NAME;
     private final String BLANK_SAMPLE_NAME;
+    private final String restrictionRemanantI;
 
-    public KeyMap(String keyFileName, String toolName, String BlankSampleName, int OUT_Q_CAPACITY) {
+    public KeyMap(String keyFileName, String toolName, String BlankSampleName, int OUT_Q_CAPACITY, String restrictionRemnantI) {
         TOOL_NAME = toolName;
         BLANK_SAMPLE_NAME = BlankSampleName;
         this.OUT_Q_CAPACITY = OUT_Q_CAPACITY;
+        this.restrictionRemanantI = restrictionRemnantI;
         populateMap(keyFileName);
     }
 
@@ -102,13 +104,13 @@ public class KeyMap {
                         Reporter.report("[ERROR]", "Duplicate barcode on a flowcell!!!", TOOL_NAME);
                         System.exit(1);
                     } else {
-                        barcodeToSample.put(barcode, new Sample(barcode, sample));
+                        barcodeToSample.put(barcode, new Sample(barcode, restrictionRemanantI, sample));
                         sampleToQueueMap.put(sample, new ArrayBlockingQueue<>(OUT_Q_CAPACITY));
 //                        sampleToCountMap.put(sample, 0L);
                     }
                 } else {
                     ConcurrentHashMap<String, Sample> barcodeToSample = new ConcurrentHashMap<>();
-                    barcodeToSample.put(barcode, new Sample(barcode, sample));
+                    barcodeToSample.put(barcode, new Sample(barcode, restrictionRemanantI, sample));
                     keyMap.put(flowcell, barcodeToSample);
                     sampleToQueueMap.put(sample, new ArrayBlockingQueue<>(OUT_Q_CAPACITY));
 //                    sampleToCountMap.put(sample, 0L);

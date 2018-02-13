@@ -119,6 +119,8 @@ public class SplitGBS {
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
         optSet.addOpt(new Opt('K', "key-file", "Key file name ", 1).setRequired(true));
+        optSet.addOpt(new Opt(null, "restriction-remnant-I", "First restriction remnant site", 1).setDefaultValue("TGCAG"));
+        optSet.addOpt(new Opt(null, "restriction-remnant-II", "Second restriction remnant site", 1).setDefaultValue("CCG"));
         optSet.addOpt(new Opt('A', "expected-adapter", "Expected adapter sequence (a fragment will do)", 1).setDefaultValue("AGATCGGAAGAGCGGTTCAGCAGGAATGCCGAGACCGAT"));
         optSet.addOpt(new Opt(null, "adapter-prefix-length", "Length of the adapter prefix used to identify 3' read-through", 1).setDefaultValue(9));
         optSet.addOpt(new Opt('B', "blank-samples-name", "Name denoting blank samples in the key file. Name will by extended with remaining key-file fields", 1).setDefaultValue("Blank"));
@@ -129,8 +131,8 @@ public class SplitGBS {
         //TRIMMING AND LENGTH
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Trimming and length settings]");
         optSet.addOpt(new Opt('b', "keep-barcodes", "Do not trim barcodes"));
-        optSet.addOpt(new Opt('a', "keep-adapters", "Do not trim adapters found next to PstI and MspI sites "));
-        optSet.addOpt(new Opt('p', "keep-non-PstI-starting", "Keep reads (or pairs) which do not start with 'barcodeTGCAG'"));
+        optSet.addOpt(new Opt('a', "keep-adapters", "Do not trim adapters found next to remnant sites "));
+        optSet.addOpt(new Opt('p', "keep-non-remnant-starting", "Keep reads (or pairs) which do not start with barcode followed by first restriction remnant "));
 
         int footId = 1;
         String footText1 = "Note that certain combinations of min-length-* settings can lead to both mates of a pair ending up in SE/orphans output file.";
@@ -166,7 +168,9 @@ public class SplitGBS {
     }
 
     private void splitFiles(ArrayList<String> inputFilenamesList, OptSet optSet) {
-        KeyMap keyMap = new KeyMap(KEY_FILE_NAME, TOOL_NAME, BLANK_SAMPLE_NAME, OUT_Q_CAPACITY);
+        
+        String restrictionRemnantI = (String) optSet.getOpt("restriction-remnant-I").getValueOrDefault();
+        KeyMap keyMap = new KeyMap(KEY_FILE_NAME, TOOL_NAME, BLANK_SAMPLE_NAME, OUT_Q_CAPACITY, restrictionRemnantI);
 
 //        ArrayList<String> r1 = new ArrayList<>();
 //        ArrayList<String> r2 = new ArrayList<>();
