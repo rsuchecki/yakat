@@ -671,7 +671,8 @@ public class PairMersMap extends shared.MerMap {
         return storedSize;
     }
 
-    public void storeSize() {
+    public long storeSize() {
         this.storedSize = size();
+        return storedSize;
     }
 }

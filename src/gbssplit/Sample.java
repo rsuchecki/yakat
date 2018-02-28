@@ -15,6 +15,7 @@
  */
 package gbssplit;
 
+import java.util.ArrayList;
 import shared.SequenceOps;
 
 /**
@@ -25,17 +26,23 @@ public class Sample {
     private final String barcode;
     private final String barcodeRC;
     private final String barcodeAndRestrictionRemnant1;
-    private final String restrictionRemnant1;
+    private ArrayList<String> barcodeAndRestrictionRemnant1List;
+//    private final String restrictionRemnant1;
+//    private ArrayList<String> restrictionRemnant1List;
     private final String restrictionRemnant1RC;
+    private ArrayList<String> restrictionRemnant1RCList;
     private final String sampleId;
 
     public Sample(String barcode, String restrictionRemant1, String sampleId) {
         this.barcode = barcode;
         this.barcodeRC = SequenceOps.getReverseComplementString(barcode);
         this.barcodeAndRestrictionRemnant1 = barcode + restrictionRemant1;
+        
+        
+        
 //        this.batcodeAndRestrictionRemnant1 = barcode + "TGCAG";
         this.sampleId = sampleId;
-        this.restrictionRemnant1 = restrictionRemant1;
+//        this.restrictionRemnant1 = restrictionRemant1;
         this.restrictionRemnant1RC = SequenceOps.getReverseComplementString(restrictionRemant1);
         
     }
@@ -48,9 +55,9 @@ public class Sample {
         return barcodeRC;
     }
 
-    public String getRestrictionRemnant1() {
-        return restrictionRemnant1;
-    }
+//    public String getRestrictionRemnant1() {
+//        return restrictionRemnant1;
+//    }
 
     public String getRestrictionRemnant1RC() {
         return restrictionRemnant1RC;

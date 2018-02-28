@@ -204,6 +204,7 @@ public class KmerExtender {
                 + "as it is done in parallel to avoid excessive I/O and to preserve stdin handling";
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Variable k-mer size for longest extension of a seed]");
         optSet.addOpt(new Opt('S', "seed-file", "Fasta file containing \"seeds\" to be extended", 1));
+//        optSet.addOpt(new Opt(null, "exclude", "Blacklisted k-mers to be excluded before extending", 1));
         optSet.addOpt(new Opt(null, "purged-input", "The input k-mers do not contain any of the seed-mers"));
         optSet.addOpt(new Opt(null, "k-mer-min", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
         optSet.addOpt(new Opt(null, "k-mer-max", "", 1).setMinValue(3).setMaxValue(2048).addFootnote(footId, foot));
@@ -455,10 +456,9 @@ public class KmerExtender {
             while (it.hasNext()) {
                 Integer k = it.next();
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-                if(pairMersMap.getStoredSize()==0) {
+                if(pairMersMap.storeSize() == 0) { //Record for stats after purging, also continue if empty
                     continue;
                 }
-                pairMersMap.storeSize(); //For stats after purging
                 if (pairMerMaps.size() >= threads) {
                     mapsQueue.put(pairMersMap);
                 } else { //WE HAVE MORE THREADS THAN MAPS SO LETS SPLIT THE MAPS
@@ -534,7 +534,7 @@ public class KmerExtender {
             double ratio = (double) terminals / pairMersMap.getStoredSize();
             NumberFormat perc = NumberFormat.getPercentInstance();
             perc.setMaximumFractionDigits(4);
-            Reporter.report("[INFO]", "Identified " + NumberFormat.getIntegerInstance().format(terminals)+" terminal PairMers (" + perc.format(ratio) + ")", TOOL_NAME);
+            Reporter.report("[INFO]", "Identified " + NumberFormat.getIntegerInstance().format(terminals)+" terminal PairMers (" + perc.format(ratio) + ") at k="+k, TOOL_NAME);
             Reporter.report("[INFO]", "Found "+NumberFormat.getIntegerInstance().format(pairMersMap.getAmbiguous()) + " ambiguous extensions", TOOL_NAME);
             Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size), TOOL_NAME);
             Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();

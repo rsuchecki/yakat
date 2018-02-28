@@ -65,7 +65,7 @@ public class PairMerMaps {
         return map;
     }
     
-    public synchronized PairMersMap removePairMersMap(int k) {
+    public  PairMersMap removePairMersMap(int k) {
         PairMersMap map = kSizeToPairMersMap.remove(k);        
 //        kSizes.remove(k);
         return map;

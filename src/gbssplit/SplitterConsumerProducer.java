@@ -56,7 +56,7 @@ public class SplitterConsumerProducer implements Runnable {
     private final String TOOL_NAME;
     private boolean TRIM_BARCODE = true;
     private boolean TRIM_ADAPTERS = true;
-    private boolean OUTPUT_PSTI_STARTING_ONLY = true;
+    private boolean OUTPUT_PSTI_STARTING_ONLY = true; //or whatever restriction enzyme remnant site I we expect
     private boolean ONLY_COUNT = false; //no output produced if true
 
 //    private AtomicInteger PRODUCER_THREADS;
@@ -136,6 +136,8 @@ public class SplitterConsumerProducer implements Runnable {
                             String barcode = entrySet.getKey();
                             if (toks[1].startsWith(barcode)) {
                                 Sample sample = entrySet.getValue();
+                                
+                                
                                 matchingBarcodes++;
                                 if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(sample.getBarcodeAndRestrictionRemnant1())) {
 //                                if (OUTPUT_PSTI_STARTING_ONLY && !toks[1].startsWith(barcode + "TGCAG")) {
@@ -177,21 +179,6 @@ public class SplitterConsumerProducer implements Runnable {
                                             idxMspI++;
                                         }
                                     }
-//                                    int idxMspI = toks[1].lastIndexOf("CCG");
-//
-//                                    String toTrim = toks[1].substring(idxMspI + 3);
-//                                    if (adapterPrefix.startsWith(toTrim) || toTrim.startsWith(adapterPrefix)) { //AGATCGGAA
-//                                        toks[1] = toks[1].substring(0, idxMspI + 3);
-//                                        toks[3] = toks[3].substring(0, idxMspI + 3);
-//
-////                                        System.err.println(toks[1]+" <--BEFORE l="+toks[1].length());
-////                                        toks[1] = toks[1].substring(0, trimFrom + 3);
-////                                        System.err.println(toks[1]+" <--AFTER  l="+toks[1].length());
-////                                        System.err.println(toks[3]+" <--BEFORE l="+toks[3].length());
-////                                        toks[3] = toks[3].substring(0, trimFrom + 3);
-////                                        System.err.println(toks[3]+" <--AFTER  l="+toks[3].length());
-//                                        trimmedMspI = true;
-//                                    }
                                 }
                                 builderR1.append("\t").append(toks[1]); //sequence (possibly trimmed)
                                 builderR1.append("\t").append("+"); //redundant id or '+
@@ -217,12 +204,6 @@ public class SplitterConsumerProducer implements Runnable {
                                             toks[7] = toks[7].substring(0, idxPstI + restrictionRemnantILength);
                                             trimmedPstI = true;
                                         }
-//                                        int trimFrom = toks[5].indexOf("CTGCA" + SequenceOps.getReverseComplementString(barcode));
-//                                        if (trimFrom >= 0) {
-//                                            toks[5] = toks[5].substring(0, trimFrom + 5); //+5 not to  trim the PstI site
-//                                            toks[7] = toks[7].substring(0, trimFrom + 5);
-//                                            trimmedPstI = true;
-//                                        }
                                     }
                                     builderR2.append("\t").append(toks[5]); //mate seq
                                     builderR2.append("\t").append("+"); //redundant id or '+
@@ -266,7 +247,7 @@ public class SplitterConsumerProducer implements Runnable {
                                 } else if (trimmedPstI) {
                                     trimmedPstIcount++;
                                 }
-                                break;
+                                break; //skip other barcodes as match already found
                             }
                         }
                         if (matchingBarcodes == 0) {

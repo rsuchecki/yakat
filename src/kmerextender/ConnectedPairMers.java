@@ -90,9 +90,9 @@ public class ConnectedPairMers {
         PairMer otherPairMer1 = null;
         PairMer otherPairMer2 = null;
 
-        if(otherCoreOfKmer1.length() ==0 || otherCoreOfKmer2.length() ==0) {
-            int x =0;
-        }
+//        if(otherCoreOfKmer1.length() ==0 || otherCoreOfKmer2.length() ==0) {
+//            int x =0;
+//        }
         try {
             otherPairMer1 = pairMersMap.get(otherCoreOfKmer1, k);
             otherPairMer2 = pairMersMap.get(otherCoreOfKmer2, k);

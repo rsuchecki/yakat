@@ -22,8 +22,6 @@ import java.io.OutputStreamWriter;
 import java.text.NumberFormat;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
 import shared.Reporter;
 
