@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -62,8 +63,9 @@ public class SeedMers {
     private final int HELP_WIDTH = 200;
     private final int READER_BUFFER_SIZE = 8192;
     private final int WRITER_BUFFER_SIZE = 8192;
+    private final Character altChars[] = new Character[]{'A', 'C', 'G', 'T'};
     private final int REPORTING_SHIFT = 6; //input progress reporting every READER_BUFFER_SIZE*REPORTING_FACTOR records
-    private HashMap<String, ArrayList<AltSeedLink>> map;
+    private ConcurrentSkipListMap<String, ArrayList<AltSeedLink>> map;
     private ArrayList<Seed> seeds;
 
     public SeedMers(String[] args, String callerName, String toolName) {
@@ -137,7 +139,7 @@ public class SeedMers {
      */
     private void buildSeedMersMap(OptSet optSet) {
         seeds = new ArrayList<>();
-        map = new HashMap<>();
+        map = new ConcurrentSkipListMap<>();
         String seedsFileName = (String) optSet.getOpt("f").getValueOrDefault();
         int k = (int) optSet.getOpt("k").getValueOrDefault();
         BufferedReader bufferdReader = null;
@@ -181,6 +183,7 @@ public class SeedMers {
                 ex.printStackTrace();
             }
         }
+        Reporter.report("[INFO]", "Finished reading seeds, n="+NumberFormat.getIntegerInstance().format(seeds.size()), TOOL_NAME);
         Reporter.report("[INFO]", "Seed-mers map populated, n="+NumberFormat.getIntegerInstance().format(map.size()), TOOL_NAME);
 //        for (Map.Entry<String, ArrayList<AltSeedLink>> entry : map.entrySet()) {
 //            String key = entry.getKey();
@@ -200,8 +203,6 @@ public class SeedMers {
         int snpSite = k - 1;
         int maxKmer = Math.min(sequence.length() - k + 1, snpSite + 1);
         int startAt = Math.max(0, snpSite - k + 1);
-
-        Character altChars[] = new Character[]{'A', 'C', 'G', 'T'};
         for (Character base : altChars) {
             StringBuilder altSeq = new StringBuilder(sequence.subSequence(0, snpSite));
             altSeq.append(base);

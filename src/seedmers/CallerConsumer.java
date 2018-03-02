@@ -52,7 +52,7 @@ public class CallerConsumer implements Runnable {
 
     private final BlockingQueue<LabelledInputBuffer> inputQueue;
     private final String TOOL_NAME;
-    private final HashMap<String, ArrayList<AltSeedLink>> map;
+    private final ConcurrentSkipListMap<String, ArrayList<AltSeedLink>> map;
 //    private final OptSet optSet;
     private final ArrayList<String> samples;
 //    private final int minTotal;
@@ -64,7 +64,7 @@ public class CallerConsumer implements Runnable {
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
-            HashMap<String, ArrayList<AltSeedLink>> map, ArrayList<Seed> seeds) {
+            ConcurrentSkipListMap<String, ArrayList<AltSeedLink>> map, ArrayList<Seed> seeds) {
 //            HashMap<String, ArrayList<AltSeedLink>> map, int minTotal, int minMinor, double minKmers, double maxError) {
         this.inputQueue = inputQueue;
         this.samples = samples;
