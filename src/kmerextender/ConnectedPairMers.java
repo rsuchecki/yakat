@@ -40,6 +40,7 @@ public class ConnectedPairMers {
 //    ArrayList<PairMer> connectedPairMersTemp = new ArrayList<>();
     private CharSequence extendedString;
     private boolean potentialDuplicate = false;
+    
 
     /**
      * Given a PairMer recursively follows the implicit connections to generate
@@ -198,7 +199,7 @@ public class ConnectedPairMers {
 //        if (previous == null ^ next == null) {
         if ((previous == null && next != null) || (previous != null && next == null)) {
             if (terminal1 == null) {
-                terminal1 = pairMerNode;
+                terminal1 = pairMerNode;                
             } else if (terminal2 == null) {
                 terminal2 = pairMerNode;
             } else {
@@ -443,4 +444,11 @@ public class ConnectedPairMers {
         }
 
     }
+
+//    public boolean hasAmbiguousEndTMP() {
+//        return (terminal1!=null && terminal1.getPairMer().isAmbiguousTMP()) || (terminal2 != null && terminal2.getPairMer().isAmbiguousTMP()) || (singletonNode !=null && singletonNode.getPairMer().isAmbiguousTMP());
+//    }
+
+    
+    
 }

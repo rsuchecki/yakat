@@ -28,17 +28,28 @@ public class PairMer {//implements Comparable<PairMer> {
 
     //Object overhead 8 B 
 //    private int[] kmerCoreBitsArray;  //12B + len*4 Bytes 
-    private char clipLeft = '#';   //2B                     ///*TODO*/: encode to 2-3b if sticking to int array
-    private char clipRight = '#';  //2B                     //TODO: encode to 2-3b
-//    private byte storedCount;  //1B    //can switch to short since all those add up to 7 bytes, 1 wasted
-    private byte storedCountLeft;
-    private byte storedCountRigth;
-    private boolean invalid;  //1B
-//    private boolean visited;//1B    
-    //then round to multi of 8
+//    private char clipLeft = '#';   //2B                     ///*TODO*/: encode to 2-3b if sticking to int array
+//    private char clipRight = '#';  //2B                     //TODO: encode to 2-3b
+    
+    //TODO encode each clip as a binary mask repr presence or absence of nucl ACGT -> 1111, A -> 1000, AC -> 1100 etc 
+    //this would allow consistent identification of terminal nodes caused by ambiguity 
+    //Currently when the "next" node key/core is generated it only uses one of two or more possible clips
+    //hence some nodes next to ambig ext are not identified as such    
+    private byte clipLeft;    //1B                     
+    private byte clipRight;   //1B                     
+    private byte clipLeftBin;    //1B                     
+    private byte clipRightBin;   //1B                     
 
+    private byte storedCountLeft;  //1B
+    private byte storedCountRigth; //1B
+    private boolean invalid;       //1B   //can be derived from what is stored in either clip 
     private byte visitedBy = Byte.MAX_VALUE;
+    
+    
+//    private boolean ambiguousTMP; //temporary - experimenting with treating blunt end unitigs differently from ambiguous end unitigs, ambig = next to a invalidated PairMer
+    
 
+    //then round to multi of 8
     //could save 7B by encoding all the fields in a single B (storedCount would not be stored exactly but the state of the other bits could indicate is count is 1,2 or more)
     //7 (sign) 
     //6,5,4    left clip:  \fi,A,C,G,T or X for extensions conflict
@@ -82,14 +93,23 @@ public class PairMer {//implements Comparable<PairMer> {
             } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
                 setIsInvalid();
             } else if (!hasLeftClip() && another.hasLeftClip()) {
-                setClipLeft(another.getClipLeft());
+                //TMP
+                //setClipLeft(another.getClipLeft());
             } else if (!hasRightClip() && another.hasRightClip()) {
-                setClipRight(another.getClipRight());
+                //TMP
+                //setClipRight(another.getClipRight());
             } else {
                 Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
-            }
+            }                                    
 //            incrementStoredCount(another.hasLeftClip(), freq);
         }
+        //TMP
+            if(another.hasLeftClip()){
+                setClipLeft(another.getClipLeft());
+            }
+            if(another.hasRightClip()){
+                setClipRight(another.getClipRight());
+            }
         incrementStoredCount(another.hasLeftClip(), freq);
     }
 
@@ -108,11 +128,13 @@ public class PairMer {//implements Comparable<PairMer> {
 //        }
 //    }
     protected boolean hasLeftClip() {
-        return clipLeft != '#';
+//        return clipLeft != '#';
+        return clipLeft > 0;
     }
 
     protected boolean hasRightClip() {
-        return clipRight != '#';
+//        return clipRight != '#';
+        return clipRight > 0;
     }
 
     protected boolean hasBothClips() {
@@ -127,12 +149,28 @@ public class PairMer {//implements Comparable<PairMer> {
         }
     }
 
+    private char getClip(byte clip) {
+        switch (clip) {            
+            case 1:
+                return 'A';
+            case 2:
+                return 'C';
+            case 3:
+                return 'G';
+            case 4:
+                return 'T';
+            default:
+                return '#';
+        }
+    }
+
     protected char getClipLeft() {
-        return clipLeft;
+        return getClip(clipLeft);
+
     }
 
     protected char getClipRight() {
-        return clipRight;
+        return getClip(clipRight);
     }
 
     /**
@@ -187,12 +225,26 @@ public class PairMer {//implements Comparable<PairMer> {
         return storedCountRigth;
     }
 
+   
+    
     protected void setClipLeft(char clipLeft) {
-        this.clipLeft = clipLeft;
+        //this.clipLeft = clipLeft;
+        switch(clipLeft) {
+            case 'A' : this.clipLeft = 1; this.clipLeftBin |= 8; break;
+            case 'C' : this.clipLeft = 2; this.clipLeftBin |= 4; break;
+            case 'G' : this.clipLeft = 3; this.clipLeftBin |= 2; break;
+            case 'T' : this.clipLeft = 4; this.clipLeftBin |= 1; break;
+        }
     }
 
     protected void setClipRight(char clipRight) {
-        this.clipRight = clipRight;
+//        this.clipRight = clipRight;
+        switch(clipRight) {
+            case 'A' : this.clipRight = 1; this.clipRightBin |= 8; break;
+            case 'C' : this.clipRight = 2; this.clipRightBin |= 4; break;
+            case 'G' : this.clipRight = 3; this.clipRightBin |= 2; break;
+            case 'T' : this.clipRight = 4; this.clipRightBin |= 1; break;
+        }
     }
 
     protected void setIsInvalid() {
@@ -224,6 +276,26 @@ public class PairMer {//implements Comparable<PairMer> {
     public void printPaddedEncoded() {
 
     }
+
+//    public boolean isAmbiguousTMP() {
+//        return ambiguousTMP;
+//    }
+//
+//    public void setAmbiguousTMP(boolean ambiguousTMP) {
+//        this.ambiguousTMP = ambiguousTMP;
+//    }
+
+    public byte getClipLeftBin() {
+        return clipLeftBin;
+    }
+
+    public byte getClipRightBin() {
+        return clipRightBin;
+    }
+    
+    
+    
+    
 
     public PairMer getOtherPairmerCoreLeft(int k) {
         return null;

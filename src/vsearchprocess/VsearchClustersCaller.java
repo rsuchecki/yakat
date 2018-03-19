@@ -76,15 +76,15 @@ public class VsearchClustersCaller {
         // -d, --minIndelDistFromEnds <int>   : Treat indels up to <int> bases from one of the ends as padding and ignore, defaults to 3
         // --sample-id-prefices
         //IF SNPS IN A GIVEN CLUSTER DISPLAY ONE-TO-MANY RELATIONSHIP, CONSIDER MERGING THE "MANY" INTO ONE SEQUENCE
-//>*ms5wt_445588
-//>ms5mut_154471
-//>ms5mut_161305
-//>ms5mut_154274
-//>ms5mut_196156
-//stdin	*ms5wt_445588	ms5mut_154471	55	C	T
-//stdin	*ms5wt_445588	ms5mut_161305	55	C	T
-//stdin	*ms5wt_445588	ms5mut_154274	55	C	T
-//stdin	*ms5wt_445588	ms5mut_196156	55	C	T
+//>*wt_445588
+//>mut_154471
+//>mut_161305
+//>mut_154274
+//>mut_196156
+//stdin	*wt_445588	mut_154471	55	C	T
+//stdin	*wt_445588	mut_161305	55	C	T
+//stdin	*wt_445588	mut_154274	55	C	T
+//stdin	*wt_445588	mut_196156	55	C	T
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
         optSet.addOpt(new Opt(null, "sample-ids", "Space separated sample identifiers which form the prefices of the input FASTA identifiers")

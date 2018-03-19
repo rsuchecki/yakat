@@ -57,6 +57,8 @@ public class PairMersExtenderConsumer implements Runnable {
 //                System.err.println(Thread.currentThread().getName() + "[PC] taken " + list.size());
                 for (PairMer pairMer : list) {
                     ///extend, put on outqueue
+//                                System.err.println(pairMer.getPairMerString(6, "_")+" AMB="+pairMer.isAmbiguousTMP());
+
                     if (!pairMer.isVisited()) {
                         try {
                             ConnectedPairMers connectedPairMers = new ConnectedPairMers();
@@ -71,6 +73,9 @@ public class PairMersExtenderConsumer implements Runnable {
 //                            connectedPairMers.connectPairMers(pairMer, k, map, threadId, DEBUG_FILE, true);
 //                        }
                             connectedPairMers.toCharSeq(k);
+                            
+                            
+                            
                             if (outBuffer.size() >= OUT_BUFFER_SIZE) {
                                 putOneQueue(outqueue, outBuffer);
                                 outBuffer = new ArrayList<>(OUT_BUFFER_SIZE);

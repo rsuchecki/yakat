@@ -45,11 +45,10 @@ public class PairMersMap extends shared.MerMap {
     private AtomicLong size;
     private AtomicLong sizeTerminal = new AtomicLong();
     private long storedSize;
-    
+
 ////    private PairMer[] prefixToPairMers;
 //    private ChronicleMap<long[], Long> chronicleMap;
 //    BTreeMap<long[], Long> mapDB;
-
     /**
      * Instantiate the Map
      *
@@ -140,10 +139,6 @@ public class PairMersMap extends shared.MerMap {
 //                                .valueSerializer(Serializer.LONG)
 //                                .build();
 //    }
-
-    
-
-
     /**
      * Constructor for exposing a subMap for multithreaded purging
      *
@@ -168,8 +163,6 @@ public class PairMersMap extends shared.MerMap {
     public AtomicLong getSize() {
         return size;
     }
-
-    
 
     public AtomicLong getSizeTerminal() {
         return sizeTerminal;
@@ -205,7 +198,6 @@ public class PairMersMap extends shared.MerMap {
 //        }
 //    }
 //    Random r = new Random();
-
     /**
      * First tries to atomically add a k-mer to the Map, if this fails,
      * synchronized method is used to update the previously stored PairMer
@@ -401,6 +393,8 @@ public class PairMersMap extends shared.MerMap {
 //        System.err.println(sizes.length + " chunks, tot=" + NumberFormat.getNumberInstance().format(total) + ", mean=" + total / sizes.length + ", median=" + sizes[sizes.length / 2] + ", min=" + min + ", max=" + max);
         while (it.hasNext()) {
             PairMer next = it.next();
+            System.err.println(next.getPairMerString(6, "_")+" isInvalid="+next.isInvalid()+" leftB="+next.getClipLeftBin()+" rightB="+next.getClipRightBin());
+//            System.err.println(next.getPairMerString(6, "_")+" isInvalid="+next.isInvalid());
 //            System.err.println(next.toString());
 
 //            PairMerStrings wrapper = new PairMerStrings(next, k);
@@ -450,7 +444,7 @@ public class PairMersMap extends shared.MerMap {
                         StringBuilder otherCoreOfKmer1 = new StringBuilder();
                         otherCoreOfKmer1.append(next.getClipLeft());
                         otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
-                        if (addTerminal(otherCoreOfKmer1, minKmerFrequency)) {
+                        if (addTerminal(otherCoreOfKmer1, minKmerFrequency, next.isInvalid())) {
                             sizeTerminal.incrementAndGet();
                         }
 
@@ -459,7 +453,7 @@ public class PairMersMap extends shared.MerMap {
                         StringBuilder otherCoreOfKmer2 = new StringBuilder();
                         otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
                         otherCoreOfKmer2.append(next.getClipRight());
-                        if (addTerminal(otherCoreOfKmer2, minKmerFrequency)) {
+                        if (addTerminal(otherCoreOfKmer2, minKmerFrequency, next.isInvalid())) {
                             sizeTerminal.incrementAndGet();
                         }
                     }
@@ -561,10 +555,19 @@ public class PairMersMap extends shared.MerMap {
 ////            System.err.printf("%8d %8d\n",i,hashKeys[i]);
 ////            
 ////        }
+
+
+//        Iterator<PairMer> it2 = terminalPairMers.keySet().iterator();
+//        while (it2.hasNext()) {
+//            PairMer next = it2.next();
+//            System.err.println(next.getPairMerString(6, "_")+" isAmbiguous="+next.isAmbiguousTMP());
+//
+//        }
+
         return count;
     }
 
-    private boolean addTerminal(CharSequence pairMerCore, int minKmerFrequency) throws NonACGTException {
+    private boolean addTerminal(CharSequence pairMerCore, int minKmerFrequency, boolean isAmbiguous) throws NonACGTException {
         //                        PairMer encodedCoreOfKmer2 = PairMerGenerator.getPairMer(otherCoreOfKmer2, k);
 ////                        System.err.println(otherCoreOfKmer2.toString() + "\t CREATED FROM DECODED CORE (2)");
 ////                synchronized (KmerExtender.class) {
@@ -580,12 +583,19 @@ public class PairMersMap extends shared.MerMap {
 //                                int x = 0;
 //                            }
 //                        }
-        PairMer encodedCoreOfKmer1 = PairMerTypeSelector.getPairMer(pairMerCore, k);
-        PairMer otherPairMer1 = getParentMap().get(encodedCoreOfKmer1);
-        if (otherPairMer1 != null && !otherPairMer1.isInvalid() && otherPairMer1.getStoredCountLeft() >= minKmerFrequency && otherPairMer1.getStoredCountRigth() >= minKmerFrequency) {
+        //Encode core to find PairMer in Map
+        PairMer encodedCoreOfKmer = PairMerTypeSelector.getPairMer(pairMerCore, k);
+        PairMer otherPairMer = getParentMap().get(encodedCoreOfKmer);
+//        if (otherPairMer != null && isAmbiguous) {
+//            otherPairMer.setAmbiguousTMP(isAmbiguous);
+//        }
+
+        if (otherPairMer != null && !otherPairMer.isInvalid() && otherPairMer.getStoredCountLeft() >= minKmerFrequency && otherPairMer.getStoredCountRigth() >= minKmerFrequency) {
             //                        pairMersSkipListMap.remove(otherPairMer1);
 //                            System.err.println(otherPairMer1.getPairMerString(k) + "\tADDING TO TERMINAL");
-            return terminalPairMers.putIfAbsent(otherPairMer1, otherPairMer1) == null;
+
+            //TMP
+            return terminalPairMers.putIfAbsent(otherPairMer, otherPairMer) == null;
         }
         return false;
     }
@@ -608,8 +618,6 @@ public class PairMersMap extends shared.MerMap {
     public PairMersMap getParentMap() {
         return parentMap == null ? this : parentMap;
     }
-    
-    
 
 //    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, ArrayBlockingQueue<PairMersMap> mapsQueue) {
 //        return recursiveSplitMap(pairMersSkipListMap, submaps, minChunk, maxChunk, k, mapsQueue, this);
@@ -666,7 +674,6 @@ public class PairMersMap extends shared.MerMap {
 //        }
 //        return count;
 //    }
-
     public long getStoredSize() {
         return storedSize;
     }

@@ -117,7 +117,7 @@ public class PairMersExtender {
             ArrayList<Future<?>> futures = new ArrayList<>(extenderThreads + 1);
             final ExecutorService producerConsumerExecutor = new ThreadPoolExecutor(extenderThreads + 1, extenderThreads + 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
             int BUFFER_SIZE = Math.max(1, (int) Math.min(256, pairMersMap.sizeTerminals() / extenderThreads / 10));
-            Reporter.report("[INFO]", "Passing "+NumberFormat.getNumberInstance().format(BUFFER_SIZE) + " terminal PairMers per buffer to each extender thread", TOOL_NAME);
+            Reporter.report("[INFO]", "Passing " + NumberFormat.getNumberInstance().format(BUFFER_SIZE) + " terminal PairMers per buffer to each extender thread", TOOL_NAME);
             //SPAWN PRODUCER
             futures.add(producerConsumerExecutor.submit(new PairMersExtenderProducer(pairMersMap, inqueue, BUFFER_SIZE)));
             //SPAWN CONSUMER THREADS
@@ -178,7 +178,13 @@ public class PairMersExtender {
 
                                     //SYNC THIS ?
                                     if (outputFasta) {
-                                        out.write(">" + namePrefix + clusterNumber + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
+                                        //TMP
+//                                        if (connectedPairMers.hasAmbiguousEndTMP()) {
+//                                            out.write(">" + namePrefix + clusterNumber + "_AMB" + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
+//
+//                                        } else {
+                                            out.write(">" + namePrefix + clusterNumber + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
+//                                        }
                                         out.newLine();
                                     }
                                     out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));
@@ -186,7 +192,6 @@ public class PairMersExtender {
 //                            } else {
 //                                System.err.println("too short at "+len+" "+connectedMers.toString()+" given minlen = "+minLen);
                                 }
-                                
 
                             } else { //THIS IS NOT REALLY POSSIBLE HERE - REMOVE?
                                 String message = "No terminal PairMer identified in cluster " + clusterNumber + " @ k=" + k;
@@ -198,7 +203,7 @@ public class PairMersExtender {
                                         toReport.add(pm.getPairMerString(k));
                                     }
                                     Reporter.writeToFile(DEBUG_FILE, toReport, true);
-                                }                                
+                                }
                             }
                         } catch (StackOverflowError error) {
                             Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
@@ -236,8 +241,8 @@ public class PairMersExtender {
                 Reporter.report("[ERROR]", "PairMer extender StackOverflow exception!", TOOL_NAME);
                 e.printStackTrace();
             } catch (StackOverflowError error) {
-                Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
-                Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+                Reporter.report("[ERROR]", "StackOverflow error, try : 'java -Xss<size> : to increase java thread stack size'", TOOL_NAME);
+                Reporter.report("[ERROR]", "To obtain defaults run: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
                 System.exit(1);
             }
 
@@ -286,8 +291,13 @@ public class PairMersExtender {
                                 longEnough++;
                                 longEnoughBp += len;
                                 if (outputFasta) {
-                                    out.write(">" + namePrefix + clusterNumber + " " + len);
-                                    out.newLine();
+//                                    if (connectedPairMers.hasAmbiguousEndTMP()) {
+//                                        out.write(">" + namePrefix + clusterNumber + "_AMB" + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
+//
+//                                    } else {
+                                        out.write(">" + namePrefix + clusterNumber + " " + len);
+                                        out.newLine();
+//                                    }
                                 }
                                 out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));
                                 out.newLine();
@@ -305,14 +315,14 @@ public class PairMersExtender {
                             }
                         }
                     } catch (StackOverflowError error) {
-                        Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
-                        Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+                        Reporter.report("[ERROR]", "StackOverflow error, try : 'java -Xss<size> : to increase java thread stack size'", TOOL_NAME);
+                        Reporter.report("[ERROR]", "To obtain defaults run: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
                         System.exit(1);
                     }
                 }
             }
             out.close();
-            Reporter.report("[INFO]",  NumberFormat.getNumberInstance().format(extendedInSecondPass) +  " extended in second-pass (single threaded extending)", TOOL_NAME);
+            Reporter.report("[INFO]", NumberFormat.getNumberInstance().format(extendedInSecondPass) + " extended in second-pass (single threaded extending)", TOOL_NAME);
 
         } catch (UnsupportedEncodingException e) {
             Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
@@ -321,8 +331,8 @@ public class PairMersExtender {
 //        } catch (InterruptedException e) {
 //            Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
         } catch (StackOverflowError error) {
-            Reporter.report("[ERROR]", "StackOverflow error, possible solution lies in : 'java -Xss<size> : set java thread stack size'", TOOL_NAME);
-            Reporter.report("[ERROR]", "To obtain defaults: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
+            Reporter.report("[ERROR]", "StackOverflow error, try : 'java -Xss<size> : to increase java thread stack size'", TOOL_NAME);
+            Reporter.report("[ERROR]", "To obtain defaults run: 'java -XX:+PrintFlagsFinal -version | grep ThreadStackSize'", TOOL_NAME);
             System.exit(1);
         } finally {
             try {
