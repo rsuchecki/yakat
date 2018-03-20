@@ -130,50 +130,50 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
 //            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
 //        }
 //    }
-    /**
-     * Add first mer
-     *
-     * @param sequence
-     * @param from
-     * @param to inclusive
-     * @param frontClip
-     */
-//    protected final void addFirstKmer(int leftClipAt, CharSequence sequence, int rightClipAt, int coreStart, int coreEnd) {
-    protected final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip, int freq) throws NonACGTException {
-        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-            int coreStart = frontClip ? from + 1 : from;
-            int coreEnd = frontClip ? to : to - 1;
-
-            
-            boolean storedInForwardOrient = encodeCoreCanonical(sequence, coreStart, coreEnd);
-//            if(storedInForwardOrient && !SequenceOps.isCanonical(sequence, from, to)) {
-//                System.err.println(sequence+" isCanonical="+SequenceOps.isCanonical(sequence,from,to));
-//                
+//    /**
+//     * Add first mer
+//     *
+//     * @param sequence
+//     * @param from
+//     * @param to inclusive
+//     * @param frontClip
+//     */
+////    protected final void addFirstKmer(int leftClipAt, CharSequence sequence, int rightClipAt, int coreStart, int coreEnd) {
+//    protected final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip, int freq) throws NonACGTException {
+//        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
+//            int coreStart = frontClip ? from + 1 : from;
+//            int coreEnd = frontClip ? to : to - 1;
+//
+//            
+//            boolean storedInForwardOrient = encodeCoreCanonical(sequence, coreStart, coreEnd);
+////            if(storedInForwardOrient && !SequenceOps.isCanonical(sequence, from, to)) {
+////                System.err.println(sequence+" isCanonical="+SequenceOps.isCanonical(sequence,from,to));
+////                
+////            }
+////            int[] coreInRC = encodeCoreRC(sequence, coreStart, coreEnd);
+//
+//            // TODO 
+//            // instead of canonical encoding simply iterate through sub-seq from both directions and return the canonical strand prior to encoding
+//
+//
+//            if (storedInForwardOrient) {
+//                if (frontClip) {
+//                    setClipLeft(sequence.charAt(from));
+//                } else {
+//                    setClipRight(sequence.charAt(to));
+//                }
+//            } else if (frontClip) {
+//                setClipRight(SequenceOps.complement(sequence.charAt(from)));
+//            } else {
+//                setClipLeft(SequenceOps.complement(sequence.charAt(to)));
 //            }
-//            int[] coreInRC = encodeCoreRC(sequence, coreStart, coreEnd);
-
-            // TODO 
-            // instead of canonical encoding simply iterate through sub-seq from both directions and return the canonical strand prior to encoding
-
-
-            if (storedInForwardOrient) {
-                if (frontClip) {
-                    setClipLeft(sequence.charAt(from));
-                } else {
-                    setClipRight(sequence.charAt(to));
-                }
-            } else if (frontClip) {
-                setClipRight(SequenceOps.complement(sequence.charAt(from)));
-            } else {
-                setClipLeft(SequenceOps.complement(sequence.charAt(to)));
-            }
-
-//            incrementStoredCount();
-            incrementStoredCount(hasLeftClip(), freq);
-        } else {
-            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
-        }
-    }
+//
+////            incrementStoredCount();
+//            incrementStoredCount(hasLeftClip(), freq);
+//        } else {
+//            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
+//        }
+//    }
 
     @Override
     public boolean equals(Object anotherKmer) {

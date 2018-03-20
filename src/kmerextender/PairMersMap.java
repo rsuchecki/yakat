@@ -16,11 +16,7 @@
 package kmerextender;
 
 //import gnu.trove..set.hash.THashSet;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.Iterator;
-import java.util.Random;
-import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -37,6 +33,7 @@ public class PairMersMap extends shared.MerMap {
 
 //    private final Object LOCK;
     private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
+    private ConcurrentSkipListMap<PairMer, PairMerCLips> pairMerClipsMap;  //to store ambigous clip info/counts
     private ConcurrentSkipListMap<PairMer, PairMer> terminalPairMers;
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
@@ -139,6 +136,10 @@ public class PairMersMap extends shared.MerMap {
 //                                .valueSerializer(Serializer.LONG)
 //                                .build();
 //    }
+    public ConcurrentSkipListMap<PairMer, PairMerCLips> getPairMerClipsMap() {
+        return pairMerClipsMap;
+    }
+
     /**
      * Constructor for exposing a subMap for multithreaded purging
      *
@@ -149,6 +150,7 @@ public class PairMersMap extends shared.MerMap {
     public PairMersMap(Integer k, ConcurrentNavigableMap<PairMer, PairMer> subMap, PairMersMap parentMap) {
         this.k = k;
         this.pairMersSkipListMap = new ConcurrentSkipListMap<>(subMap);
+        this.pairMerClipsMap = parentMap.getPairMerClipsMap();
         this.terminalPairMers = parentMap.getTerminalPairMers();
         this.sizeTerminal = parentMap.getSizeTerminal();
         this.ambiguous = parentMap.getAmbiguous();
@@ -393,7 +395,7 @@ public class PairMersMap extends shared.MerMap {
 //        System.err.println(sizes.length + " chunks, tot=" + NumberFormat.getNumberInstance().format(total) + ", mean=" + total / sizes.length + ", median=" + sizes[sizes.length / 2] + ", min=" + min + ", max=" + max);
         while (it.hasNext()) {
             PairMer next = it.next();
-            System.err.println(next.getPairMerString(6, "_")+" isInvalid="+next.isInvalid()+" leftB="+next.getClipLeftBin()+" rightB="+next.getClipRightBin());
+//            System.err.println(next.getPairMerString(6, "_") + " isInvalid=" + next.isInvalid() + " leftB=" + next.getClipLeftBin() + " rightB=" + next.getClipRightBin());
 //            System.err.println(next.getPairMerString(6, "_")+" isInvalid="+next.isInvalid());
 //            System.err.println(next.toString());
 
@@ -441,20 +443,24 @@ public class PairMersMap extends shared.MerMap {
                 try {
                     String decodedCore = next.decodeCore(k - 1);
                     if (next.hasLeftClip()) {
-                        StringBuilder otherCoreOfKmer1 = new StringBuilder();
-                        otherCoreOfKmer1.append(next.getClipLeft());
-                        otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
-                        if (addTerminal(otherCoreOfKmer1, minKmerFrequency, next.isInvalid())) {
-                            sizeTerminal.incrementAndGet();
+                        for (char clipLeft : next.getClipsLeft()) {
+                            StringBuilder otherCoreOfKmer1 = new StringBuilder();
+                            otherCoreOfKmer1.append(clipLeft);
+                            otherCoreOfKmer1.append(decodedCore.subSequence(0, decodedCore.length() - 1));
+                            if (addTerminal(otherCoreOfKmer1, minKmerFrequency, next.isInvalid())) {
+                                sizeTerminal.incrementAndGet();
+                            }
                         }
 
                     }
                     if (next.hasRightClip()) {
-                        StringBuilder otherCoreOfKmer2 = new StringBuilder();
-                        otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
-                        otherCoreOfKmer2.append(next.getClipRight());
-                        if (addTerminal(otherCoreOfKmer2, minKmerFrequency, next.isInvalid())) {
-                            sizeTerminal.incrementAndGet();
+                        for (char clipRight : next.getClipsRight()) {
+                            StringBuilder otherCoreOfKmer2 = new StringBuilder();
+                            otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
+                            otherCoreOfKmer2.append(clipRight);
+                            if (addTerminal(otherCoreOfKmer2, minKmerFrequency, next.isInvalid())) {
+                                sizeTerminal.incrementAndGet();
+                            }
                         }
                     }
                 } catch (NonACGTException ex) {
@@ -555,15 +561,12 @@ public class PairMersMap extends shared.MerMap {
 ////            System.err.printf("%8d %8d\n",i,hashKeys[i]);
 ////            
 ////        }
-
-
 //        Iterator<PairMer> it2 = terminalPairMers.keySet().iterator();
 //        while (it2.hasNext()) {
 //            PairMer next = it2.next();
 //            System.err.println(next.getPairMerString(6, "_")+" isAmbiguous="+next.isAmbiguousTMP());
 //
 //        }
-
         return count;
     }
 

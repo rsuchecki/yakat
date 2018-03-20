@@ -18,6 +18,7 @@ package kmerextender;
 import java.util.ArrayList;
 import java.util.Random;
 import shared.Reporter;
+import shared.SequenceOps;
 
 /**
  * Superclass - not to be used directly holds up to 2 k-mers paired
@@ -30,25 +31,21 @@ public class PairMer {//implements Comparable<PairMer> {
 //    private int[] kmerCoreBitsArray;  //12B + len*4 Bytes 
 //    private char clipLeft = '#';   //2B                     ///*TODO*/: encode to 2-3b if sticking to int array
 //    private char clipRight = '#';  //2B                     //TODO: encode to 2-3b
-    
     //TODO encode each clip as a binary mask repr presence or absence of nucl ACGT -> 1111, A -> 1000, AC -> 1100 etc 
     //this would allow consistent identification of terminal nodes caused by ambiguity 
     //Currently when the "next" node key/core is generated it only uses one of two or more possible clips
     //hence some nodes next to ambig ext are not identified as such    
-    private byte clipLeft;    //1B                     
-    private byte clipRight;   //1B                     
-    private byte clipLeftBin;    //1B                     
+//    private byte clipLeft;    //1B                    
+//    private byte clipRight;   //1B                   
+    private byte clipLeftBin;    //1B                      
     private byte clipRightBin;   //1B                     
 
-    private byte storedCountLeft;  //1B
-    private byte storedCountRigth; //1B
+    private byte storedCountLeft;  //1B 
+    private byte storedCountRigth; //1B 
     private boolean invalid;       //1B   //can be derived from what is stored in either clip 
     private byte visitedBy = Byte.MAX_VALUE;
-    
-    
-//    private boolean ambiguousTMP; //temporary - experimenting with treating blunt end unitigs differently from ambiguous end unitigs, ambig = next to a invalidated PairMer
-    
 
+//    private boolean ambiguousTMP; //temporary - experimenting with treating blunt end unitigs differently from ambiguous end unitigs, ambig = next to a invalidated PairMer
     //then round to multi of 8
     //could save 7B by encoding all the fields in a single B (storedCount would not be stored exactly but the state of the other bits could indicate is count is 1,2 or more)
     //7 (sign) 
@@ -68,49 +65,56 @@ public class PairMer {//implements Comparable<PairMer> {
      * otherwise counting is done here)
      */
     public synchronized void addKmerSynchronized(PairMer another, boolean inputKmersUnique, int freq) {
-        //if already invalid PairMer  or more than second kmer being added
-        if (isInvalid() || (inputKmersUnique && (getStoredCountLeft() > 0 && getStoredCountRigth() > 0))) {
-            setIsInvalid();
-        } else if (!inputKmersUnique) { //i.e. k-merizing FAST[A|Q] 
-            //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to take this into account       
-            if ((hasLeftClip() && getClipLeft() == another.getClipLeft()) || (hasRightClip() && getClipRight() == another.getClipRight())) {
-                //fine, new k-mer is identical to a k-mer already stored
-//                    System.err.println("Adding same kmer again");
-            } else //it is a different k-mer
-            if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                setIsInvalid(); //has clip at the same end but not identical 
-            } else if (!hasLeftClip() && another.hasLeftClip()) {
-                setClipLeft(another.getClipLeft());
-            } else if (!hasRightClip() && another.hasRightClip()) {
-                setClipRight(another.getClipRight());
-            } else {
-                Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
-            }
-//            incrementStoredCount(another.hasLeftClip(), freq);
-        } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
-            if (hasBothClips()) {
-                setIsInvalid(); //because already two different k-mers represented in this PairMer
-            } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
-                setIsInvalid();
-            } else if (!hasLeftClip() && another.hasLeftClip()) {
-                //TMP
-                //setClipLeft(another.getClipLeft());
-            } else if (!hasRightClip() && another.hasRightClip()) {
-                //TMP
-                //setClipRight(another.getClipRight());
-            } else {
-                Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
-            }                                    
-//            incrementStoredCount(another.hasLeftClip(), freq);
+        if (another.hasLeftClip()) {
+            setClipLeftBin(another.getClipLeftBin(), freq);
         }
-        //TMP
-            if(another.hasLeftClip()){
-                setClipLeft(another.getClipLeft());
-            }
-            if(another.hasRightClip()){
-                setClipRight(another.getClipRight());
-            }
-        incrementStoredCount(another.hasLeftClip(), freq);
+        if (another.hasRightClip()) {
+            setClipRightBin(another.getClipRightBin(), freq);
+        }
+
+//        //if already invalid PairMer  or more than second kmer being added
+//        if (isInvalid() || (inputKmersUnique && (getStoredCountLeft() > 0 && getStoredCountRigth() > 0))) {
+//            setIsInvalid();
+//        } else if (!inputKmersUnique) { //i.e. k-merizing FAST[A|Q] 
+//            //If input k-mers are non-unique, ie, a k-mer may appear more than once, we need to take this into account       
+//            if ((hasLeftClip() && getClipLeft() == another.getClipLeft()) || (hasRightClip() && getClipRight() == another.getClipRight())) {
+//                //fine, new k-mer is identical to a k-mer already stored
+////                    System.err.println("Adding same kmer again");
+//            } else //it is a different k-mer
+//            if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
+//                setIsInvalid(); //has clip at the same end but not identical 
+//            } else if (!hasLeftClip() && another.hasLeftClip()) {
+//                setClipLeft(another.getClipLeft());
+//            } else if (!hasRightClip() && another.hasRightClip()) {
+//                setClipRight(another.getClipRight());
+//            } else {
+//                Reporter.report("[BUG?]", "Unexpected [2], addKmer() at ", this.getClass().getSimpleName());
+//            }
+////            incrementStoredCount(another.hasLeftClip(), freq);
+//        } else { //i.e. input k-mers are unique (no duplicates which we would have to ignore)
+//            if (hasBothClips()) {
+//                setIsInvalid(); //because already two different k-mers represented in this PairMer
+//            } else if ((hasLeftClip() && another.hasLeftClip()) || (hasRightClip() && another.hasRightClip())) {
+//                setIsInvalid();
+//            } else if (!hasLeftClip() && another.hasLeftClip()) {
+//                //TMP
+//                //setClipLeft(another.getClipLeft());
+//            } else if (!hasRightClip() && another.hasRightClip()) {
+//                //TMP
+//                //setClipRight(another.getClipRight());
+//            } else {
+//                Reporter.report("[BUG?]", "Unexpected [3], addKmer() at ", this.getClass().getSimpleName());
+//            }                                    
+////            incrementStoredCount(another.hasLeftClip(), freq);
+//        }
+//        //TMP
+//            if(another.hasLeftClip()){
+//                setClipLeft(another.getClipLeft());
+//            }
+//            if(another.hasRightClip()){
+//                setClipRight(another.getClipRight());
+//            }
+//        incrementStoredCount(another.hasLeftClip(), freq);
     }
 
 //    protected final void addFirstKmer(char leftClip, String core, char rightClip) {
@@ -129,48 +133,84 @@ public class PairMer {//implements Comparable<PairMer> {
 //    }
     protected boolean hasLeftClip() {
 //        return clipLeft != '#';
-        return clipLeft > 0;
+//        return clipLeft > 0;
+        return storedCountLeft > 0;
     }
 
     protected boolean hasRightClip() {
 //        return clipRight != '#';
-        return clipRight > 0;
+//        return clipRight > 0;
+        return storedCountRigth > 0;
     }
 
     protected boolean hasBothClips() {
         return hasLeftClip() && hasRightClip();
     }
 
-    protected void incrementStoredCount(boolean left, int freq) {
-        if (left) {
-            storedCountLeft = (byte) Math.min(storedCountLeft + freq, Byte.MAX_VALUE);
-        } else {
-            storedCountRigth = (byte) Math.min(storedCountRigth + freq, Byte.MAX_VALUE);
+//    private void incrementStoredCount(boolean left, int freq) {
+//        if (left) {
+//            storedCountLeft = (byte) Math.min(storedCountLeft + freq, Byte.MAX_VALUE);
+//        } else {
+//            storedCountRigth = (byte) Math.min(storedCountRigth + freq, Byte.MAX_VALUE);
+//        }
+//    }
+    private char getClip(byte clip) {
+        switch (clip) {
+            case 8:
+                return 'A';
+            case 4:
+                return 'C';
+            case 2:
+                return 'G';
+            case 1:
+                return 'T';
+            case 0:
+                return '#'; //blunt
+            default: {
+                return '*';//ambiguous
+            }
         }
     }
 
-    private char getClip(byte clip) {
-        switch (clip) {            
-            case 1:
-                return 'A';
-            case 2:
-                return 'C';
-            case 3:
-                return 'G';
-            case 4:
-                return 'T';
-            default:
-                return '#';
-        }
+    public char[] getClipsLeft() {
+        return getClips(getClipLeftBin());
     }
+
+    public char[] getClipsRight() {
+        return getClips(getClipRightBin());
+    }
+
+    private char[] getClips(byte clip) {
+        int pos = 0;
+        char[] clips = new char[Integer.bitCount(clip)];
+        for (byte base = 8; base > 0; base /= 2) {
+            byte current = (byte) (base & clip);
+            if (current != 0) {
+                clips[pos++] = getClip(current);
+            }
+        }
+        return clips;
+    }
+
+    public boolean isAmbiguousLeft() {
+        return Integer.bitCount(getClipLeftBin()) > 1;
+    }
+
+    public boolean isAmbiguousRight() {
+        return Integer.bitCount(getClipRightBin()) > 1;
+    }
+//    public boolean isAmbiguous() {
+////        System.err.println(Integer.bitCount(getClipLeftBin())+" "+Integer.bitCount(getClipRightBin()));    
+//        return isAmbiguousLeft()  || isAmbiguousRight();
+//    }
 
     protected char getClipLeft() {
-        return getClip(clipLeft);
+        return getClip(getClipLeftBin());
 
     }
 
     protected char getClipRight() {
-        return getClip(clipRight);
+        return getClip(getClipRightBin());
     }
 
     /**
@@ -225,26 +265,69 @@ public class PairMer {//implements Comparable<PairMer> {
         return storedCountRigth;
     }
 
-   
-    
-    protected void setClipLeft(char clipLeft) {
-        //this.clipLeft = clipLeft;
-        switch(clipLeft) {
-            case 'A' : this.clipLeft = 1; this.clipLeftBin |= 8; break;
-            case 'C' : this.clipLeft = 2; this.clipLeftBin |= 4; break;
-            case 'G' : this.clipLeft = 3; this.clipLeftBin |= 2; break;
-            case 'T' : this.clipLeft = 4; this.clipLeftBin |= 1; break;
+    protected void setClipLeftBin(byte clipLeftBin, int freq) {
+        this.clipLeftBin |= clipLeftBin;
+        storedCountLeft = (byte) Math.min(storedCountLeft + freq, Byte.MAX_VALUE);
+        if (getClipLeftBin() != clipLeftBin) {
+            setIsInvalid();
         }
     }
 
-    protected void setClipRight(char clipRight) {
-//        this.clipRight = clipRight;
-        switch(clipRight) {
-            case 'A' : this.clipRight = 1; this.clipRightBin |= 8; break;
-            case 'C' : this.clipRight = 2; this.clipRightBin |= 4; break;
-            case 'G' : this.clipRight = 3; this.clipRightBin |= 2; break;
-            case 'T' : this.clipRight = 4; this.clipRightBin |= 1; break;
+    protected void setClipRightBin(byte clipRightBin, int freq) {
+        this.clipRightBin |= clipRightBin;
+        storedCountRigth = (byte) Math.min(storedCountRigth + freq, Byte.MAX_VALUE);
+        if (getClipRightBin() != clipRightBin) {
+            setIsInvalid();
         }
+    }
+
+    protected byte setClipLeft(char clipLeft, int freq) {
+        //this.clipLeft = clipLeft;
+        switch (clipLeft) {
+            case 'A':
+                this.clipLeftBin |= 8;
+                break;
+            case 'C':
+                this.clipLeftBin |= 4;
+                break;
+            case 'G':
+                this.clipLeftBin |= 2;
+                break;
+            case 'T':
+                this.clipLeftBin |= 1;
+                break;
+//            case 'A' : this.clipLeft = 1; this.clipLeftBin |= 8; break;
+//            case 'C' : this.clipLeft = 2; this.clipLeftBin |= 4; break;
+//            case 'G' : this.clipLeft = 3; this.clipLeftBin |= 2; break;
+//            case 'T' : this.clipLeft = 4; this.clipLeftBin |= 1; break;
+        }
+        storedCountLeft = (byte) Math.min(storedCountLeft + freq, Byte.MAX_VALUE);
+        return getClipLeftBin();
+    }
+
+    protected byte setClipRight(char clipRight, int freq) {
+//        this.clipRight = clipRight;
+        switch (clipRight) {
+            case 'A':
+                this.clipRightBin |= 8;
+                break;
+            case 'C':
+                this.clipRightBin |= 4;
+                break;
+            case 'G':
+                this.clipRightBin |= 2;
+                break;
+            case 'T':
+                this.clipRightBin |= 1;
+                break;
+//            case 'A' : this.clipRight = 1; this.clipRightBin |= 8; break;
+//            case 'C' : this.clipRight = 2; this.clipRightBin |= 4; break;
+//            case 'G' : this.clipRight = 3; this.clipRightBin |= 2; break;
+//            case 'T' : this.clipRight = 4; this.clipRightBin |= 1; break;
+        }
+
+        storedCountRigth = (byte) Math.min(storedCountRigth + freq, Byte.MAX_VALUE);
+        return getClipRightBin();
     }
 
     protected void setIsInvalid() {
@@ -284,7 +367,6 @@ public class PairMer {//implements Comparable<PairMer> {
 //    public void setAmbiguousTMP(boolean ambiguousTMP) {
 //        this.ambiguousTMP = ambiguousTMP;
 //    }
-
     public byte getClipLeftBin() {
         return clipLeftBin;
     }
@@ -292,10 +374,6 @@ public class PairMer {//implements Comparable<PairMer> {
     public byte getClipRightBin() {
         return clipRightBin;
     }
-    
-    
-    
-    
 
     public PairMer getOtherPairmerCoreLeft(int k) {
         return null;
@@ -307,6 +385,35 @@ public class PairMer {//implements Comparable<PairMer> {
 
     public PairMer getNextPairMer() {
         return null;
+    }
+
+    protected void encodeCore(CharSequence kmerCoreOnly) {
+
+    }
+
+    public final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
+        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
+            int coreStart = frontClip ? from + 1 : from;
+            int coreEnd = frontClip ? to : to - 1;
+            if (SequenceOps.isCanonical(sequence.subSequence(coreStart, coreEnd + 1))) {
+                encodeCore(sequence.subSequence(coreStart, coreEnd + 1));
+                if (frontClip) {
+                    setClipLeft(sequence.charAt(from), freq);
+                } else {
+                    setClipRight(sequence.charAt(to), freq);
+                }
+            } else {
+                encodeCore(SequenceOps.getReverseComplement(sequence.subSequence(coreStart, coreEnd + 1)));
+                if (frontClip) {
+                    setClipRight(SequenceOps.complement(sequence.charAt(from)), freq);
+                } else {
+                    setClipLeft(SequenceOps.complement(sequence.charAt(to)), freq);
+                }
+            }
+//            incrementStoredCount(hasLeftClip(), freq);
+        } else {
+            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
+        }
     }
 
 }

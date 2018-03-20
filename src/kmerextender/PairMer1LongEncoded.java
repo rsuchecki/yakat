@@ -40,30 +40,7 @@ public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1L
         addFirstKmer(sequence, from, to, frontClip, freq);
     }
 
-    public final void addFirstKmer(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
-        if (getStoredCount() == 0) {        //If this is the first of the two k-mers that could be stored
-            int coreStart = frontClip ? from + 1 : from;
-            int coreEnd = frontClip ? to : to - 1;
-            if (SequenceOps.isCanonical(sequence.subSequence(coreStart, coreEnd+1))) {
-                encodeCore(sequence.subSequence(coreStart, coreEnd+1));
-                if (frontClip) {
-                    setClipLeft(sequence.charAt(from));
-                } else {
-                    setClipRight(sequence.charAt(to));
-                }
-            } else {
-                encodeCore(SequenceOps.getReverseComplement(sequence.subSequence(coreStart, coreEnd+1)));
-                if (frontClip) {
-                    setClipRight(SequenceOps.complement(sequence.charAt(from)));
-                } else {
-                    setClipLeft(SequenceOps.complement(sequence.charAt(to)));
-                }
-            }
-            incrementStoredCount(hasLeftClip(), freq);
-        } else {
-            Reporter.report("[BUG?]", "Only the first k-mer in a PairMer can be added using addFirstKmer()!!!", getClass().getSimpleName());
-        }
-    }
+    
 
     /**
      * Does not generate a complete PairMer, just the core, for Set/Map lookups
@@ -104,7 +81,8 @@ public class PairMer1LongEncoded extends PairMer implements Comparable<PairMer1L
         return CoreCoder.decodeCore(coreLength, bitsArray);
     }
 
-    private void encodeCore(CharSequence kmerCoreOnly) {
+    @Override
+    protected void encodeCore(CharSequence kmerCoreOnly) {
         long[] encodeCoreLong = CoreCoder.encodeCoreLongArray(kmerCoreOnly);
         if (encodeCoreLong.length != 1) {
             Reporter.report("[BUG?]", " 1*long value expected from core encoding", getClass().getSimpleName());
