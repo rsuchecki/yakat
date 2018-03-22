@@ -48,8 +48,8 @@ public class MerUtensils {
         String name = this.getClass().getSimpleName().toLowerCase();
         if (args.length != 0 && args[0].matches("(k)?extend(er)?")) {
             new KmerExtender(args, name, "kextend");
-        } else if (args.length != 0 && args[0].matches("test(k)?extend(er)?")) {
-            new CoreCoder(args, name, "testkextender");
+//        } else if (args.length != 0 && args[0].matches("test(k)?extend(er)?")) {
+//            new CoreCoder(args, name, "testkextender");
         } else if (args.length != 0 && args[0].matches("(k)?match(er)?")) {
             args[0] = "";
             new KmerMatch(args, name, "kmatch");

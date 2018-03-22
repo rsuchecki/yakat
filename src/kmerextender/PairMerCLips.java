@@ -35,28 +35,28 @@ public class PairMerCLips {
     public void increment(byte base, boolean left, byte freq) {
 
         switch(base) {
-            case 1 : {                
+            case 8 : {                
                 if(left) {
                     setClipCountLeftA(increment(getClipCountLeftA(), freq));
                 } else {
                     setClipCountRightA(increment(getClipCountRightA(), freq));                    
                 }
             }
-            case 2 : {                
+            case 4 : {                
                 if(left) {
                     setClipCountLeftC(increment(getClipCountLeftC(), freq));
                 } else {
                     setClipCountRightC(increment(getClipCountRightC(), freq));                    
                 }
             }
-            case 3 : {                
+            case 2 : {                
                 if(left) {
                     setClipCountLeftG(increment(getClipCountLeftG(), freq));
                 } else {
                     setClipCountRightG(increment(getClipCountRightG(), freq));                    
                 }
             }
-            case 4 : {                
+            case 1 : {                
                 if(left) {
                     setClipCountLeftT(increment(getClipCountLeftT(), freq));
                 } else {

@@ -587,19 +587,19 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
         return null;
     }
 
-    /**
-     * UNUSED
-     *
-     * @param k
-     * @return
-     */
-    @Override
-    public PairMer getOtherPairmerCoreRight(int k) {
-        if (!isInvalid() && getStoredCount() == 2) {
-            return new PairMerIntArrEncoded(shiftBitsLeftAndAddRightClip(kmerCoreBitsArray, k - 1), k - 1);
-        }
-        return null;
-    }
+//    /**
+//     * UNUSED
+//     *
+//     * @param k
+//     * @return
+//     */
+//    @Override
+//    public PairMer getOtherPairmerCoreRight(int k) {
+//        if (!isInvalid() && getStoredCount() == 2) {
+//            return new PairMerIntArrEncoded(shiftBitsLeftAndAddRightClip(kmerCoreBitsArray, k - 1), k - 1);
+//        }
+//        return null;
+//    }
 
     /**
      * Method intended to extracting "core" which can then be used as a key for

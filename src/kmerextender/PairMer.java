@@ -15,8 +15,6 @@
  */
 package kmerextender;
 
-import java.util.ArrayList;
-import java.util.Random;
 import shared.Reporter;
 import shared.SequenceOps;
 
@@ -44,6 +42,8 @@ public class PairMer {//implements Comparable<PairMer> {
     private byte storedCountRigth; //1B 
     private boolean invalid;       //1B   //can be derived from what is stored in either clip 
     private byte visitedBy = Byte.MAX_VALUE;
+    
+    private boolean nextToAmbiguous;
 
 //    private boolean ambiguousTMP; //temporary - experimenting with treating blunt end unitigs differently from ambiguous end unitigs, ambig = next to a invalidated PairMer
     //then round to multi of 8
@@ -269,7 +269,7 @@ public class PairMer {//implements Comparable<PairMer> {
         this.clipLeftBin |= clipLeftBin;
         storedCountLeft = (byte) Math.min(storedCountLeft + freq, Byte.MAX_VALUE);
         if (getClipLeftBin() != clipLeftBin) {
-            setIsInvalid();
+            setIsInvalid(); //Ambiguous really
         }
     }
 
@@ -277,7 +277,7 @@ public class PairMer {//implements Comparable<PairMer> {
         this.clipRightBin |= clipRightBin;
         storedCountRigth = (byte) Math.min(storedCountRigth + freq, Byte.MAX_VALUE);
         if (getClipRightBin() != clipRightBin) {
-            setIsInvalid();
+            setIsInvalid();  //Ambiguous really
         }
     }
 
@@ -352,13 +352,16 @@ public class PairMer {//implements Comparable<PairMer> {
         return visitedBy; //NODE PREVIOUSLY VISITED BY A HIGHER PRIORITY THREAD 
     }
 
-    public byte getVisitedBy() {
-        return visitedBy;
+    public boolean isNextToAmbiguous() {
+        return nextToAmbiguous;
     }
 
-    public void printPaddedEncoded() {
-
+    public void setNextToAmbiguous(boolean nextToAmbiguous) {
+        this.nextToAmbiguous = nextToAmbiguous;
     }
+
+ 
+
 
 //    public boolean isAmbiguousTMP() {
 //        return ambiguousTMP;
@@ -416,4 +419,5 @@ public class PairMer {//implements Comparable<PairMer> {
         }
     }
 
+    
 }

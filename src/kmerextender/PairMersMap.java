@@ -33,7 +33,7 @@ public class PairMersMap extends shared.MerMap {
 
 //    private final Object LOCK;
     private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
-    private ConcurrentSkipListMap<PairMer, PairMerCLips> pairMerClipsMap;  //to store ambigous clip info/counts
+    private ConcurrentSkipListMap<PairMer, PairMerCLips> pairMerClipsMap;  //to store ambigous clip info/counts UNUSED
     private ConcurrentSkipListMap<PairMer, PairMer> terminalPairMers;
 //    private ConcurrentSkipListMap<PairMer, PairMer> pairMersSkipListMap;
     private Integer k;
@@ -43,9 +43,7 @@ public class PairMersMap extends shared.MerMap {
     private AtomicLong sizeTerminal = new AtomicLong();
     private long storedSize;
 
-////    private PairMer[] prefixToPairMers;
-//    private ChronicleMap<long[], Long> chronicleMap;
-//    BTreeMap<long[], Long> mapDB;
+
     /**
      * Instantiate the Map
      *
@@ -64,78 +62,6 @@ public class PairMersMap extends shared.MerMap {
         }
     }
 
-//    public void initChronicleMap() {
-//        System.err.println("Hardcoded tests of chronicle map @ k=71 ...");
-//        long[] encodedCoreLongArray = CoreCoder.encodeCoreLongArray("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC");
-//        ChronicleMapBuilder<long[], Long> chronicleMapBuilder
-//                = ChronicleMapBuilder.of(long[].class, Long.class)
-//                        .name("chronicleMap")
-//                        .constantKeySizeBySample(encodedCoreLongArray)
-//                        .entries(5_000_000_000L);
-////                        .entries(2_000_000L);
-//        chronicleMap = chronicleMapBuilder.create();
-//
-//        System.err.println("Hardcoded tests of chronicle map @ k=71 - map created");
-////        chronicleMap.put(encodedCoreLongArray, Long.MIN_VALUE);
-////        System.err.println("Hardcoded tests of chronicle map @ k=71 - test element added");
-//    }
-//
-//    public void initMapDB() {
-//        System.err.println("Hardcoded tests of mapDB  ...");
-//        DB db = DBMaker
-//            .memoryDirectDB()
-////                .fileDB("file.db")
-////                .fileMmapEnable()
-////                .allocateStartSize(10_000_000)
-//                .transactionEnable()
-//                .make();
-//        mapDB = db.treeMap("map",Serializer.LONG_ARRAY, Serializer.LONG)
-//                .createOrOpen();
-//        System.err.println("Hardcoded tests of mapDB  ... created");
-//        
-//        
-//        // using native order speeds access for values longer than a byte.
-////ByteBuffer bb = ByteBuffer.allocateDirect(1024*1024*1024).order(ByteOrder.nativeOrder());
-////// start at some location.
-////bb.position(0);
-////bb.put((byte) 1);
-////bb.putInt(6456456);
-////bb.putDouble(1.4564687);
-////
-////// to read back.
-////bb.position(0);
-////byte b = bb.get();
-////int i = bb.getInt();
-////double d = bb.getDouble();
-////        
-////int x =0;
-////        BTreeMap<byte[], Long> map = db.treeMap("map")
-////                .keySerializer(Serializer.BYTE_ARRAY)
-////                .valueSerializer(Serializer.LONG)
-////                .createOrOpen();
-//    }
-//    
-//    public void initOHC() {
-//        OHCache ohCache = OHCacheBuilder.newBuilder()
-//                                .keySerializer(new CacheSerializer<Object>() {
-//            @Override
-//            public void serialize(Object t, ByteBuffer bb) {
-//                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//            }
-//
-//            @Override
-//            public Object deserialize(ByteBuffer bb) {
-//                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//            }
-//
-//            @Override
-//            public int serializedSize(Object t) {
-//                throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-//            }
-//        })
-//                                .valueSerializer(Serializer.LONG)
-//                                .build();
-//    }
     public ConcurrentSkipListMap<PairMer, PairMerCLips> getPairMerClipsMap() {
         return pairMerClipsMap;
     }
@@ -443,6 +369,7 @@ public class PairMersMap extends shared.MerMap {
                 try {
                     String decodedCore = next.decodeCore(k - 1);
                     if (next.hasLeftClip()) {
+                        //IF AMBIGUOUS, THERE WILL BE MORE THAN ONE CLIP BASE, SO MORE THAN ONE PATH TO EXPLORE
                         for (char clipLeft : next.getClipsLeft()) {
                             StringBuilder otherCoreOfKmer1 = new StringBuilder();
                             otherCoreOfKmer1.append(clipLeft);
@@ -454,6 +381,7 @@ public class PairMersMap extends shared.MerMap {
 
                     }
                     if (next.hasRightClip()) {
+                        //IF AMBIGUOUS, THERE WILL BE MORE THAN ONE CLIP BASE, SO MORE THAN ONE PATH TO EXPLORE
                         for (char clipRight : next.getClipsRight()) {
                             StringBuilder otherCoreOfKmer2 = new StringBuilder();
                             otherCoreOfKmer2.append(decodedCore.subSequence(1, decodedCore.length()));
@@ -570,50 +498,20 @@ public class PairMersMap extends shared.MerMap {
         return count;
     }
 
-    private boolean addTerminal(CharSequence pairMerCore, int minKmerFrequency, boolean isAmbiguous) throws NonACGTException {
-        //                        PairMer encodedCoreOfKmer2 = PairMerGenerator.getPairMer(otherCoreOfKmer2, k);
-////                        System.err.println(otherCoreOfKmer2.toString() + "\t CREATED FROM DECODED CORE (2)");
-////                synchronized (KmerExtender.class) {
-////                        System.err.println(next.getPairMerString(k) + "\tREMOVING");
-//
-//                        PairMer otherPairMer2 = getParentMap().get(encodedCoreOfKmer2);
-//                        if (otherPairMer2 != null && !otherPairMer2.isInvalid() && otherPairMer2.getStoredCountLeft() >= minKmerFrequency && otherPairMer2.getStoredCountRigth() >= minKmerFrequency) {
-////                        pairMersSkipListMap.remove(otherPairMer2);
-////                            System.err.println(otherPairMer2.getPairMerString(k) + "\tADDING TO TERMINAL");
-//                            PairMer put = terminalPairMers.putIfAbsent(otherPairMer2, otherPairMer2);
-//                            if (put != null) {
-////                                System.err.println(otherPairMer2.getPairMerString(k) + "\t - already in");
-//                                int x = 0;
-//                            }
-//                        }
+    private boolean addTerminal(CharSequence pairMerCore, int minKmerFrequency, boolean ambiguous) throws NonACGTException {
         //Encode core to find PairMer in Map
         PairMer encodedCoreOfKmer = PairMerTypeSelector.getPairMer(pairMerCore, k);
         PairMer otherPairMer = getParentMap().get(encodedCoreOfKmer);
-//        if (otherPairMer != null && isAmbiguous) {
-//            otherPairMer.setAmbiguousTMP(isAmbiguous);
-//        }
+        if (otherPairMer != null && ambiguous) {
+            otherPairMer.setNextToAmbiguous(ambiguous);
+        }
 
         if (otherPairMer != null && !otherPairMer.isInvalid() && otherPairMer.getStoredCountLeft() >= minKmerFrequency && otherPairMer.getStoredCountRigth() >= minKmerFrequency) {
-            //                        pairMersSkipListMap.remove(otherPairMer1);
-//                            System.err.println(otherPairMer1.getPairMerString(k) + "\tADDING TO TERMINAL");
-
-            //TMP
             return terminalPairMers.putIfAbsent(otherPairMer, otherPairMer) == null;
         }
         return false;
     }
 
-    //    public boolean isOutOfMemory() {
-    //        return OutOfMemory;
-    //    }
-    //
-    //    public synchronized void setOutOfMemory() {
-    //        this.OutOfMemory = true;
-    //    }
-    //    public int purgeSeedMers(PairMersMap seedMersMap) {
-    //        Iterator<PairMer> it = seedMersMap.getPairMersSkipListMap().keySet().iterator();
-    //        
-    //    }
     public Integer getK() {
         return k;
     }
@@ -622,61 +520,6 @@ public class PairMersMap extends shared.MerMap {
         return parentMap == null ? this : parentMap;
     }
 
-//    public long recursiveSplitMap(ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, ArrayBlockingQueue<PairMersMap> mapsQueue) {
-//        return recursiveSplitMap(pairMersSkipListMap, submaps, minChunk, maxChunk, k, mapsQueue, this);
-//    }
-//
-//    private long recursiveSplitMap(ConcurrentNavigableMap<PairMer, PairMer> map, ArrayList<ConcurrentNavigableMap<PairMer, PairMer>> submaps, int minChunk, int maxChunk, int k,
-//            ArrayBlockingQueue<PairMersMap> mapsQueue, PairMersMap masterMap) {
-//        PairMer higherKey = null;
-//        long count = 0;
-//        ConcurrentNavigableMap<PairMer, PairMer> headMap;
-//        ConcurrentNavigableMap<PairMer, PairMer> tailMap;
-//        do {
-////            do {
-//                try {
-//                    PairMer luckyDipPairMer = map.firstKey().luckyDipPairMer(k, map.lastKey());
-//                    count++;
-////                System.err.println(luckyDipPairMer.toString()+ "<- lucky dip");                
-//                    higherKey = map.higherKey(luckyDipPairMer);
-//                    if (higherKey == null) {
-//                        int x = 0;
-////                    System.err.println(higherKey.toString()+ " <- higher");
-//                    }
-//                } catch (NullPointerException e) {
-//
-//                }
-//            } while (higherKey == null);
-//            System.err.println("Tried " + NumberFormat.getNumberInstance().format(count));
-//
-//            headMap = map.headMap(higherKey, false);
-//            tailMap = map.tailMap(higherKey, true);
-////        } while (headMap.size() < minChunk || tailMap.size() < minChunk);
-////        System.err.println("Tried " + count + " keys, |HeadMap|=" + headMap.size() + " |TailMap|=" + tailMap.size() + " |submaps|=" + submaps.size());
-//
-//        if (headMap.size() <= maxChunk) {
-//            try {
-//                mapsQueue.put(new PairMersMap(k, headMap, masterMap));
-//            } catch (InterruptedException ex) {
-//                ex.printStackTrace();
-//            }
-//            submaps.add(headMap);
-//        } else {
-//            count += recursiveSplitMap(headMap, submaps, minChunk, maxChunk, k, mapsQueue, masterMap);
-//        }
-//
-//        if (tailMap.size() <= maxChunk) {
-//            try {
-//                mapsQueue.put(new PairMersMap(k, tailMap, masterMap));
-//            } catch (InterruptedException ex) {
-//                ex.printStackTrace();
-//            }
-//            submaps.add(tailMap);
-//        } else {
-//            count += recursiveSplitMap(tailMap, submaps, minChunk, maxChunk, k, mapsQueue, masterMap);
-//        }
-//        return count;
-//    }
     public long getStoredSize() {
         return storedSize;
     }

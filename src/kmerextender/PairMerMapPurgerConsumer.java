@@ -23,13 +23,13 @@ import shared.Reporter;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class PairMerMapPurger implements Runnable {
+public class PairMerMapPurgerConsumer implements Runnable {
 
     private final BlockingQueue<PairMersMap> queue;
     private final String TOOL_NAME;
     private final Integer MIN_KMER_FREQUENCY;
 
-    public PairMerMapPurger(BlockingQueue<PairMersMap> queue, String toolName, Integer minFrequency) {
+    public PairMerMapPurgerConsumer(BlockingQueue<PairMersMap> queue, String toolName, Integer minFrequency) {
         this.queue = queue;
         this.TOOL_NAME = toolName;
         this.MIN_KMER_FREQUENCY = minFrequency;
@@ -43,9 +43,9 @@ public class PairMerMapPurger implements Runnable {
             PairMersMap map;
             while (!(map = queue.take()).isEmpty()) {
                 long purged = map.purge(MIN_KMER_FREQUENCY);
-                if (purged > 100000) {
-                    gc(3, 500); //force GC 
-                }
+//                if (purged > 100000) {
+//                    gc(3, 500); //force GC 
+//                }
 //                Reporter.report("[INFO]", "Finished purging map, k=" + map.getK() + ", n=" + NumberFormat.getIntegerInstance().format(map.size()) , TOOL_NAME);
 //                Reporter.report("[INFO]", "Finished purging map, k=" + map.getK() + ", n=" + NumberFormat.getIntegerInstance().format(map.size()) + ", |Terimnal|=" + NumberFormat.getIntegerInstance().format(map.getTerminalPairMers().size()), TOOL_NAME);
             }

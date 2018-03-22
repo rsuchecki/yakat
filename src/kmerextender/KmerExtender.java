@@ -75,7 +75,7 @@ public class KmerExtender {
 //    private Integer MULTIPASS_COMPRESS = null;
 
     private final String TOOL_NAME;
-    private final int HELP_WIDTH = 170;
+    private final int HELP_WIDTH = 140;
     private int WRITER_BUFFER_SIZE = 8192;
 
     private enum InputType {
@@ -185,7 +185,8 @@ public class KmerExtender {
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet("(k)extender is designed for rapid identification of unambiguous extensions (a.k.a. unitigs) "
-                + "from a set of k-mers. Note that due to specifics of the implementation it is best to use EVEN k values. "
+                + "from a set of k-mers. Note that due to specifics of the implementation there is no advantage in using odd k values. "
+                + "Frequncies of k-mers are not currently being utilized, so it is best to use input which is unlikely to contain erroneous k-mers. "
                 + "");
 //                + "Each input k-mer is split and stored twice (as k-1-mer and the remaining on-base extension). "
 
@@ -222,6 +223,9 @@ public class KmerExtender {
         optSet.addOpt(new Opt('p', "fasta-id-prefix", "Prefix each FASTA identifier with <arg> ", 1));
         optSet.addOpt(new Opt('o', "out-file", "Print extended sequences to <arg> file", 1).setDefaultValue("/dev/stdout"));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
+//        optSet.addOpt(new Opt(null, "ambiguous-only", "Only output extensions around ambiguous positions", 1));
+//        optSet.addOpt(new Opt(null, "blunt-only", "Only output  unambiguous extensions (ones that end due to lack of sequence information rather than alternatives)", 1));
+        
         optSet.addOpt(new Opt('s', "stats-file", "Write extension stats to this file [TO BE RE-IMPLEMENTED - not much output here]", 1));
         optSet.addOpt(new Opt('d', "debug-file", "Write unkosher extensions details to this file - in practice these are just lists of k-mers for the unextended palindromic/circular sequences", 1));
         optSet.addOpt(new Opt('P', "print-user-settings", "Print the list of user-settings to stderr and continue executing"));
@@ -439,7 +443,7 @@ public class KmerExtender {
         //INIT PURGER THREADS        
         ArrayBlockingQueue<PairMersMap> mapsQueue = new ArrayBlockingQueue(Math.max(pairMerMaps.size(), threads) + 1);
         for (int i = 0; i < threads; i++) {
-            futures.add(purgeMapsExecutorService.submit(new PairMerMapPurger(mapsQueue, TOOL_NAME, MIN_KMER_FREQUENCY)));
+            futures.add(purgeMapsExecutorService.submit(new PairMerMapPurgerConsumer(mapsQueue, TOOL_NAME, MIN_KMER_FREQUENCY)));
         }
 
         //STATS OF MAP SPLITTING FOR MULTITHREADED PURGING
@@ -537,14 +541,14 @@ public class KmerExtender {
             Reporter.report("[INFO]", "Identified " + NumberFormat.getIntegerInstance().format(terminals)+" terminal PairMers (" + perc.format(ratio) + ") at k="+k, TOOL_NAME);
             Reporter.report("[INFO]", "Found "+NumberFormat.getIntegerInstance().format(pairMersMap.getAmbiguous()) + " ambiguous extensions", TOOL_NAME);
             Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size), TOOL_NAME);
-            Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
-            while (iterator.hasNext()) {
-                PairMer next = iterator.next();
-//                    System.err.println("terminal PM " + pairMersMap.get(next).getPairMerString(k, "_"));
-                if (!pairMersMap.contains(next)) {
-                    System.err.println("terminal PM absent from main map = " + pairMersMap.getTerminalPairMers().get(next).getPairMerString(k, "_"));
-                }
-            }
+//            Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
+//            while (iterator.hasNext()) {
+//                PairMer next = iterator.next();
+////                    System.err.println("terminal PM " + pairMersMap.get(next).getPairMerString(k, "_"));
+//                if (!pairMersMap.contains(next)) {
+//                    System.err.println("terminal PM absent from main map = " + pairMersMap.getTerminalPairMers().get(next).getPairMerString(k, "_"));
+//                }
+//            }
 //            System.exit(1);
         }
     }

@@ -179,12 +179,12 @@ public class PairMersExtender {
                                     //SYNC THIS ?
                                     if (outputFasta) {
                                         //TMP
-//                                        if (connectedPairMers.hasAmbiguousEndTMP()) {
-//                                            out.write(">" + namePrefix + clusterNumber + "_AMB" + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
-//
-//                                        } else {
+                                        if (connectedPairMers.hasAmbiguousEndTMP()) {
+                                            out.write(">" + namePrefix + clusterNumber + "_AMB_" +connectedPairMers.countAmbiguousEnds()+ " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
+
+                                        } else {
                                             out.write(">" + namePrefix + clusterNumber + " " + len + (connectedPairMers.isPotentialDuplicate() ? " potential_duplicate" : ""));
-//                                        }
+                                        }
                                         out.newLine();
                                     }
                                     out.write(connectedMers.toString());// + "\t" + SequenceOps.getReverseComplementString(connected));

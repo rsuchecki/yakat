@@ -445,10 +445,22 @@ public class ConnectedPairMers {
 
     }
 
-//    public boolean hasAmbiguousEndTMP() {
-//        return (terminal1!=null && terminal1.getPairMer().isAmbiguousTMP()) || (terminal2 != null && terminal2.getPairMer().isAmbiguousTMP()) || (singletonNode !=null && singletonNode.getPairMer().isAmbiguousTMP());
-//    }
+    public boolean hasAmbiguousEndTMP() {
+        return (terminal1!=null && terminal1.getPairMer().isNextToAmbiguous()) || (terminal2 != null && terminal2.getPairMer().isNextToAmbiguous()) || (singletonNode !=null && singletonNode.getPairMer().isNextToAmbiguous());
+    }
 
-    
+    public int countAmbiguousEnds() {
+        int a = 0;
+        if(terminal1!=null && terminal1.getPairMer().isNextToAmbiguous()) {
+            a++;
+        }
+        if(terminal2 != null && terminal2.getPairMer().isNextToAmbiguous()) {
+            a++;
+        }
+        if(singletonNode !=null && singletonNode.getPairMer().isNextToAmbiguous()) {
+            a=9;
+        }
+        return a;
+    }
     
 }
