@@ -79,6 +79,7 @@ public class AllOrfs {
 //        MATCHER_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
 //        OUT_BUFFER_SIZE = (int) optSet.getOpt("u").getValueOrDefault();
 //        OUT_Q_CAPACITY = (int) optSet.getOpt("q").getValueOrDefault();
+        new StdRedirect(optSet, TOOL_NAME, StdRedirect.RedirectType.REDIRECT_OUT);
         if (optSet.getOpt("P").isUsed()) {
             optSet.printUserSettings(TOOL_NAME);
         }
@@ -90,7 +91,6 @@ public class AllOrfs {
             }
         }
 
-        new StdRedirect(optSet, TOOL_NAME, StdRedirect.RedirectType.REDIRECT_OUT);
 
         allOrfs(inputFilenamesList, optSet);
 

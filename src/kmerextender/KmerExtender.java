@@ -97,6 +97,7 @@ public class KmerExtender {
     }
 
     private void readArgValues(OptSet optSet) {
+        new StdRedirect(optSet, TOOL_NAME, StdRedirect.RedirectType.REDIRECT_ERR);
         if (optSet.getOpt("P").isUsed()) {
             optSet.printUserSettings(TOOL_NAME);
         }
@@ -148,7 +149,7 @@ public class KmerExtender {
             NAME_PREFIX = (String) optSet.getOpt("p").getValueOrDefault();
         }
 
-        new StdRedirect(optSet, TOOL_NAME, StdRedirect.RedirectType.REDIRECT_ERR);
+        
 //        String outRedirect;
 //        String errRedirect;
 //        if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
