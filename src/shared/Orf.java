@@ -59,22 +59,22 @@ public class Orf implements Comparable<Orf> {
         return hasStopCodon;
     }
 
-    
+
     public StringBuilder getFastaHeader() {
         StringBuilder sb = new StringBuilder(">");
         sb.append(getParenId()).append(":").append(getFrom()).append("-").append(getTo()).append(" frame=").append(getFrame());
         return sb;
     }
-    
+
 
     @Override
     public int compareTo(Orf o) {
         return (int) (o.getLength() - getLength());
     }
-    
-    
-    
-    
-    
+
+
+
+
+
 
 }

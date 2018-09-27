@@ -50,7 +50,7 @@ public class Sequence {
     public String getUnpaddedSequenceString() {
         return sequenceString.replaceAll("-", "");
     }
-   
+
     public void setSequenceString(String sequenceString) {
         this.sequenceString = sequenceString;
     }
@@ -84,7 +84,7 @@ public class Sequence {
 
     public ArrayList<Orf> getOrfs(int minLen, Pattern startStopCodonsForward, Pattern startStopCodonsReverse, Pattern stopForward, Pattern stopReverse) { //, Sequence parent, PrintStream bufferedOut) {
 //        ArrayList<Codon> codons = new ArrayList<>(getLength() / 4); //ballpark size to prvent array copying on full
-//        Pattern startStopCodons = Pattern.compile("ATG|(T(AA|AG|GA))", Pattern.CASE_INSENSITIVE);        
+//        Pattern startStopCodons = Pattern.compile("ATG|(T(AA|AG|GA))", Pattern.CASE_INSENSITIVE);
         ArrayList<Orf> orfs1 = new ArrayList<>(getLength() / 40); //ballpark size to prvent array copying on full
 
         int frame = 0;
@@ -115,12 +115,12 @@ public class Sequence {
                 prevCodonIn[frame] = codon;
             }
         }
-        //accomodating for incomplete ORFs - missing a stop codon        
+        //accomodating for incomplete ORFs - missing a stop codon
         for (frame = 1; frame <= 3; frame++) {
 //            codons.add(new Codon("last", getLength(), frame));
             if (prevCodonIn[frame] != null && prevCodonIn[frame].isStart()) {
                 int left = frame > 0 ? prevCodonIn[frame].getPosition() : getLength();
-                int right = frame > 0 ? getLength() + 2 : prevCodonIn[frame].getPosition() + 2;
+                int right = frame > 0 ? getLength() : prevCodonIn[frame].getPosition() + 2;
                 if (right - left + 1 >= minLen) {
                     orfs1.add(new Orf(getId(), left, right, frame, false));
                 }
@@ -154,7 +154,7 @@ public class Sequence {
                 prevCodonIn[-frame] = codon;
             }
         }
-        //accomodating for incomplete ORFs - missing a stop codon        
+        //accomodating for incomplete ORFs - missing a stop codon
         for (frame = -3;
                 frame <= -1; frame++) {
 //            codons.add(new Codon("last", 1, frame));
@@ -197,11 +197,11 @@ public class Sequence {
 //            }
 //        }
 //
-//        //accomodating for incomplete ORFs - missing a stop codon        
+//        //accomodating for incomplete ORFs - missing a stop codon
 //        for (frame = 1; frame <= 3; frame++) {
 //            codons.add(new Codon("last", getLength(), frame));
 //        }
-//        //NOW RC 
+//        //NOW RC
 ////        startStopCodons = Pattern.compile("CAT|((TT|TC|CT)A)", Pattern.CASE_INSENSITIVE);
 //        frame = 0;
 //        for (int i = getLength() - 3; i >= 0; --i) {
@@ -212,7 +212,7 @@ public class Sequence {
 //                codons.add(new Codon(getSequenceString().substring(i, i + 3), (i + 1), frame));
 //            }
 //        }
-//        //accomodating for incomplete ORFs - missing a stop codon        
+//        //accomodating for incomplete ORFs - missing a stop codon
 //        for (frame = -3; frame <= -1; frame++) {
 //            codons.add(new Codon("last", 1, frame));
 //        }
@@ -228,7 +228,7 @@ public class Sequence {
 //                    if (codon.isStop(stopForward, stopReverse) || codon.getSeq().equalsIgnoreCase("last")) {
 //                        int left = currentFrame > 0 ? previous.getPosition() : codon.getPosition();
 //                        int right = currentFrame > 0 ? codon.getPosition() + 2 : previous.getPosition() + 2;
-////      print $1,($2=="last" && $4<0)?"<"left:left,($2=="last" && $4>0)?">"right:right,$4,right-left+1 
+////      print $1,($2=="last" && $4<0)?"<"left:left,($2=="last" && $4>0)?">"right:right,$4,right-left+1
 //                        if (right - left + 1 >= minLen) {
 //                            orfs.add(new Orf(getId(), left, right, currentFrame, codon.isStop(stopForward, stopReverse)));
 //                        }
@@ -253,14 +253,14 @@ public class Sequence {
 //            Matcher matcher = startStopCodonsForward.matcher(codon);
 //            if (matcher.matches()) {
 //                codons.add(new Codon(codon, (i + 1), frame));
-//                                
+//
 //            }
 //        }
-//        //accomodating for incomplete ORFs - missing a stop codon        
+//        //accomodating for incomplete ORFs - missing a stop codon
 //        for (frame = 1; frame <= 3; frame++) {
 //            codons.add(new Codon("last", getLength(), frame));
 //        }
-//        //NOW RC 
+//        //NOW RC
 //        frame = 0;
 //        for (int i = getLength() - 3; i >= 0; --i) {
 //            frame = frame > -3 ? frame - 1 : -1;
@@ -270,7 +270,7 @@ public class Sequence {
 //                codons.add(new Codon(codon, (i + 1), frame));
 //            }
 //        }
-//        //accomodating for incomplete ORFs - missing a stop codon        
+//        //accomodating for incomplete ORFs - missing a stop codon
 //        for (frame = -3; frame <= -1; frame++) {
 //            codons.add(new Codon("last", 1, frame));
 //        }
@@ -285,7 +285,7 @@ public class Sequence {
 //                    if (codon.isStop(stopForward, stopReverse) || codon.getSeq().equalsIgnoreCase("last")) {
 //                        int left = currentFrame > 0 ? previous.getPosition() : codon.getPosition();
 //                        int right = currentFrame > 0 ? codon.getPosition() + 2 : previous.getPosition() + 2;
-////      print $1,($2=="last" && $4<0)?"<"left:left,($2=="last" && $4>0)?">"right:right,$4,right-left+1 
+////      print $1,($2=="last" && $4<0)?"<"left:left,($2=="last" && $4>0)?">"right:right,$4,right-left+1
 //                        if (right - left + 1 >= minLen) {
 //                            orfs.add(new Orf(getId(), left, right, currentFrame, codon.isStop(stopForward, stopReverse)));
 //                        }

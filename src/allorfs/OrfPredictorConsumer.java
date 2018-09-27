@@ -54,8 +54,8 @@ public class OrfPredictorConsumer implements Runnable {
         Pattern startStopCodonsReverse = Pattern.compile("CAT|((TT|TC|CT)A)", Pattern.CASE_INSENSITIVE);
         Pattern stopCodonsForward = Pattern.compile("T(AA|AG|GA)", Pattern.CASE_INSENSITIVE);
         Pattern stopCodonsReverse = Pattern.compile("(TT|TC|CT)A", Pattern.CASE_INSENSITIVE);
-        
-        try {            
+
+        try {
             while (!(list = inputQueue.take()).isEmpty()) {
                 for (Sequence sequence : list) {
                     Reporter.report("[INFO]", "Identifying ORFs on " + sequence.getId(), TOOL_NAME);
@@ -64,7 +64,7 @@ public class OrfPredictorConsumer implements Runnable {
                     for (Orf orf : orfs) {
 //                System.out.printf("%8s%12d%12d%3d%12d\n",orf.getParenId(),orf.getFrom(),orf.getTo(),orf.getFrame(),orf.getLength());
                         if (!requireStop || orf.hasStopCodon()) {
-                            CharSequence seq = sequence.getSequenceString().subSequence(orf.getFrom() - 1, Math.min(orf.getTo(),sequence.getLength()));
+                            CharSequence seq = sequence.getSequenceString().subSequence(orf.getFrom() - 1, orf.getTo());
                             StringBuilder sb = new StringBuilder(orf.getFastaHeader());
                             sb.append(System.lineSeparator());
                             if (orf.getFrame() < 0) {
@@ -74,6 +74,13 @@ public class OrfPredictorConsumer implements Runnable {
                                 sb.append(SequenceOps.translate(seq));
                             } else {
                                 sb.append(seq);
+                            }
+                            int len = orf.getTo()-orf.getFrom()+1;
+                            int seqLength = seq.length();
+                            if(seqLength != len) {
+                                Reporter.report("[BUG]", "ORF length mismatch", TOOL_NAME);
+                                System.err.println(sb);
+                                System.exit(1);
                             }
                             bufferedOut.println(sb);
                             count++;
