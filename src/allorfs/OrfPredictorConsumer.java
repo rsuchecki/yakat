@@ -36,13 +36,15 @@ public class OrfPredictorConsumer implements Runnable {
     private final int minLength;
     private final PrintStream bufferedOut;
     private final boolean translate;
+    private final boolean requireStop;
 
-    public OrfPredictorConsumer(BlockingQueue<ArrayList<Sequence>> inputQueue, String TOOL_NAME, int minLength, PrintStream bufferedOut, boolean translate) {
+    public OrfPredictorConsumer(BlockingQueue<ArrayList<Sequence>> inputQueue, String TOOL_NAME, int minLength, PrintStream bufferedOut, boolean translate, boolean requireStop) {
         this.inputQueue = inputQueue;
         this.TOOL_NAME = TOOL_NAME;
         this.minLength = minLength;
         this.bufferedOut = bufferedOut;
         this.translate = translate;
+        this.requireStop = requireStop;
     }
 
     @Override
@@ -58,11 +60,11 @@ public class OrfPredictorConsumer implements Runnable {
                 for (Sequence sequence : list) {
                     Reporter.report("[INFO]", "Identifying ORFs on " + sequence.getId(), TOOL_NAME);
                     ArrayList<Orf> orfs = sequence.getOrfs(minLength, startStopCodonsForward, startStopCodonsReverse, stopCodonsForward, stopCodonsReverse);//, sequence, bufferedOut);
-                    Reporter.report("[INFO]", NumberFormat.getInstance().format(orfs.size()) + " ORFs found on "+ sequence.getId(), TOOL_NAME);
+                    int count = 0;
                     for (Orf orf : orfs) {
 //                System.out.printf("%8s%12d%12d%3d%12d\n",orf.getParenId(),orf.getFrom(),orf.getTo(),orf.getFrame(),orf.getLength());
-                        if (orf.hasStopCodon()) {
-                            CharSequence seq = sequence.getSequenceString().subSequence(orf.getFrom() - 1, orf.getTo());
+                        if (!requireStop || orf.hasStopCodon()) {
+                            CharSequence seq = sequence.getSequenceString().subSequence(orf.getFrom() - 1, Math.min(orf.getTo(),sequence.getLength()));
                             StringBuilder sb = new StringBuilder(orf.getFastaHeader());
                             sb.append(System.lineSeparator());
                             if (orf.getFrame() < 0) {
@@ -74,9 +76,11 @@ public class OrfPredictorConsumer implements Runnable {
                                 sb.append(seq);
                             }
                             bufferedOut.println(sb);
+                            count++;
                         }
                     }
-                    Reporter.report("[INFO]", "Finished outputtig ORFs from " + sequence.getId(), TOOL_NAME);
+                    Reporter.report("[INFO]", NumberFormat.getInstance().format(orfs.size()) + " ORFs found on "+ sequence.getId(), TOOL_NAME);
+                    Reporter.report("[INFO]", "Outputtig "+NumberFormat.getInstance().format(count)+ " out of "+NumberFormat.getInstance().format(orfs.size()) +" ORFs identified on " + sequence.getId(), TOOL_NAME);
                 }
             }
             inputQueue.put(new ArrayList<>()); //inform other threads
