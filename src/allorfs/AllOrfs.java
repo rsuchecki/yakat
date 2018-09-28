@@ -119,6 +119,7 @@ public class AllOrfs {
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
         optSet.addOpt(new Opt('m', "min-orf-length", "Minimum output ORF length", 1).setDefaultValue(100).setMinValue(6));
+        optSet.addOpt(new Opt('s', "strand", "Output ORFs identified on starnd ", 1).setDefaultValue("both"));
 ////        footId++;
         optSet.addOpt(new Opt('o', "out", "Print output to <arg> file", 1).setDefaultValue("/dev/stdout")); //on Windows use "CON" as default file name
         //POSITIONAL
@@ -151,6 +152,7 @@ public class AllOrfs {
         int minLength = (int) optSet.getOpt("m").getValueOrDefault();
         boolean requireStop = !optSet.getOpt("n").isUsed();
         boolean translate = !optSet.getOpt("d").isUsed();
+        String strand =  (String) optSet.getOpt("s").getValueOrDefault();
         int MAX_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
         PrintStream bufferedOut = new PrintStream(new java.io.BufferedOutputStream(System.out, 65535));
 
@@ -160,7 +162,8 @@ public class AllOrfs {
         ArrayList<Message> finalMessages = new ArrayList<>(MAX_THREADS * 5);
         BlockingQueue<ArrayList<Sequence>> inputQueue = new ArrayBlockingQueue<>(2);
         for (int i = 0; i < MAX_THREADS; i++) {
-            splittersFutures.add(splitterExecutorService.submit(new OrfPredictorConsumer(inputQueue, TOOL_NAME, minLength, bufferedOut, translate, requireStop)));
+            splittersFutures.add(splitterExecutorService.submit(new OrfPredictorConsumer(inputQueue, TOOL_NAME, minLength, bufferedOut, 
+                    translate, requireStop, strand)));
         }
 //        try (PrintStream bufferedOut = new PrintStream(new java.io.BufferedOutputStream(System.out, 65535))) {
         try {
