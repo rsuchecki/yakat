@@ -3,7 +3,7 @@ Ant-Version: Apache Ant 1.9.7
 Created-By: 1.8.0_181-b13 (Oracle Corporation)
 Bundle-Name: ${project.name}
 Bundle-Version: 0.8.7
-Bundle-Date: 2018-09-28 10:19:09 ACST
-Implementation-Title: 2018-09-28 10:19:09 ACST
+Bundle-Date: 2018-10-15 12:24:25 ACDT
+Implementation-Title: 2018-10-15 12:24:25 ACDT
 Implementation-Version: 0.8.7
 

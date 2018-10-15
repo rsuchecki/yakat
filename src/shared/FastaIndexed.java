@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 
 /**
  *
@@ -70,6 +71,10 @@ public class FastaIndexed {
                 lineBasesMap.put(toks[0], Long.parseLong(toks[3]));
                 lineWidthsMap.put(toks[0], Long.parseLong(toks[4]));
 //                System.out.println(line);
+                if(!Objects.equals(lineBasesMap.get(toks[0]), lengthsMap.get(toks[0]))) {
+                    Reporter.report("[ERROR]", "Wrapped FASTA not supported. Offending record: "+line , TOOL_NAME);
+                    System.exit(1);
+                }
             }
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
@@ -88,6 +93,8 @@ public class FastaIndexed {
         }
 
     }
+    
+    
 
     public ArrayList<String> getIds() {
         return ids;
@@ -122,6 +129,7 @@ public class FastaIndexed {
                 start += from - 1;
             }
             file.seek(start);
+            
             Long len = to == null ? lengthsMap.get(id) : to - from + 1;            
             buff = new byte[len.intValue()];
             file.read(buff);
@@ -140,5 +148,6 @@ public class FastaIndexed {
             }
         }
         return buff == null ? "" : new String(buff);
+//        return buff == null ? "" : (Objects.equals(lineBasesMap.get(id), lengthsMap.get(id)) ? new String(buff) : new String(buff).replaceAll("\\r\\n?|\\n", ""));
     }
 }
