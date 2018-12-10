@@ -5,3 +5,4 @@ out_split*
 /tmp.out.fa
 nbproject/private/*
 /.git-rewrite/t/nbproject/private/
+manifest.mf
