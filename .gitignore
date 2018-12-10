@@ -4,3 +4,4 @@ build
 out_split*
 /tmp.out.fa
 nbproject/private/profiler/*
+/.git-rewrite/t/nbproject/private/
