@@ -97,8 +97,9 @@ public class Yakat {
 
     private void printHelp() {
         System.out.println();
-        String version = this.getClass().getPackage().getImplementationVersion();
-        System.out.println("java -jar " + this.getClass().getSimpleName().toLowerCase() + "-" + version + ".jar <command> ");
+//        String version = this.getClass().getPackage().getImplementationVersion();
+//        System.out.println("java -jar " + this.getClass().getSimpleName().toLowerCase() + "-" + version + ".jar <command> ");
+        System.out.println("java -jar " + this.getClass().getSimpleName().toLowerCase()+".jar <command> ");
         System.out.println("Commands/modules:");
         System.out.println("  k-mer based utils");
         System.out.println("    kextend       : extend k-mers to unambiguous contigs (optionally extend input \"seed\" sequences only)");

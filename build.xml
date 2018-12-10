@@ -7,14 +7,14 @@
 <!-- the Compile on Save feature is turned off for the project. -->
 <!-- You can turn off the Compile on Save (or Deploy on Save) setting -->
 <!-- in the project's Project Properties dialog box.-->
-<project name="merutensils" default="default" basedir=".">
+<project name="yakat" default="default" basedir=".">
     <description>Builds, tests, and runs the project merutensils.</description>
     <import file="nbproject/build-impl.xml"/>
     
     
     <target name="-pre-init">
 <!--       <property name="project.name" value="NAME" />-->
-       <property name="version.num" value="0.8.8" />
+       <property name="version.num" value="0.9" />
         <tstamp>
             <format property="NOW" pattern="yyyy-MM-dd HH:mm:ss z" />
         </tstamp>
@@ -30,8 +30,8 @@
    </manifest>
                 
 
-        <!--<property file="version.properties"/>-->
-        <!--<property name="dist.jar" value="dist/${ant.project.name}-${version.num}.jar"/>-->
+<!--        <property file="version.properties"/>
+        <property name="dist.jar" value="dist/${ant.project.name}-${version.num}.jar"/>-->
     </target>
     
 <!--    <target name="package_for_release" depends="jar,javadoc">
