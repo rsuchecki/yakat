@@ -7,10 +7,10 @@ Table of Contents
 - [Get cracking](#get-cracking)
   - [You may also need](#you-may-also-need)
   - [Selected use cases](#selected-use-cases)
+    - [`freqmers`](#freqmers)
     - [`kextender` - default mode](#kextender---default-mode)
     - [`kextender` - FASTA seed extension mode](#kextender---fasta-seed-extension-mode)
-    - [`kmatcher`](#kmatcher)
-    - [`freqmers`](#freqmers)
+    - [`kmatcher` - see usage in pipelines](#kmatcher---see-usage-in-pipelines)
     - [`snpmers`](#snpmers)
   - [Usage in pipelines](#usage-in-pipelines)
 - [Development](#development)
@@ -40,17 +40,21 @@ After cloning or downloading this repository, run `ant compile && ant jar`, this
 
 ```
 java -jar dist/yakat.jar
+```
 
+You should see the following summary of available modules.
+
+```
 Usage: java -jar yakat.jar <module>
 k-mer based modules
-  kextend       : extend k-mers to unambiguous contigs or extend input "seed" sequences only
-  snpmers       : given parental SNPs (e.g. from LNISKS), corresponding FASTA sequences and sets of k-mers,
-                  call offspring genotypes by overlapping their k-mers with parental SNP sequences
   freqmers      : given a set of sequences and set(s) of k-mers
                   report k-mer coverage and frequency for the input sequences
+  kextend       : extend k-mers to unambiguous contigs or extend input "seed" sequences only
   kmatch        : match/filter/bait FAST(A|Q) sequences based on contained k-mers (or lack thereof)
   seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers
                   to genotype presumed mutations at positions k bases from the seed edges
+  snpmers       : given parental SNPs (e.g. from LNISKS), corresponding FASTA sequences and sets of k-mers,
+                  call offspring genotypes by overlapping their k-mers with parental SNP sequences
 
 FASTQ processing modules:
   idmatch       : match FASTQ records by id
@@ -86,29 +90,39 @@ Some yakat modules will k-merize input as needed, but use KMC or another, dedica
 
 ## Selected use cases
 
+### `freqmers`
+
+TODO
+
 ### `kextender` - default mode
 
 Among the available modules `kextender` is by far the most mature, if you are after no-nonsense, fast generation of unitigs from a set of Illumina reads all you need to do is:
 
-* k-merize your reads with KMC (other counters are available)
-* determine k-mer frequency cutoff to exclude likely error-induced k-mers by looking at `kmc_tools histogram`
+* k-merize your reads with KMC (other k-mer counters are available)
+* determine k-mer frequency cutoff `${MIN_FREQ}` to exclude low frequency k-mers which are likely error-induced by looking at the output of `kmc_tools histogram`
 * pipe your k-mers from KMC database to `yakat kextend`
+
+```sh
+kmc_dump -ci${MIN_FREQ} db_basename /dev/stdout \
+  | java -jar dist/yakat.jar kextend > unitigs
+```
+
+Note that the default output is one unitig (sequence) per line, 
+for FASTA output use `--fasta-out` flag. 
+You may also use `--min-length` to set the minimum length (bp) of an output unitig.
+
 
 ### `kextender` - FASTA seed extension mode
 
-...
+TODO
 
-### `kmatcher`
+### `kmatcher` - see [usage in pipelines](#usage-in-pipelines)
 
-See [usage in pipelines](#usage-in-pipelines)
-
-### `freqmers`
-
-...
+TODO
 
 ### `snpmers`
 
-...
+TODO
 
 
 ## Usage in pipelines
@@ -116,8 +130,8 @@ See [usage in pipelines](#usage-in-pipelines)
 Note that due to specific modules' original application within larger pipelines they occasionally expect/produce file formats slightly modified versions of common file formats.
 Fear not, these are not whimsical modifications of accepted standards but rather alternative presentation of existing formats which facilitates parallelised processing and use of linux pipes rather than intermediary files. For example,
 
-* by FASTQ_SE_ONE_LINE record we mean a single read whose four lines have been placed on a single line using tab as a separator.
-* by FASTQ_PE_ONE_LINE record we mean a pair of reads whose eight lines have been placed on a single line using tab as a separator.
+* by a FASTQ_SE_ONE_LINE record we mean a single read whose four lines have been placed on a single line using tab as a separator.
+* by a FASTQ_PE_ONE_LINE record we mean a pair of reads whose eight lines have been placed on a single line using tab as a separator.
 
 The idea is to wrap/unwrap these on the fly, either on the command line or using wrapper scripts.
 
@@ -145,7 +159,7 @@ paste <(zcat R1.fq.gz | paste - - - - ) \
     --k-mers 4_reads.fastq \
     --k-mer-length 50 \
   | tee >(cut -f 1-4 -d$'\t' | tr '\t' '\n' > filtered_R1.fq) \
-  | cut -f 5-8 -d$'\t' | tr '\t' '\n' > filtered_R2.fq 
+  | cut -f 5-8 -d$'\t' | tr '\t' '\n' > filtered_R2.fq
 ```
 
 # Development
