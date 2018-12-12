@@ -82,7 +82,7 @@ The first time you run a specific module do it with `-h` or `--help` as some mod
 ## You may also need
 
 A k-mer counter. Go for [KMC](https://github.com/refresh-bio/KMC).
-Some yakat modules will k-merize input as needed, but use KMC or another, dedicated k-mer counter whenever a set of k-mers is a desired input, especially for the `kextend` module.
+Some yakat modules will k-merize input as needed, but use KMC or another, dedicated k-mer counter whenever a set of k-mers is the desired input, especially for the `kextend` module.
 
 ## Selected use cases
 
@@ -130,21 +130,13 @@ zcat reads.fastq.gz \
     --k-mers 4_reads.fastq \
     --k-mer-length 50 \
   | tr '\t' '\n' > filtered.fastq
-2018-12-12 Wed 14:21:27 [yakat kmatch]         [INFO]     Start populating k-mers set [1.92 MB]
-2018-12-12 Wed 14:21:27 [yakat kmatch]         [INFO]     Input format guessed: FASTQ [2.4 MB]
-2018-12-12 Wed 14:21:27 [yakat kmatch]         [INFO]     4 FASTQ read-in [2.4 MB]
-2018-12-12 Wed 14:21:27 [yakat kmatch]         [INFO]     Finished populating k-mers set, n=204 [2.88 MB]
-2018-12-12 Wed 14:21:27 [yakat kmatch]         [INFO]     Input format guessed: FASTQ_SE_ONE_LINE [3.36 MB]
-2018-12-12 Wed 14:21:27 [yakat kmatch]         [INFO]     2,048 FASTQ_SE_ONE_LINE read-in so far [4.8 MB]
-2018-12-12 Wed 14:21:27 [yakat kmatch]         [INFO]     4,096 FASTQ_SE_ONE_LINE read-in so far [7.21 MB]
-2018-12-12 Wed 14:21:28 [yakat kmatch]         [INFO]     8,192 FASTQ_SE_ONE_LINE read-in so far [21.74 MB]
-2018-12-12 Wed 14:21:29 [yakat kmatch]         [INFO]     12,292 FASTQ_SE_ONE_LINE read-in [55.32 MB]
-2018-12-12 Wed 14:21:30 [yakat kmatch]         [INFO]     Finished outputing records, n=17 [92.05 MB]
 ```
 
-The content of `4_reads.fastq` was k-merized and used for matching reads streamed from stdin.
+* Each read is unwrapped into the one-line-per-record form, processed using `kmatch` and survicing reads are unwrapped by replacing tabs with newline characters.
+* The content of `4_reads.fastq` is k-merized and used for matching reads streamed from stdin.
+* In practice the output could be piped into another process or perhaps a parallelized compression tool such as `pigz`.
 
-To filter in/out pairs of reads you could:
+Analogous operation for paired-end data:
 
 ```
 paste <(zcat R1.fq.gz | paste - - - - ) \
@@ -153,7 +145,7 @@ paste <(zcat R1.fq.gz | paste - - - - ) \
     --k-mers 4_reads.fastq \
     --k-mer-length 50 \
   | tee >(cut -f 1-4 -d$'\t' | tr '\t' '\n' > filtered_R1.fq) \
-  | cut -f 5-8 -d$'\t' | tr '\t' '\n' > filtered_R2.fq \
+  | cut -f 5-8 -d$'\t' | tr '\t' '\n' > filtered_R2.fq 
 ```
 
 # Development
