@@ -1,31 +1,50 @@
-# Not just another another k-mer analysis toolkit 
+- [`yakat` - yet another k-mer analysis toolkit?](#yakat---yet-another-k-mer-analysis-toolkit)
+- [Dependencies](#dependencies)
+- [You may also need](#you-may-also-need)
+- [Compile and build](#compile-and-build)
+- [Run](#run)
+- [Usage in pipelines](#usage-in-pipelines)
+- [Development](#development)
+- [Bugs, cryptic errors, general enquires](#bugs-cryptic-errors-general-enquires)
+# `yakat` - yet another  k-mer analysis toolkit?
 
-Perhaps better described as not quite or not just another k-mer analysis toolkit. 
+Or is it?
+Perhaps better described as _not quite_ or _not just_ another k-mer analysis toolkit.
 This software included several k-mer related tools, mostly trying to complement or functionally extend existing tools.
+Written in Java these are not necessarily most memory frugal, but most are pretty fast, thanks to leveraging producer-consumer approach to multi-threading in Java.
+So if you happen to have access to a fat node with lots of CPUs as I did at some point, you may find these quite handy.
+In addition to k-mer based tools, there are several other modules providing efficient, multi-threaded solutions for common bioinformatics task such as read id matching/filtering.
 
-## Dependencies
+# Dependencies
 
-* Java 8
+You'll need Java 8 with [ant](https://ant.apache.org/) for compiling and building, or just Java for running the pre-compiled binary.
+Normal usage is in Linux environment but most modules should work on other systems with no or few adjustments required, such as explicitly specifying input and output files other than `/dev/stdin` and `/dev/stdout`.
 
-Yes that is it, normal usage is in Linux environment but most modules should work on other systems with few or no adjustments required.
+# You may also need
 
-## Compile and build
+A k-mer counter. Go for [KMC](https://github.com/refresh-bio/KMC).
+Some yakat modules will k-merize input as needed, but use KMC or another, dedicated k-mer counter whenever a set of k-mers is a desired input, especially for the `kextend` module.
 
-Run `ant compile && and jar`, this should generate the self-contained Java executable `dist/yakat.jar`.
+# Compile and build
 
-## Run 
+After cloning or downloading this repository, run `ant compile && ant jar`, this should generate the self-contained Java executable `dist/yakat.jar`.
+
+# Run
 
 ```
 java -jar dist/yakat.jar
 
-Usage: java -jar yakat.jar <command> 
-Commands/modules:
+Usage: java -jar yakat.jar <module>
+ modules:
   k-mer based utils
-    kextend       : extend k-mers to unambiguous contigs (optionally extend input "seed" sequences only)
-    snpmers       : given parental SNPs and the corresponding FASTA sequences (e.g. from LNISKS), call offspring genotypes by overlapping their k-mers with parental SNP sequences 
-    freqmers      : given a set of sequences and set(s) of k-mers, report k-mer coverage and frequency for the input sequences
+    kextend       : extend k-mers to unambiguous contigs or extend input "seed" sequences only
+    snpmers       : given parental SNPs (e.g. from LNISKS), corresponding FASTA sequences and sets of k-mers,
+                    call offspring genotypes by overlapping their k-mers with parental SNP sequences
+    freqmers      : given a set of sequences and set(s) of k-mers
+                    report k-mer coverage and frequency for the input sequences
     kmatch        : match/filter/bait FAST(A|Q) sequences based on contained k-mers (or lack thereof)
-    seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers to genotype presumed mutations at positions k bases from the seed edges    
+    seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers
+                    to genotype presumed mutations at positions k bases from the seed edges
 
   FASTQ processing utils:
     idmatch       : match FASTQ records by id
@@ -41,13 +60,14 @@ Commands/modules:
 
   Miscellaneous utils:
     allorfs       : Identify and extract all (longest) ORFs from a genome
-    kexpress      : [UNTESTED] Calculate expresion values (TPM) from read counts and a (not quite) GFF description of features 
+    kexpress      : [UNTESTED] Calculate expresion values (TPM) from read counts
+                    and (not quite) GFF description of features
 
   Info:
     version       : print the version and exit
 ```
 
-As you can see, not everything k-mer based, additional, deprecated modules are still lurking in the code. 
+As you can see, not everything k-mer based, additional, deprecated modules are still lurking in the code.
 
 The first time around you may want to run a specific module do it with `-h` or `--help` as some modules kick off by reading from `/dev/stdin`.
 
@@ -56,12 +76,12 @@ The first time around you may want to run a specific module do it with `-h` or `
 java -jar dist/yakat.jar kmatch -h
 ```
 
-## Usage in pipelines
+# Usage in pipelines
 
-Note that due to specific modules original application within larger pipelines they occasionally expect slightly modified file formats. 
+Note that due to specific modules' original application within larger pipelines they occasionally expect slightly modified file formats.
 For example by FASTQ record we mean a single read (pair of reads) whose four (eight) lines have been placed on a single line using tab as a separator.
 
-To filter (in/out) reads based on matching k-mers you may:
+To filter (in/out) reads based on matching k-mers you may run the `kmatch` module like this:
 
 ```
 zcat reads.fastq.gz \
@@ -96,12 +116,14 @@ paste <(zcat R1.fq.gz | paste - - - - ) \
   | cut -f 5-8 -d$'\t' | tr '\t' '\n' > filtered_R2.fq \
 ```
 
-## Development
+# Development
 
-Developed as a NetBeans project, originally on Ubuntu 14.04. Stress-tested with Java 1.8 build 74. 
+Developed as a NetBeans project and can be loaded as such. Stress-tested on ubuntu 14.04 with Java 1.8 build 74.
+
+# Bugs, cryptic errors, general enquires
+
+[Submit an issue](https://github.com/rsuchecki/yakat/issues/new)
 
 
 
 
-
- 
