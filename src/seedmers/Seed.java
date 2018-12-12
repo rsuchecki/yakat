@@ -15,13 +15,11 @@
  */
 package seedmers;
 
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import shared.Reporter;
 import shared.BaseCall;
-import shared.CommonMaths;
 
 /**
  *

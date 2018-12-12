@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package kmerextender;
+package kextender;
 
 /**
  * One of the two representations of a k-mer, with one of the ends (typically 1
@@ -104,7 +104,7 @@ public class PairMerTypeSelector {
      * @param frontClip
      * @param freq
      * @return
-     * @throws kmerextender.NonACGTException
+     * @throws kextender.NonACGTException
      */
     public static PairMer generatePairMer(CharSequence sequence, int kmerFrom, int kmerTo, boolean frontClip, int freq) throws NonACGTException {
 
@@ -130,7 +130,7 @@ public class PairMerTypeSelector {
      * @param core, which will be converted to its canonical form
      * @param k, used to encode pairMer using the correct data structure
      * @return PairMer to be used for interrogating a Map
-     * @throws kmerextender.NonACGTException
+     * @throws kextender.NonACGTException
      */
     public static PairMer getPairMer(CharSequence core, int k) throws NonACGTException {
         if (k - 1 <= MAX_1LONG_ENCODE) {

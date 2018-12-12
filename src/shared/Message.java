@@ -44,10 +44,5 @@ public class Message {
 
     public String getCaller() {
         return caller;
-    }
-
-    
-    
-    
-            
+    }            
 }

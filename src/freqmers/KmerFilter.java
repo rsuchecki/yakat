@@ -15,10 +15,7 @@
  */
 package freqmers;
 
-import shared.BaseCall;
-import java.util.ArrayList;
 import java.util.HashMap;
-import shared.Reporter;
 import shared.Sequence;
 
 /**

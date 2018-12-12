@@ -17,7 +17,7 @@ package kmermatch;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import kmerextender.CoreCoder;
+import kextender.CoreCoder;
 
 /**
  *

@@ -19,7 +19,6 @@ import java.io.PrintStream;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.concurrent.BlockingQueue;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import shared.Orf;
 import shared.Reporter;

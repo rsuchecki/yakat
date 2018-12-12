@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package kmerextender;
+package kextender;
 
 import java.text.NumberFormat;
 import java.util.ArrayList;
@@ -44,7 +44,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * @param from
      * @param to inclusive
      * @param frontClip
-     * @throws kmerextender.NonACGTException
+     * @throws kextender.NonACGTException
      */
     public PairMerIntArrEncoded(CharSequence sequence, int from, int to, boolean frontClip, int freq) throws NonACGTException {
         addFirstKmer(sequence, from, to, frontClip, freq);
@@ -64,7 +64,7 @@ public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerI
      * Does not generate a complete PairMer, just the core, for Set/Maps lookups
      *
      * @param kmerCoreOnly
-     * @throws kmerextender.NonACGTException
+     * @throws kextender.NonACGTException
      */
     public PairMerIntArrEncoded(CharSequence kmerCoreOnly) throws NonACGTException {
 //        encodeCore(SequenceOps.getCanonical(kmerCoreOnly));

@@ -16,8 +16,6 @@
 package kmerger;
 
 import java.util.ArrayList;
-import java.util.ListIterator;
-import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
 
 /**

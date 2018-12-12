@@ -29,19 +29,10 @@
  */
 package freqmers;
 
-import snpmers.*;
-import argparser.OptSet;
-import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.regex.Pattern;
 import shared.LabelledInputBuffer;
-import shared.Message;
 import shared.Reporter;
 import shared.SequenceOps;
 

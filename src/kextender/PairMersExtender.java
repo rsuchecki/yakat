@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package kmerextender;
+package kextender;
 
 import java.io.BufferedWriter;
 import java.io.FileOutputStream;
@@ -23,12 +23,8 @@ import java.io.UnsupportedEncodingException;
 import shared.Reporter;
 import java.text.NumberFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
@@ -38,12 +34,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.zip.GZIPOutputStream;
-import shared.InputReaderProducer;
-import shared.Sequence;
-import shared.SequenceOps;
 
 /**
  * Given a Map of purged PairMers, identify and extend connected k-mers

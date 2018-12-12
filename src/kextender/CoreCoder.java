@@ -13,29 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package kmerextender;
+package kextender;
 
-//import argparser.ArgParser;
-//import argparser.Opt;
-//import argparser.OptSet;
-//import argparser.PositionalOpt;
-//import java.text.NumberFormat;
-//import java.util.ArrayList;
+
 import java.util.Arrays;
-//import java.util.concurrent.ArrayBlockingQueue;
-//import java.util.concurrent.BlockingQueue;
-//import java.util.concurrent.ExecutionException;
-//import java.util.concurrent.ExecutorService;
-//import java.util.concurrent.Future;
-//import java.util.concurrent.LinkedBlockingQueue;
-//import java.util.concurrent.ThreadPoolExecutor;
-//import java.util.concurrent.TimeUnit;
-//import java.util.concurrent.TimeoutException;
-//import java.util.concurrent.atomic.AtomicLongArray;
-//import java.util.logging.Level;
-//import java.util.logging.Logger;
-//import shared.InputReaderProducer;
-//import shared.Reporter;
 
 /**
  *

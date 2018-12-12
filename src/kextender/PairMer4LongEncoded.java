@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package kmerextender;
+package kextender;
 
 import shared.SequenceOps;
 import shared.Reporter;
@@ -23,11 +23,12 @@ import shared.Reporter;
  *
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
  */
-public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3LongEncoded> {
+public class PairMer4LongEncoded extends PairMer implements Comparable<PairMer4LongEncoded> {
 
     private long kmerCoreBits1;
     private long kmerCoreBits2;
     private long kmerCoreBits3;
+    private long kmerCoreBits4;
 
     /**
      * Proper constructor
@@ -38,7 +39,7 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
      * @param frontClip
      * @param freq
      */
-    public PairMer3LongEncoded(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
+    public PairMer4LongEncoded(CharSequence sequence, int from, int to, boolean frontClip, int freq) {
         addFirstKmer(sequence, from, to, frontClip, freq);
     }
 
@@ -72,7 +73,7 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
      *
      * @param kmerCoreOnly
      */
-    public PairMer3LongEncoded(CharSequence kmerCoreOnly) {
+    public PairMer4LongEncoded(CharSequence kmerCoreOnly) {
         if (SequenceOps.isCanonical(kmerCoreOnly)) {
             encodeCore(kmerCoreOnly);
         } else {
@@ -82,7 +83,7 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
 
     @Override
     public boolean equals(Object anotherKmer) {
-        return compareTo((PairMer3LongEncoded) anotherKmer) == 0;
+        return compareTo((PairMer4LongEncoded) anotherKmer) == 0;
     }
 
     @Override
@@ -91,30 +92,31 @@ public class PairMer3LongEncoded extends PairMer implements Comparable<PairMer3L
     }
 
     @Override
-    public int compareTo(PairMer3LongEncoded anotherKmer) {
+    public int compareTo(PairMer4LongEncoded anotherKmer) {
         return CoreCoder.compareCores(getBitFields(), anotherKmer.getBitFields());
     }
 
     public long[] getBitFields() {
-        long bitsArray[] = {kmerCoreBits1, kmerCoreBits2, kmerCoreBits3};
+        long bitsArray[] = {kmerCoreBits1, kmerCoreBits2, kmerCoreBits3, kmerCoreBits4};
         return bitsArray;
     }
 
     @Override
     public String decodeCore(int coreLength) {
-        long bitsArray[] = {kmerCoreBits1, kmerCoreBits2, kmerCoreBits3};
+        long bitsArray[] = {kmerCoreBits1, kmerCoreBits2, kmerCoreBits3, kmerCoreBits4};
         return CoreCoder.decodeCore(coreLength, bitsArray);
     }
 
     @Override
     protected void encodeCore(CharSequence kmerCoreOnly) {
         long[] encodeCoreLong = CoreCoder.encodeCoreLongArray(kmerCoreOnly);
-        if (encodeCoreLong.length != 3) {
-            Reporter.report("[BUG?]", " 3*long values expected from core encoding", getClass().getSimpleName());
+        if (encodeCoreLong.length != 4) {
+            Reporter.report("[BUG?]", " 4*long values expected from core encoding", getClass().getSimpleName());
         } else {
             kmerCoreBits1 = encodeCoreLong[0];
             kmerCoreBits2 = encodeCoreLong[1];
             kmerCoreBits3 = encodeCoreLong[2];
+            kmerCoreBits4 = encodeCoreLong[3];
         }
 //        //Sanity check
 //        String decodeCore = decodeCore(kmerCoreOnly.length());

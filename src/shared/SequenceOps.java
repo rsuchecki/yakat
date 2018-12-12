@@ -16,8 +16,6 @@
 
 package shared;
 
-import java.util.ArrayList;
-
 /**
  * Generic methods for handling nucleotide strings.
  * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>

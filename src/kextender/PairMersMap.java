@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package kmerextender;
+package kextender;
 
 //import gnu.trove..set.hash.THashSet;
 import java.util.Iterator;
@@ -188,7 +188,7 @@ public class PairMersMap extends shared.MerMap {
      * @param core, which will be converted to its canonical form
      * @param k
      * @return PairMer if present in Map, null otherwise
-     * @throws kmerextender.NonACGTException
+     * @throws kextender.NonACGTException
      */
     public PairMer get(CharSequence core, int k) throws NonACGTException {
         return pairMersSkipListMap.get(PairMerTypeSelector.getPairMer(core, k));
