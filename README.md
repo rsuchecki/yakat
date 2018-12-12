@@ -66,14 +66,16 @@ Info:
   version       : print the version and exit
 ```
 
-As you can see, not everything k-mer based, additional, deprecated modules are still lurking in the code.
+As you can see, not everything is k-mer based, additional, deprecated modules are still lurking in the code as well.
 
-The first time around you may want to run a specific module do it with `-h` or `--help` as some modules kick off by reading from `/dev/stdin`.
+The first time you run a specific module do it with `-h` or `--help` as some modules kick off by reading from `/dev/stdin`.
 
+Among the available modules `kextender` is by far the most mature, if you are after no-nonsense, fast generation of unitigs from a set of Illumina reads all you need to do is:
 
-```
-java -jar dist/yakat.jar kmatch -h
-```
+* k-merize your reads with KMC (other counters are available)
+* determine k-mer frequency cutoff to exclude likely error-induced k-mers by looking at `kmc_tools histogram`
+* pipe your k-mers from KMC database to `yakat kextend`
+
 
 # Usage in pipelines
 
