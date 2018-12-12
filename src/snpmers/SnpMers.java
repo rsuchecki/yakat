@@ -134,7 +134,7 @@ public class SnpMers {
     }
 
     private OptSet populateOptSet() {
-        OptSet optSet = new OptSet("[A] Take a list of pre-defined SNPs and the associated sequences (e.g. NIKS calls). "
+        OptSet optSet = new OptSet("[A] Take a list of pre-defined SNPs and the associated sequences (e.g. LNISKS calls). "
             + "[B] Take a set of k-mers per sample of interest. "
             + "[C] Record frequencies of k-mers overlapping the input SNPs. "
             + "[D] For each pre-defined SNP, genotype each sample of interest");
@@ -143,9 +143,9 @@ public class SnpMers {
         optSet.setListingGroupLabel("[Input settings]");
 //        optSet.addOpt(new Opt(null, "sample-ids", "Space separated sample identifiers which form the prefices of the input FASTA identifiers")
 //            .setMinValueArgs(2).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
-        optSet.addOpt(new Opt('k', "k-mer-length", "It must match the size of the k-mers used to query the niks-snps", 1).setRequired(true).setMinValue(3).setMaxValue(255));
-        optSet.addOpt(new Opt('s', "niks-snps", "File containing the table of SNPs called by NIKS", 1).setRequired(true));
-//        optSet.addOpt(new Opt('f', "niks-fasta", "The (msa) FASTA file matching the SNP information", 1));
+        optSet.addOpt(new Opt('k', "k-mer-length", "It must match the size of the k-mers used to query the LNISKS snps", 1).setRequired(true).setMinValue(3).setMaxValue(255));
+        optSet.addOpt(new Opt('s', "lnisks-snps", "File containing the table of SNPs called by LNISKS", 1).setRequired(true));
+//        optSet.addOpt(new Opt('f', "lnisks-fasta", "The (msa) FASTA file matching the SNP information", 1));
         optSet.addOpt(new Opt('K', "per-sample-k-mers", "A set (or sets) of k-mers to be threaded through the map of k-mer-links to SNPs").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
         optSet.addOpt(new Opt('F', "filtering-k-mers", "One or more sets of k-mers, each from one homozygous cultivar. "
             + "If both alleles of a putative SNP are present in such a set the SNP will be discarded as a likely false-positive").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
@@ -351,7 +351,7 @@ public class SnpMers {
 //                String clusterId1 = kLink1.getSnpFilter().getClusterId();
 //                int pos0 = 0;
 //                int pos1 = 0;
-//                if (clusterId0.contains(":")) { //non-NIKS, mapping derived input
+//                if (clusterId0.contains(":")) { //non-LNISKS, mapping derived input
 //                    String[] split = clusterId0.split(":");
 //                    clusterId0 = split[0];
 //                    pos0 = Integer.parseInt(split[1]);

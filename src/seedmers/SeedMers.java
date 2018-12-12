@@ -98,7 +98,7 @@ public class SeedMers {
 
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
-        optSet.addOpt(new Opt('k', "k-mer-length", "It must match the size of the k-mers used to query the niks-snps", 1).setRequired(true).setMinValue(3).setMaxValue(255));
+        optSet.addOpt(new Opt('k', "k-mer-length", "It must match the size of the k-mers used to query the LNISKS snps", 1).setRequired(true).setMinValue(3).setMaxValue(255));
         optSet.addOpt(new Opt('f', "fasta-seeds", "The FASTA file containing seeds which will be interrogated for variation", 1).setRequired(true));
         optSet.addOpt(new Opt('K', "per-sample-k-mers", "A set (or sets) of k-mers to be threaded through the map of k-mer-links to presumed SNPs").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 8192, 128, 65535));
