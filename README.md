@@ -35,36 +35,35 @@ After cloning or downloading this repository, run `ant compile && ant jar`, this
 java -jar dist/yakat.jar
 
 Usage: java -jar yakat.jar <module>
- modules:
-  k-mer based utils
-    kextend       : extend k-mers to unambiguous contigs or extend input "seed" sequences only
-    snpmers       : given parental SNPs (e.g. from LNISKS), corresponding FASTA sequences and sets of k-mers,
-                    call offspring genotypes by overlapping their k-mers with parental SNP sequences
-    freqmers      : given a set of sequences and set(s) of k-mers
-                    report k-mer coverage and frequency for the input sequences
-    kmatch        : match/filter/bait FAST(A|Q) sequences based on contained k-mers (or lack thereof)
-    seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers
-                    to genotype presumed mutations at positions k bases from the seed edges
+k-mer based modules
+  kextend       : extend k-mers to unambiguous contigs or extend input "seed" sequences only
+  snpmers       : given parental SNPs (e.g. from LNISKS), corresponding FASTA sequences and sets of k-mers,
+                  call offspring genotypes by overlapping their k-mers with parental SNP sequences
+  freqmers      : given a set of sequences and set(s) of k-mers
+                  report k-mer coverage and frequency for the input sequences
+  kmatch        : match/filter/bait FAST(A|Q) sequences based on contained k-mers (or lack thereof)
+  seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers
+                  to genotype presumed mutations at positions k bases from the seed edges
 
-  FASTQ processing utils:
-    idmatch       : match FASTQ records by id
-    split         : split FASTQ GBS/ddRAD reads by barcodes, trim barcodes and adapters
+FASTQ processing modules:
+  idmatch       : match FASTQ records by id
+  split         : split FASTQ GBS/ddRAD reads by barcodes, trim barcodes and adapters
 
-  MPILEUP processing utils:
-    pileupstats   : extract some stats from (m)pileup
-    pmpileup      : count and call bases from (m)pileup
+MPILEUP processing modules:
+  pileupstats   : extract some stats from (m)pileup
+  pmpileup      : count and call bases from (m)pileup
 
-  HMMER, VSEARCH output post-processing utils:
-    hmmerdoms     : Process and group domain-hits from HMMER
-    vclusters     : call variants from VSEARCH clustering msa output
+HMMER, VSEARCH output post-processing modules:
+  hmmerdoms     : Process and group domain-hits from HMMER
+  vclusters     : call variants from VSEARCH clustering msa output
 
-  Miscellaneous utils:
-    allorfs       : Identify and extract all (longest) ORFs from a genome
-    kexpress      : [UNTESTED] Calculate expresion values (TPM) from read counts
+Miscellaneous modules:
+  allorfs       : Identify and extract all (longest) ORFs from a genome
+  kexpress      : [UNTESTED] Calculate expresion values (TPM) from read counts
                     and (not quite) GFF description of features
 
-  Info:
-    version       : print the version and exit
+Info:
+  version       : print the version and exit
 ```
 
 As you can see, not everything k-mer based, additional, deprecated modules are still lurking in the code.
