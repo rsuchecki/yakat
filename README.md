@@ -1,35 +1,42 @@
+Table of Contents
 - [`yakat` - yet another k-mer analysis toolkit?](#yakat---yet-another-k-mer-analysis-toolkit)
-- [Dependencies](#dependencies)
-- [You may also need](#you-may-also-need)
-- [Compile and build](#compile-and-build)
-- [Run](#run)
-- [Usage in pipelines](#usage-in-pipelines)
+- [Getting started](#getting-started)
+  - [Dependencies](#dependencies)
+  - [Compile and build](#compile-and-build)
+  - [Run](#run)
+- [Get cracking](#get-cracking)
+  - [You may also need](#you-may-also-need)
+  - [Selected use cases](#selected-use-cases)
+    - [`kextender` - default mode](#kextender---default-mode)
+    - [`kextender` - FASTA seed extension mode](#kextender---fasta-seed-extension-mode)
+    - [`kmatcher`](#kmatcher)
+    - [`freqmers`](#freqmers)
+    - [`snpmers`](#snpmers)
+  - [Usage in pipelines](#usage-in-pipelines)
 - [Development](#development)
-- [Bugs, cryptic errors, general enquires](#bugs-cryptic-errors-general-enquires)
+- [Bugs, cryptic errors, general enquires, existential angst?](#bugs-cryptic-errors-general-enquires-existential-angst)
 # `yakat` - yet another  k-mer analysis toolkit?
 
 Or is it?
 Perhaps better described as _not quite_ or _not just_ another k-mer analysis toolkit.
-This software included several k-mer related tools, mostly trying to complement or functionally extend existing tools.
-Written in Java these are not necessarily most memory frugal, but most are pretty fast, thanks to leveraging producer-consumer approach to multi-threading in Java.
+This software includes several k-mer related tools, mostly trying to complement or functionally extend existing tools.
+Written in Java these are not necessarily most memory frugal, but most are fast, thanks to leveraging producer-consumer approach to multi-threading in Java.
 So if you happen to have access to a fat node with lots of CPUs as I did at some point, you may find these quite handy.
 In addition to k-mer based tools, there are several other modules providing efficient, multi-threaded solutions for common bioinformatics task such as read id matching/filtering.
 
-# Dependencies
+# Getting started
+
+## Dependencies
 
 You'll need Java 8 with [ant](https://ant.apache.org/) for compiling and building, or just Java for running the pre-compiled binary.
 Normal usage is in Linux environment but most modules should work on other systems with no or few adjustments required, such as explicitly specifying input and output files other than `/dev/stdin` and `/dev/stdout`.
 
-# You may also need
 
-A k-mer counter. Go for [KMC](https://github.com/refresh-bio/KMC).
-Some yakat modules will k-merize input as needed, but use KMC or another, dedicated k-mer counter whenever a set of k-mers is a desired input, especially for the `kextend` module.
-
-# Compile and build
+## Compile and build
 
 After cloning or downloading this repository, run `ant compile && ant jar`, this should generate the self-contained Java executable `dist/yakat.jar`.
 
-# Run
+## Run
 
 ```
 java -jar dist/yakat.jar
@@ -70,17 +77,49 @@ As you can see, not everything is k-mer based, additional, deprecated modules ar
 
 The first time you run a specific module do it with `-h` or `--help` as some modules kick off by reading from `/dev/stdin`.
 
+# Get cracking
+
+## You may also need
+
+A k-mer counter. Go for [KMC](https://github.com/refresh-bio/KMC).
+Some yakat modules will k-merize input as needed, but use KMC or another, dedicated k-mer counter whenever a set of k-mers is a desired input, especially for the `kextend` module.
+
+## Selected use cases
+
+### `kextender` - default mode
+
 Among the available modules `kextender` is by far the most mature, if you are after no-nonsense, fast generation of unitigs from a set of Illumina reads all you need to do is:
 
 * k-merize your reads with KMC (other counters are available)
 * determine k-mer frequency cutoff to exclude likely error-induced k-mers by looking at `kmc_tools histogram`
 * pipe your k-mers from KMC database to `yakat kextend`
 
+### `kextender` - FASTA seed extension mode
 
-# Usage in pipelines
+...
 
-Note that due to specific modules' original application within larger pipelines they occasionally expect slightly modified file formats.
-For example by FASTQ record we mean a single read (pair of reads) whose four (eight) lines have been placed on a single line using tab as a separator.
+### `kmatcher`
+
+See [usage in pipelines](#usage-in-pipelines)
+
+### `freqmers`
+
+...
+
+### `snpmers`
+
+...
+
+
+## Usage in pipelines
+
+Note that due to specific modules' original application within larger pipelines they occasionally expect/produce file formats slightly modified versions of common file formats.
+Fear not, these are not whimsical modifications of accepted standards but rather alternative presentation of existing formats which facilitates parallelised processing and use of linux pipes rather than intermediary files. For example,
+
+* by FASTQ_SE_ONE_LINE record we mean a single read whose four lines have been placed on a single line using tab as a separator.
+* by FASTQ_PE_ONE_LINE record we mean a pair of reads whose eight lines have been placed on a single line using tab as a separator.
+
+The idea is to wrap/unwrap these on the fly, either on the command line or using wrapper scripts.
 
 To filter (in/out) reads based on matching k-mers you may run the `kmatch` module like this:
 
@@ -121,7 +160,7 @@ paste <(zcat R1.fq.gz | paste - - - - ) \
 
 Developed as a NetBeans project and can be loaded as such. Stress-tested on ubuntu 14.04 with Java 1.8 build 74.
 
-# Bugs, cryptic errors, general enquires
+# Bugs, cryptic errors, general enquires, existential angst?
 
 [Submit an issue](https://github.com/rsuchecki/yakat/issues/new)
 
