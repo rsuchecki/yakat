@@ -1,4 +1,7 @@
-Table of Contents
+[![DOI](https://zenodo.org/badge/161127471.svg)](https://zenodo.org/badge/latestdoi/161127471)
+
+# Table of Contents <!-- omit in toc -->
+
 - [`yakat` - yet another k-mer analysis toolkit?](#yakat---yet-another-k-mer-analysis-toolkit)
 - [Getting started](#getting-started)
   - [Dependencies](#dependencies)
@@ -107,8 +110,8 @@ kmc_dump -ci${MIN_FREQ} db_basename /dev/stdout \
   | java -jar dist/yakat.jar kextend > unitigs
 ```
 
-Note that the default output is one unitig (sequence) per line, 
-for FASTA output use `--fasta-out` flag. 
+Note that the default output is one unitig (sequence) per line,
+for FASTA output use `--fasta-out` flag.
 You may also use `--min-length` to set the minimum length (bp) of an output unitig.
 
 
