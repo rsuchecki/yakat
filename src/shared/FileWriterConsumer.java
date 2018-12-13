@@ -29,7 +29,7 @@ import java.util.zip.GZIPOutputStream;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class FileWriterConsumer implements Runnable {
 

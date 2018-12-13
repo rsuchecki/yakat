@@ -30,7 +30,7 @@ import java.util.zip.GZIPInputStream;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class InputReaderProducer implements Runnable {
 
@@ -172,8 +172,6 @@ public class InputReaderProducer implements Runnable {
      * @param queue
      * @param inputFiles
      * @param useLabelledBuffers
-     * @param k
-     * @param map
      * @param toolName
      */
     public InputReaderProducer(BlockingQueue queue, ArrayList<String> inputFiles, boolean useLabelledBuffers, int reportingShift,

@@ -20,7 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import shared.Reporter;
 
 /**
- * A sequence with a map kValue -> extension
+ * A sequence with a map kValue to extension
  *
  * @author rad
  */

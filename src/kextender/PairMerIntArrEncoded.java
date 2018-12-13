@@ -24,7 +24,7 @@ import java.util.Arrays;
 /**
  * Proof of concept structure to hold up to 2 k-mers paired
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class PairMerIntArrEncoded extends PairMer implements Comparable<PairMerIntArrEncoded> {
 

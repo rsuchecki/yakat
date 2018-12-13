@@ -39,7 +39,7 @@ import java.util.zip.GZIPOutputStream;
 /**
  * Given a Map of purged PairMers, identify and extend connected k-mers
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class PairMersExtender {
 

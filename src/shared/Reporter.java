@@ -26,7 +26,7 @@ import java.util.Date;
 /**
  * Generic reporting interface
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class Reporter {
 

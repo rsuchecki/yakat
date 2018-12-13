@@ -18,7 +18,7 @@ package shared;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class Message {
     public enum Level {

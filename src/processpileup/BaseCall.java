@@ -7,7 +7,7 @@ package processpileup;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class BaseCall implements Comparable<BaseCall> {
 

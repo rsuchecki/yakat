@@ -19,7 +19,7 @@ import java.util.ArrayList;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class PositionalOpt implements Comparable<PositionalOpt> {
 
@@ -38,7 +38,7 @@ public class PositionalOpt implements Comparable<PositionalOpt> {
     }
 
     /**
-     * Only suitable for last positional opt if maxOpts > 1
+     * Only suitable for last positional opt if maxOpts \gt 1
      *
      * @param usageString
      * @param helpString

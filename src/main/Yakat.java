@@ -35,7 +35,7 @@ import vsearchprocess.VsearchClustersCaller;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class Yakat {
 

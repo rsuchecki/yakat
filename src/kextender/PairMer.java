@@ -21,7 +21,7 @@ import shared.SequenceOps;
 /**
  * Superclass - not to be used directly holds up to 2 k-mers paired
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class PairMer {//implements Comparable<PairMer> {
 
