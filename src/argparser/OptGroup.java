@@ -20,7 +20,7 @@ import java.util.ArrayList;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class OptGroup {
     ArrayList<OptGroup> incompatibleOptGroups;

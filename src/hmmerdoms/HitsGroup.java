@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>.
+ * Copyright 2017 Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import shared.Sequence;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class HitsGroup implements Comparable<HitsGroup>{
 

@@ -21,7 +21,7 @@ package kextender;
  * object has the core field filled and either the leftCLip or the rightCLip
  * Only used as a wrapper class when generating more compact PairMer
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class PairMerTypeSelector {
 

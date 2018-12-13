@@ -43,7 +43,7 @@ import shared.SequenceOps;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class SplitterConsumerProducer implements Runnable {
 

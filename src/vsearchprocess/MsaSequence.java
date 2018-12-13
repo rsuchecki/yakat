@@ -173,7 +173,6 @@ public class MsaSequence extends Sequence {
     /**
      * Substantial non-tip padding suggests spurious alignment
      *
-     * @param maxIndelLength
      * @return
      */
     public int getNonTipPaddingLength() {

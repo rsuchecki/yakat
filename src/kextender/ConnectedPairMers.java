@@ -25,7 +25,7 @@ import java.util.Set;
  * Class for storing a set of connected PairMers with the connections between
  * them
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class ConnectedPairMers {
 //    private ArrayList<PairMerNode> connectedPairMers = new ArrayList<>();

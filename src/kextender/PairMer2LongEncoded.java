@@ -21,7 +21,7 @@ import shared.Reporter;
 /**
  * Storing PairMer core in 2 long fields
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class PairMer2LongEncoded extends PairMer implements Comparable<PairMer2LongEncoded> {
 

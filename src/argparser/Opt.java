@@ -27,7 +27,7 @@ import shared.Reporter;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  * @param <T>
  */
 public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
@@ -92,7 +92,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
      * @param defaultValue
      * @param minValue
      * @param maxValue
-     * @param maxArgs [careful if >1 and positional args used]
+     * @param maxArgs [careful if \gt 1 and positional args used]
      * @param listingGroup
      * @param listingGroupPosition
      */

@@ -20,7 +20,7 @@ import java.util.concurrent.BlockingQueue;
 
 /**
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class KmergerConsumerExperimental implements Runnable {
 

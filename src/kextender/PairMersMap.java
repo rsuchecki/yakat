@@ -27,7 +27,7 @@ import shared.Reporter;
  * options possible) of PairMer objects. After the Map is populated, use
  * .purge()
  *
- * @author Radoslaw Suchecki <radoslaw.suchecki@adelaide.edu.au>
+ * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
  */
 public class PairMersMap extends shared.MerMap {
 
@@ -272,7 +272,7 @@ public class PairMersMap extends shared.MerMap {
 //    }
     /**
      * Removes from the Map each PairMer which (i) represents ambiguous
-     * extension (>2 k-mers matching the core) or (ii) has no extensions (only
+     * extension (\gt 2 k-mers matching the core) or (ii) has no extensions (only
      * one k-mer matching the core) or (iii) represents 2 or more conflicting
      * k-mers (matching core, but both extending in the same direction) Run only
      * after the set/map is fully populated.
@@ -281,7 +281,6 @@ public class PairMersMap extends shared.MerMap {
      * .subSet()
      *
      * @param minKmerFrequency
-     * @param threads
      * @return the number of elements removed
      */
     public long purge(int minKmerFrequency) {
