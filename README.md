@@ -16,6 +16,7 @@
     - [`kextender` - FASTA seed extension mode](#kextender---fasta-seed-extension-mode)
     - [`kmatcher` - see usage in pipelines](#kmatcher---see-usage-in-pipelines)
     - [`snpmers`](#snpmers)
+    - [`vclusters`](#vclusters)
   - [Usage in pipelines](#usage-in-pipelines)
 - [Development](#development)
 - [Bugs, cryptic errors, general enquires, existential angst?](#bugs-cryptic-errors-general-enquires-existential-angst)
@@ -125,6 +126,10 @@ TODO
 TODO
 
 ### `snpmers`
+
+TODO
+
+### `vclusters`
 
 TODO
 
