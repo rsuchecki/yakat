@@ -1,5 +1,5 @@
 [![DOI](https://zenodo.org/badge/161127471.svg)](https://zenodo.org/badge/latestdoi/161127471)
-
+[![Build Status](https://travis-ci.org/rsuchecki/yakat.svg?branch=master)](https://travis-ci.org/rsuchecki/yakat)
 
 # Table of Contents <!-- omit in toc -->
 
