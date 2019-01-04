@@ -297,6 +297,7 @@ public class SnpMers {
                     }
                 }
             }
+            snpFiltersQueue.put(snpFiltersBuffer);
             snpFiltersQueue.put(new ArrayList());
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found: " + snpsFileName, TOOL_NAME);
