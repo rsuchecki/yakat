@@ -123,11 +123,10 @@ TODO
 
 ### `kmatcher` - see [usage in pipelines](#usage-in-pipelines)
 
-TODO
-
 ### `snpmers`
 
-TODO
+See [this example](https://github.com/rsuchecki/LNISKS/tree/d165629ae1d40ae7158819149d9b56fbba42e995#call-prioritization).
+
 
 ### `vclusters`
 
