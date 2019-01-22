@@ -155,7 +155,7 @@ zcat reads.fastq.gz \
   | tr '\t' '\n' > filtered.fastq
 ```
 
-* Each read is unwrapped into the one-line-per-record form, processed using `kmatch` and survicing reads are unwrapped by replacing tabs with newline characters.
+* Each read is unwrapped into the one-line-per-record form, processed using `kmatch` and surviving reads are unwrapped by replacing tabs with newline characters.
 * The content of `4_reads.fastq` is k-merized and used for matching reads streamed from stdin.
 * In practice the output could be piped into another process or perhaps a parallelized compression tool such as `pigz`.
 
