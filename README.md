@@ -136,7 +136,7 @@ TODO
 
 ## Usage in pipelines
 
-Note that due to specific modules' original application within larger pipelines they occasionally expect/produce file formats slightly modified versions of common file formats.
+Note that due to specific modules' original application within larger pipelines they occasionally expect/produce slightly modified versions of common file formats.
 Fear not, these are not whimsical modifications of accepted standards but rather alternative presentation of existing formats which facilitates parallelised processing and use of linux pipes rather than intermediary files. For example,
 
 * by a FASTQ_SE_ONE_LINE record we mean a single read whose four lines have been placed on a single line using tab as a separator.
