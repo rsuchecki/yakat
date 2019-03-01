@@ -1,5 +1,6 @@
 [![DOI](https://zenodo.org/badge/161127471.svg)](https://zenodo.org/badge/latestdoi/161127471)
 [![Build Status](https://travis-ci.org/rsuchecki/yakat.svg?branch=master)](https://travis-ci.org/rsuchecki/yakat)
+[![Latest GitHub tag](https://img.shields.io/github/tag/rsuchecki/yakat.svg?label=latest%20release&logo=github)](https://github.com/rsuchecki/yakat/releases)
 
 # Table of Contents <!-- omit in toc -->
 
@@ -129,11 +130,10 @@ TODO
 
 ### `kmatcher` - see [usage in pipelines](#usage-in-pipelines)
 
-TODO
-
 ### `snpmers`
 
-TODO
+See [this example](https://github.com/rsuchecki/LNISKS/tree/d165629ae1d40ae7158819149d9b56fbba42e995#call-prioritization).
+
 
 ### `vclusters`
 
@@ -142,7 +142,7 @@ TODO
 
 ## Usage in pipelines
 
-Note that due to specific modules' original application within larger pipelines they occasionally expect/produce file formats slightly modified versions of common file formats.
+Note that due to specific modules' original application within larger pipelines they occasionally expect/produce slightly modified versions of common file formats.
 Fear not, these are not whimsical modifications of accepted standards but rather alternative presentation of existing formats which facilitates parallelised processing and use of linux pipes rather than intermediary files. For example,
 
 * by a FASTQ_SE_ONE_LINE record we mean a single read whose four lines have been placed on a single line using tab as a separator.
@@ -161,7 +161,7 @@ zcat reads.fastq.gz \
   | tr '\t' '\n' > filtered.fastq
 ```
 
-* Each read is unwrapped into the one-line-per-record form, processed using `kmatch` and survicing reads are unwrapped by replacing tabs with newline characters.
+* Each read is unwrapped into the one-line-per-record form, processed using `kmatch` and surviving reads are unwrapped by replacing tabs with newline characters.
 * The content of `4_reads.fastq` is k-merized and used for matching reads streamed from stdin.
 * In practice the output could be piped into another process or perhaps a parallelized compression tool such as `pigz`.
 
