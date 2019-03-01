@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+MYSELF=`which "$0" 2>/dev/null`
+[ $? -gt 0 -a -f "$0" ] && MYSELF="./$0"
+java=java
+if test -n "$JAVA_HOME"; then
+    java="$JAVA_HOME/bin/java"
+fi
+
+JVM_OPTS=""
+YAKAT_OPTS=""
+
+while [[ $# -gt 0 ]]; do
+  case ${1} in
+    "--JVM")
+    JVM_OPTS="${JVM_OPTS} ${2}"
+    shift
+    shift
+    ;;
+    --help|-h)
+    YAKAT_OPTS="${YAKAT_OPTS} ${1}"
+    echo "You can pass Java options using --JVM \"<options>\""
+    echo "For example: ${0} --JVM \"-Xmx2G -Xms100m\""
+    shift
+    ;;
+    *)
+    YAKAT_OPTS="${YAKAT_OPTS} ${1}"
+    shift
+    ;;
+  esac
+done
+
+# echo "JVM: ${JVM_OPTS}"
+# echo "YKT: ${YAKAT_OPTS}"
+
+exec "${java}" ${JVM_OPTS} -jar ${MYSELF} ${YAKAT_OPTS}
+exit 1
