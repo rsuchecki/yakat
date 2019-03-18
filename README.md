@@ -43,7 +43,8 @@ After cloning or downloading this repository, run
 
 `ant compile && ant jar`
 
-This should generate the self-contained Java executable `dist/yakat.jar`.
+This should generate the Java executable `dist/yakat.jar`.
+
 For a self contained executable, run
 
 ```
