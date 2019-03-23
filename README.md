@@ -43,7 +43,8 @@ After cloning or downloading this repository, run
 
 `ant compile && ant jar`
 
-This should generate the self-contained Java executable `dist/yakat.jar`.
+This should generate the Java executable `dist/yakat.jar`.
+
 For a self contained executable, run
 
 ```
@@ -52,6 +53,7 @@ chmod +x yakat
 ```
 
 You can now either run `./yakat` or `java -jar dist/yakat.jar`.
+
 In the former case you can pass Java VM options using `--JVM "<options>"`, for example: `./yakat --JVM "-Xmx2G -Xms100m"`
 
 You should see the following summary of available modules.
