@@ -394,6 +394,8 @@ public class MpileupConsumer implements Runnable {
                         bases[4]++;
                         break;
                     case '^': //aligned fragment start
+                        i++;
+                        break;
                     case '$': //aligned fragment end
                         break;
                     case '+': //insertion in the read indicator, pattern: `\+[0-9]+[ACGTNacgtn]+'            
