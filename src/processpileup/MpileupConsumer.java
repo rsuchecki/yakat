@@ -394,7 +394,7 @@ public class MpileupConsumer implements Runnable {
                         bases[4]++;
                         break;
                     case '^': //aligned fragment start
-                        i++;
+                        i++; //skip over MAPQ 
                         break;
                     case '$': //aligned fragment end
                         break;
