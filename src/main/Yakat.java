@@ -98,7 +98,10 @@ public class Yakat {
         System.out.println();
 //        String version = this.getClass().getPackage().getImplementationVersion();
 //        System.out.println("java -jar " + this.getClass().getSimpleName().toLowerCase() + "-" + version + ".jar <command> ");
-        System.out.println("Usage: java -jar " + this.getClass().getSimpleName().toLowerCase()+".jar <module> ");
+        System.out.println("Usage:");
+        System.out.println("  either:   "+ this.getClass().getSimpleName().toLowerCase()+" <module> ");
+        System.out.println("  or:       java -jar " + this.getClass().getSimpleName().toLowerCase()+".jar <module> ");
+        System.out.println();
         System.out.println("k-mer based modules");
         System.out.println("  freqmers      : given a set of sequences and set(s) of k-mers");
         System.out.println("                  report k-mer coverage and frequency for the input sequences");

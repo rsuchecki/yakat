@@ -41,16 +41,10 @@ Normal usage is in Linux environment but most modules should work on other syste
 
 After cloning or downloading this repository, run
 
-`ant compile && ant jar`
+`ant jar`
 
-This should generate the Java executable `dist/yakat.jar`.
-
-For a self contained executable, run
-
-```
-cat yakat.head dist/yakat.jar > yakat
-chmod +x yakat
-```
+This should generate the Java executable `dist/yakat.jar`
+and a self contained linux executable `yakat`
 
 You can now either run `./yakat` or `java -jar dist/yakat.jar`.
 
@@ -59,7 +53,10 @@ In the former case you can pass Java VM options using `--JVM "<options>"`, for e
 You should see the following summary of available modules.
 
 ```
-Usage: java -jar yakat.jar <module>
+Usage:
+  either:   yakat <module>
+  or:       java -jar yakat.jar <module>
+
 k-mer based modules
   freqmers      : given a set of sequences and set(s) of k-mers
                   report k-mer coverage and frequency for the input sequences
