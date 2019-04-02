@@ -269,8 +269,9 @@ public class InputReaderProducer implements Runnable {
                     Reporter.report("[INFO]", "Input format guessed: " + guessedInFormat.toString(), TOOL_NAME);
                 }
                 if (guessedInFormat == InFormat.EMPTY) {
-                    Reporter.report("[WARNING]", "Empty input file/stream...", TOOL_NAME);
-                    putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREADS WILL KEEP GOING                    
+                    Reporter.report("[FATAL]", "Empty input file/stream...", TOOL_NAME);
+                    putOnQueue(new ArrayList<>()); //OTHERWISE CONSUMER THREADS WILL KEEP GOING
+                    System.exit(1);
                 }
                 if (guessedInFormat == InFormat.UNSUPPORTED_OR_UNRECOGNIZED) {
                     Reporter.report("[FATAL]", "Unrecognized or unsupported input, terminating...", TOOL_NAME);
@@ -295,7 +296,7 @@ public class InputReaderProducer implements Runnable {
                     readLines(content, testLines);
                 } else if (!kMerIsSet()) {
                     Reporter.report("[FATAL]", "Fatal error, k-mer length must be specified if input is to be k-merized (alternatively you can input a list of pre-computed k-mers). Terminating!", TOOL_NAME);
-                    putOnQueue(new ArrayList<String>(0)); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
+                    putOnQueue(new ArrayList<>(0)); //OTHERWISE CONSUMER THREAD WILL KEEP GOING
                     System.exit(1);
                 } else if (guessedInFormat == InFormat.FASTA) {
                     StringBuilder sb = new StringBuilder();
