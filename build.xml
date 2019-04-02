@@ -14,7 +14,7 @@
     
     <target name="-pre-init">
 <!--       <property name="project.name" value="NAME" />-->
-       <property name="version.num" value="0.9.1" />
+       <property name="version.num" value="0.9.2" />
         <tstamp>
             <format property="NOW" pattern="yyyy-MM-dd HH:mm:ss z" />
         </tstamp>
@@ -33,6 +33,20 @@
 <!--        <property file="version.properties"/>
         <property name="dist.jar" value="dist/${ant.project.name}-${version.num}.jar"/>-->
     </target>
+    
+    <target name="-post-jar" >
+        <concat destfile="${basedir}/yakat" binary="yes">
+            <fileset file="${basedir}/yakat.head"/>
+            <fileset file="${dist.jar}"/>
+        </concat>
+        <exec executable="chmod">
+        <arg value="755"/>
+        <arg value="${basedir}/yakat"/>
+        </exec>
+    </target>
+    <target name="-post-clean" >
+        <delete file="${basedir}/yakat"/>
+    </target> 
     
 <!--    <target name="package_for_release" depends="jar,javadoc">
         <mkdir dir="build/release"/>

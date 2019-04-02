@@ -17,7 +17,7 @@ while [[ $# -gt 0 ]]; do
     shift
     shift
     ;;
-    --help|-h)
+    --help|-h|help)
     YAKAT_OPTS="${YAKAT_OPTS} ${1}"
     echo "You can pass Java options using --JVM \"<options>\""
     echo "For example: ${0} --JVM \"-Xmx2G -Xms100m\""
@@ -29,9 +29,6 @@ while [[ $# -gt 0 ]]; do
     ;;
   esac
 done
-
-#echo "JVM: ${JVM_OPTS}"
-#echo "YKAT: ${YAKAT_OPTS}"
 
 exec "${JAVA}" ${JVM_OPTS} -jar ${MYSELF} ${YAKAT_OPTS}
 exit 1
