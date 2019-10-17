@@ -109,8 +109,8 @@ public class Yakat {
         System.out.println("  kmatch        : match/filter/bait FAST(A|Q) sequences based on contained k-mers (or lack thereof)");
         System.out.println("  seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers");
         System.out.println("                  to genotype presumed mutations at positions k bases from the seed edges");
-        System.out.println("  snpmers       : given parental SNPs (e.g. from LNISKS), corresponding FASTA sequences and sets of k-mers,");
-        System.out.println("                  call offspring genotypes by overlapping their k-mers with parental SNP sequences ");
+        System.out.println("  snpmers       : given SNPs from vclusters, corresponding FASTA sequences and sets of k-mers");
+        System.out.println("                  call genotypes by overlapping k-mers with SNP sequences");
 //        System.out.println("    kmerge        : [DEPRECATED - use KMC tools for k-mer set operations] given sorted input, merge k-mer sets summing frequencies if available");
         System.out.println();
         System.out.println("FASTQ processing modules:");
