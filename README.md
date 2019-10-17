@@ -103,7 +103,13 @@ Some yakat modules will k-merize input as needed, but use KMC or another, dedica
 
 ### `freqmers`
 
-TODO
+This module can be used to quantify how sets of k-mers relate to / overlap with 
+the set of input (FASTA) sequences. 
+
+* Take FASTA sequences 
+* Take a set of k-mers per sample of interest. 
+* Record frequencies of k-mers overlapping the sequences 
+* Report k-mer coverage and frequencies along the sequences 
 
 ### `kextender` - default mode
 
@@ -115,7 +121,7 @@ Among the available modules `kextender` is by far the most mature, if you are af
 
 ```sh
 kmc_dump -ci${MIN_FREQ} db_basename /dev/stdout \
-  | java -jar dist/yakat.jar kextend > unitigs
+  | ./yakat kextend > unitigs
 ```
 
 Note that the default output is one unitig (sequence) per line,
@@ -125,7 +131,28 @@ You may also use `--min-length` to set the minimum length (bp) of an output unit
 
 ### `kextender` - FASTA seed extension mode
 
-TODO
+The `kextender` module can also extend existing _seed_ sequences. Note that such extensions never lead to the seed sequences being joined. 
+The idea is to be able to unambiguously extend existing sequences - think extending with a unitig. 
+Unlike the default mode which uses a single _k_ value in the extension process, the seed extension can make use of multiple 
+values of _k_. Extensions of each end of a seed are computed for a range of values of _k_ and the longest of those is "attached" 
+to the seed end. Exploring a large range of k values for a significant input [k-mers/FAST[A|Q]] will make the memory requirements explode, 
+as it is done in parallel 
+
+* in the interest of speed 
+* to avoid excessive I/O 
+* to preserve stdin handling
+
+Example usage:
+
+```sh
+kmc_dump -ci${MIN_FREQ} db_basename /dev/stdout \
+  | ./yakat kextend \
+    --seed-file existing_sequences.fasta \
+    --k-mer-min 20 \
+    --k-mer-max 80 \
+    --k-mer-step 1 \
+    > extended_seeds.fasta 
+```
 
 ### `kmatcher` - see [usage in pipelines](#usage-in-pipelines)
 
@@ -136,7 +163,9 @@ See [this example](https://github.com/rsuchecki/LNISKS/tree/d165629ae1d40ae71588
 
 ### `vclusters`
 
-TODO
+This module parses the MSA output of VSEARCH clustering
+and calls variants within each cluster.
+
 
 
 ## Usage in pipelines
@@ -154,7 +183,7 @@ To filter (in/out) reads based on matching k-mers you may run the `kmatch` modul
 ```
 zcat reads.fastq.gz \
   | paste - - - - \
-  | java -jar scripts/yakat.jar kmatch \
+  | ./yakat kmatch \
     --k-mers 4_reads.fastq \
     --k-mer-length 50 \
   | tr '\t' '\n' > filtered.fastq
@@ -169,7 +198,7 @@ Analogous operation for paired-end data:
 ```
 paste <(zcat R1.fq.gz | paste - - - - ) \
       <(zcat R2.fq.gz | paste - - - - ) \
-  | java -jar scripts/yakat.jar kmatch \
+  | ./yakat kmatch \
     --k-mers 4_reads.fastq \
     --k-mer-length 50 \
   | tee >(cut -f 1-4 -d$'\t' | tr '\t' '\n' > filtered_R1.fq) \
