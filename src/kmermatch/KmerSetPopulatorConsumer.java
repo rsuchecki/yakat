@@ -56,7 +56,7 @@ public class KmerSetPopulatorConsumer implements Runnable {
             if (k ==null) { //KMERS INPUT, NO NEED TO KMERIZE
                 while (!(list = inputQueue.take()).isEmpty()) {
                     for (String line : list) {
-                        kmers.add(new KmerBytes(SequenceOps.getCanonical(tab.split(line)[0]), storeASCII));
+                        kmers.add(new Kmer(SequenceOps.getCanonical(tab.split(line)[0]), storeASCII));
                     }
                 }
             } else {  //KMERIZE
@@ -67,7 +67,7 @@ public class KmerSetPopulatorConsumer implements Runnable {
                         for (int i = 0; i < maxKmer; i++) {                            
                             String canonical = SequenceOps.getCanonical(kmer.subSequence(i, i + k).toString());
                             if(!nonNuclPattern.matcher(canonical).matches()) {
-                                kmers.add(new KmerBytes(canonical, storeASCII));
+                                kmers.add(new Kmer(canonical, storeASCII));
                             }
                         }
                     }

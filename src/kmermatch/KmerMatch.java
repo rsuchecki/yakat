@@ -135,7 +135,7 @@ public class KmerMatch {
         kValues.add(k != null ? k : 0);
         
         BlockingQueue inputKmersQueue = new ArrayBlockingQueue(IN_Q_CAPACITY);
-        //SPAWN IDS INPUT READING THREAD        
+        //SPAWN KMERS INPUT READING THREAD        
         ArrayList<Future<?>> inputKmersFutures = new ArrayList<>(1);
         final ExecutorService inputKmersExecutorService = new ThreadPoolExecutor(1, 1, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         InputReaderProducer inputReaderProducer = new InputReaderProducer( inputKmersQueue, kValues, optSet.getOpt("-K").getValues(), IN_BUFFER_SIZE, TOOL_NAME);
@@ -248,7 +248,7 @@ public class KmerMatch {
         if(optSet.getOpt("d").isUsed()) {
             Iterator<Kmer> iterator = kmers.iterator();
             while (iterator.hasNext()) {
-                KmerBytes next = (KmerBytes) iterator.next();
+                Kmer next = iterator.next();
                 if(storeASCII) {
                     System.out.println(new String(next.getBytes(), StandardCharsets.US_ASCII));                                            
                 } else {
