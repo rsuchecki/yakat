@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au.
+ * Copyright 2017 rad.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,10 +15,58 @@
  */
 package kmermatch;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import kextender.CoreCoder;
+
 /**
  *
- * @author Radoslaw Suchecki radoslaw.suchecki@adelaide.edu.au
+ * @author rad
  */
-public class Kmer {
-    
+public class Kmer implements Comparable<Kmer> {
+
+    private final byte[] bytes;
+
+    public Kmer(String canonical, boolean storeASCIII) {
+        if (storeASCIII) {
+            bytes = canonical.getBytes(StandardCharsets.US_ASCII);
+        } else {
+            bytes = CoreCoder.encodeCoreByteArray(canonical);
+        }
+//        int[] encodeCoreIntArray = CoreCoder.encodeCoreIntArray(canonical);
+//        String decodeCore = CoreCoder.decodeCore(canonical.length(), encodeCoreIntArray);
+//        System.err.println("IN : "+canonical);
+//        System.err.println("OUT: "+decodeCore);
+    }
+
+    public byte[] getBytes() {
+        return bytes;
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(bytes);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        final Kmer other = (Kmer) obj;
+        return Arrays.equals(this.bytes, other.bytes);
+    }
+
+    @Override
+    public int compareTo(Kmer another) {
+        byte[] asciiOther = another.getBytes();
+        return CoreCoder.compareCores(bytes, asciiOther);
+//        int len = bytes.length < asciiOther.length ? bytes.length : asciiOther.length;
+//        for (int i = 0; i < len; i++) {
+//            if (bytes[i] < asciiOther[i]) {
+//                return -1;
+//            } else if (bytes[i] > asciiOther[i]) {
+//                return 1;
+//            }
+//        }
+//        return bytes.length - asciiOther.length; // N/A
+    }
+
 }

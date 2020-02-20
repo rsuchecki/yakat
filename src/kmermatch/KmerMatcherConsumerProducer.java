@@ -172,7 +172,7 @@ public class KmerMatcherConsumerProducer implements Runnable {
             if (sequence.subSequence(i, i + k).chars().anyMatch(x -> x == 'N' || x == 'n')) {
                 continue;
             }
-            if (map.contains(new KmerBytes(SequenceOps.getCanonical(sequence.subSequence(i, i + k).toString()), storeASCII))) {
+            if (map.contains(new Kmer(SequenceOps.getCanonical(sequence.subSequence(i, i + k).toString()), storeASCII))) {
                 matches++;
             }
         }
@@ -196,7 +196,7 @@ public class KmerMatcherConsumerProducer implements Runnable {
             if (sequence.subSequence(i, i + k).chars().anyMatch(x -> x == 'N' || x == 'n')) {
                 continue;
             }
-            if (map.contains(new KmerBytes(SequenceOps.getCanonical(sequence.subSequence(i, i + k).toString()), storeASCII))) {
+            if (map.contains(new Kmer(SequenceOps.getCanonical(sequence.subSequence(i, i + k).toString()), storeASCII))) {
                 return true;
             }
         }
