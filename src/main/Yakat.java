@@ -26,6 +26,7 @@ import kextender.CoreCoder;
 import kextender.KmerExtender;
 import kmermatch.KmerMatch;
 import kmerger.KmerSetMerge;
+import kmerloc.KmerLocator;
 import processpileup.ProcessPileup;
 import processpileup.PileupStats;
 import pileupstatsmerge.PileupStatsMerge;
@@ -52,6 +53,9 @@ public class Yakat {
         } else if (args.length != 0 && args[0].matches("(k)?match(er)?")) {
             args[0] = "";
             new KmerMatch(args, name, "kmatch");
+//            new KmerMatch(args, name, "kmatch");
+        } else if (args.length != 0 && args[0].matches("(k)?merloc(ate)?")) {            
+            new KmerLocator(args, name, "kmerlocate");
 //            new KmerMatch(args, name, "kmatch");
         } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {
             new KmerSetMerge(args, name, "kmerge");
