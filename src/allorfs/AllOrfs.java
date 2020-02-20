@@ -100,7 +100,7 @@ public class AllOrfs {
         //OUTPUT
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Output settings]");
         optSet.addOpt(new Opt('m', "min-orf-length", "Minimum output ORF length", 1).setDefaultValue(100).setMinValue(6));
-        optSet.addOpt(new Opt('s', "strand", "Output ORFs identified on starnd ", 1).setDefaultValue("both"));
+        optSet.addOpt(new Opt('s', "strand", "Output ORFs identified on strand ", 1).setDefaultValue("both"));
 ////        footId++;
         optSet.addOpt(new Opt('o', "out", "Print output to <arg> file", 1).setDefaultValue("/dev/stdout")); //on Windows use "CON" as default file name
         //POSITIONAL
