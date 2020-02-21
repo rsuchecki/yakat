@@ -129,63 +129,22 @@ public class FastaIndexed {
             }
             file.seek(start);
            
-           
             int len = to == null ? lengthsMap.get(id) : to - from + 1;               
             buff = new byte[len];
             
-            //Wrapped FASTA
-            int lineWidth = lineWidthsMap.get(id);
-            int lineBases = lineBasesMap.get(id);
-            int wrapBytes = lineWidth-lineBases;
-//            byte[] sink = new byte[wrapBytes];
-            if(lineWidth < len) {
-                int lines = len / lineWidth;
-//                len += lines;
-                int offset = 0;
+            int lineWidth = lineWidthsMap.get(id);            
+            if(lineWidth < len) { //Wrapped FASTA
+                int lineBases = lineBasesMap.get(id);
+                int wrapBytes = lineWidth-lineBases; //1 or 2 depending if linux or windows line endings
+                int lines = len / lineWidth; 
+                int offset = 0; //start writing buffer array from this position
                 for (int i = 0; i < lines; i++) {                     
                    offset += file.read(buff,offset,lineBases);
-//                   byte tmp[] = buff.clone();
-//                   String sofar = new String(tmp);
-//                   file.read(sink);
                    file.skipBytes(wrapBytes);
                 }
-                file.read(buff,offset,buff.length-offset);
-
-//                    offset = file.read(buff,0,lineBases);
-//
-//                      file.skipBytes(wrapBytes);
-////                    byte newlineOrReturn = file.readByte();
-////                    if(newlineOrReturn != 10) { //If not \n
-////                        if(newlineOrReturn == 13) { //If \r
-////                            newlineOrReturn = file.readByte();
-////                        }
-////                    }
-////                    String should_be_newline = Byte.toString(file.readByte());
-//                    offset += file.read(buff,offset,lineBases);                    
-//                    file.skipBytes(wrapBytes);
-//                    offset+= file.read(buff,offset,lineBases);
-//                    
-//                    file.skipBytes(wrapBytes);
-//                    file.read(buff,offset,buff.length-offset);
-                    
-//                }
-//                String read = new String(buff);
-//                int  readLen = read.length();
-//                
-//                System.err.println(read);
-//                System.err.println(readLen);
-                
-//                for (int i = 0; i < buff.length; i++) {
-//                    System.out.printf("%4d", i);
-//                }
-//                for (int i = 0; i < buff.length; i++) {
-//                    System.out.printf("%4s", buff[i]);
-//                }
-//                System.out.println();
-//                int x =0;
-            } else {                       
-                
-                file.read(buff);
+                file.read(buff,offset,buff.length-offset);  //add last line which should fill the reminder of the buffer 
+            } else {  //Unwrapped FASTA                                    
+                file.read(buff); 
             }
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
