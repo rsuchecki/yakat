@@ -63,7 +63,7 @@ public class ProcessPileup {
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet("Process multi-sample mpileup input. Base calls printed to stdout on lines prefixed with ^CALLS\\t, "
-            + "base count printed to stdout on lines prefixed by ^COUNTS\\t");
+                + "base count printed to stdout on lines prefixed by ^COUNTS\\t");
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
         optSet.addOpt(new Opt('n', "sample-names", "space separated sample names, order must correspond to mpileup input").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
@@ -81,18 +81,18 @@ public class ProcessPileup {
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Record reporting settings]");
         optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(0).setDefaultValue(2));
-        
+
         optSet.addOpt(new Opt('W', "all-within-thresholds", "Print all loci within given thresholds even if no alternative alleles called"));
         optSet.addOpt(new Opt(null, "min-samples-called", "[TODO] Minimum samples for which the base was called", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "max-samples-called", "[TODO] Maximum samples for which the base was called", 1).setMinValue(1));
         optSet.addOpt(new Opt(null, "min-samples-zero-coverage", "[TODO] May be useful for presence-absence analyses", 1).setMinValue(0).setDefaultValue(0));
         optSet.addOpt(new Opt(null, "max-samples-zero-coverage", "[TODO] May be useful for presence-absence analyses", 1).setMinValue(0));
-        
-        optSet.addOpt(new Opt(null, "min-snps-to-reference", "Report a position if at least <arg> samples have a SNP to reference ",1 ).setMinValue(1));
+
+        optSet.addOpt(new Opt(null, "min-snps-to-reference", "Report a position if at least <arg> samples have a SNP to reference ", 1).setMinValue(1));
         optSet.addOpt(new Opt(null, "min-calls-uncertain", "Minimum samples for which the base was not called due to uncertainty", 1).setMinValue(0).setDefaultValue(0));
         optSet.addOpt(new Opt(null, "max-calls-uncertain", "Maximum samples for which the base was not called due to uncertainty", 1).setMinValue(0).setDefaultValue(65535));
-        optSet.addOpt(new Opt(null, "min-calls-het", "Report a position if at least <arg> calls are heterozygous",1 ).setMinValue(0).setDefaultValue(0));
-        optSet.addOpt(new Opt(null, "max-calls-het", "Report a position if at most <arg> calls are heterozygous",1 ).setMinValue(0).setDefaultValue(65535));
+        optSet.addOpt(new Opt(null, "min-calls-het", "Report a position if at least <arg> calls are heterozygous", 1).setMinValue(0).setDefaultValue(0));
+        optSet.addOpt(new Opt(null, "max-calls-het", "Report a position if at most <arg> calls are heterozygous", 1).setMinValue(0).setDefaultValue(65535));
 //        optSet.addOpt(new Opt('z', "min-missing-samples", "Minimum samples with zero coverage", 1).setMinValue(0).setDefaultValue(0));
 //        optSet.addOpt(new Opt('u', "max-uncalled-samples", "Maximum samples for which the base was not called", 1).setMinValue(0).setDefaultValue(0));
         optSet.incrementLisitngGroup();
@@ -100,7 +100,7 @@ public class ProcessPileup {
         String threadsOrderNote = "Note that in multi-threaded mode the output lines order need not reflect the input order";
         optSet.addOpt(new Opt('t', "threads", "Max number of threads to be used", 1).setMinValue(1).setDefaultValue(1).setMaxValue(Runtime.getRuntime().availableProcessors()).addFootnote(1, threadsOrderNote));
         optSet.addOpt(new Opt('U', "in-buffer-size", "Size of buffers put on in-queue ", 1024, 128, 32768));
-        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up",64, 1, 256));
+        optSet.addOpt(new Opt('Q', "in-queue-capacity", "Maximum number of buffers put on queue for processing threads to pick-up", 64, 1, 256));
 //        optSet.addOpt(new Opt('u', "out-buffer-size", "Size of buffers put on out-queue ", 1024, 128, 32768));
 //        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writing-out",64, 1, 256));
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
@@ -154,7 +154,6 @@ public class ProcessPileup {
 //            }
 //        }
 //    }
-
     private void parallelMpileupProcessing(OptSet optSet) {
 
         boolean exit = false;
@@ -183,7 +182,7 @@ public class ProcessPileup {
 //        double maxPercErrLocus = (double) optSet.getOpt("L").getValueOrDefault();
         String inputFile = (String) optSet.getOpt("p").getValueOrDefault();
         int READER_BUFFER_SIZE = (int) optSet.getOpt("U").getValueOrDefault();
-        
+
         int IN_Q_CAPACITY = (int) optSet.getOpt("Q").getValueOrDefault();
 //        int OUT_Q_CAPACITY = (int) optSet.getOpt("q").getValueOrDefault();
         int MAX_THREADS = (int) optSet.getOpt("t").getValueOrDefault();
@@ -223,7 +222,7 @@ public class ProcessPileup {
             System.out.println("CALLS\t" + getHeader(SAMPLE_NAMES));
 
             PrintStream bufferedOut = new PrintStream(new java.io.BufferedOutputStream(System.out, 65535));
-            
+
             //SPAWN CONSUMER THREADS 
             for (int i = 0; i < threads; i++) {
 //                MpileupConsumer consumer = new MpileupConsumer(inputQueue, minCoveragePerLocus, maxCoveragePerLocus, minSamples, maxPercErrAllele, TOOL_NAME);
@@ -247,25 +246,26 @@ public class ProcessPileup {
                 Logger.getLogger(KmerExtender.class.getName()).log(Level.SEVERE, null, ex);
                 Reporter.report("[ERROR]", "timeout exception!", TOOL_NAME);
             }
-
+            bufferedOut.close();
         } catch (OutOfMemoryError e) {
             Reporter.report("[ERROR]", "Out of memory error!", TOOL_NAME);
             System.exit(1);
         }
+
         Reporter.report("[INFO]", "Done!", TOOL_NAME);
     }
 
     private CharSequence getOutputCodes(OptSet optSet) {
         StringBuilder codes = new StringBuilder();
-        char m = (Character)optSet.getOpt("ambiguous-call-char").getValueOrDefault();
-        char a = (Character)optSet.getOpt("zero-reads-char").getValueOrDefault();
+        char m = (Character) optSet.getOpt("ambiguous-call-char").getValueOrDefault();
+        char a = (Character) optSet.getOpt("zero-reads-char").getValueOrDefault();
         codes.append("|---------+-------------------------------------------------------|\n");
         codes.append("|  Symbol | Description                                           |\n");
         codes.append("|---------+-------------------------------------------------------|\n");
-        codes.append("|    "+m+"    + insufficient or conflicting information so not called |\n");
+        codes.append("|    " + m + "    + insufficient or conflicting information so not called |\n");
         codes.append("|    E    + deletion in read / insertion in the reference         |\n");
         codes.append("|    I    + insertion in read / deletion in the reference         |\n");
-        codes.append("|    "+a+"    + indicates no aligned bases                            |\n");
+        codes.append("|    " + a + "    + indicates no aligned bases                            |\n");
         codes.append("|---------+-------------------------------------------------------|\n\n");
 
         codes.append("|------------------------------------------------------------|\n");

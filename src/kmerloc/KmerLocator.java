@@ -178,8 +178,8 @@ public class KmerLocator {
             Reporter.report("[INFO]", "Reading in " + id, TOOL_NAME);
             Sequence sequence = firsBasesNum == null ? new Sequence(id, fastaIndexed.getSequence(id)) : new Sequence(id, fastaIndexed.getSequence(id, 1, firsBasesNum));
 
-            System.out.println(sequence.getLength());
-            System.out.println(sequence.getSequenceString());
+//            System.out.println(sequence.getLength());
+//            System.out.println(sequence.getSequenceString());
             
             //KMERIZE
             
@@ -197,7 +197,6 @@ public class KmerLocator {
             Reporter.report("[INFO]", "Matched "+count+" kmers in " + id, TOOL_NAME);
             
             
-                                break;
         }
 
 //                
@@ -255,8 +254,7 @@ public class KmerLocator {
 //        } catch (TimeoutException ex) {
 //            Reporter.report("[ERROR]", "timeout exception!", getClass().getSimpleName());
 //        }
-        bufferedOut.flush();
-
+        bufferedOut.close();
         Reporter.report("[INFO]", "Finished placing k-mers", TOOL_NAME);
     }
 }
