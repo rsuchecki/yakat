@@ -53,8 +53,9 @@ import shared.StdRedirect;
 public class KmerLocator {
 
     //Read and populate k-mer set //later TODO: multiple k-mer sets - can process range of k values in single pass of the genome
-    //Split target FASTA into separate sequences //Later possibly split sequences further
-    //  
+    //Split target FASTA into separate sequences //Later possibly split sequences further?
+    //If various len k-mer sets then use the same in memory sequence to extract and query each k-set
+    
     private final String TOOL_NAME;
     private final int HELP_WIDTH = 180;
     private final int IN_Q_CAPACITY;
@@ -175,9 +176,11 @@ public class KmerLocator {
         Pattern tab = Pattern.compile("\t");
         for (String id : fastaIndexed.getIds()) {
             Reporter.report("[INFO]", "Reading in " + id, TOOL_NAME);
-            Sequence sequence = firsBasesNum == null ? new Sequence(id, fastaIndexed.getSequence(id)) : new Sequence(id, fastaIndexed.getSequence(id, 1L, firsBasesNum.longValue()));
+            Sequence sequence = firsBasesNum == null ? new Sequence(id, fastaIndexed.getSequence(id)) : new Sequence(id, fastaIndexed.getSequence(id, 1, firsBasesNum));
 
-//            System.out.println(sequence.getLength());
+            System.out.println(sequence.getLength());
+            System.out.println(sequence.getSequenceString());
+            
             //KMERIZE
             
             int KEY = inputReaderProducer.getKmerLengths().get(0);
@@ -192,6 +195,9 @@ public class KmerLocator {
                 }
             }
             Reporter.report("[INFO]", "Matched "+count+" kmers in " + id, TOOL_NAME);
+            
+            
+                                break;
         }
 
 //                
@@ -251,6 +257,6 @@ public class KmerLocator {
 //        }
         bufferedOut.flush();
 
-        Reporter.report("[INFO]", "Finished extracting ORFs", TOOL_NAME);
+        Reporter.report("[INFO]", "Finished placing k-mers", TOOL_NAME);
     }
 }

@@ -39,10 +39,10 @@ public class FastaIndexed {
     //LINEWIDTH	The number of bytes in each line, including the newline            
     private String TOOL_NAME;
     private String fastaFile;
-    private HashMap<String, Long> lengthsMap = new HashMap<>();
-    private HashMap<String, Long> offsetsMap = new HashMap<>();
-    private HashMap<String, Long> lineBasesMap = new HashMap<>();
-    private HashMap<String, Long> lineWidthsMap = new HashMap<>();
+    private HashMap<String, Integer> lengthsMap = new HashMap<>();
+    private HashMap<String, Integer> offsetsMap = new HashMap<>();
+    private HashMap<String, Integer> lineBasesMap = new HashMap<>();
+    private HashMap<String, Integer> lineWidthsMap = new HashMap<>();
     private ArrayList<String> ids;
     
     public FastaIndexed(String TOOL_NAME, String fasta, String fai) {
@@ -63,18 +63,17 @@ public class FastaIndexed {
             index = new BufferedReader(new FileReader(new File(fai)));
             String line;
             while ((line = index.readLine()) != null && !line.isEmpty()) {
-
                 String[] toks = line.split("\t");
                 ids.add(toks[0]);
-                lengthsMap.put(toks[0], Long.parseLong(toks[1]));
-                offsetsMap.put(toks[0], Long.parseLong(toks[2]));
-                lineBasesMap.put(toks[0], Long.parseLong(toks[3]));
-                lineWidthsMap.put(toks[0], Long.parseLong(toks[4]));
+                lengthsMap.put(toks[0], Integer.parseInt(toks[1]));
+                offsetsMap.put(toks[0], Integer.parseInt(toks[2]));
+                lineBasesMap.put(toks[0], Integer.parseInt(toks[3]));
+                lineWidthsMap.put(toks[0], Integer.parseInt(toks[4]));
 //                System.out.println(line);
-                if(!Objects.equals(lineBasesMap.get(toks[0]), lengthsMap.get(toks[0]))) {
-                    Reporter.report("[ERROR]", "Wrapped FASTA not supported. Offending record: "+line , TOOL_NAME);
-                    System.exit(1);
-                }
+//                if(!Objects.equals(lineBasesMap.get(toks[0]), lengthsMap.get(toks[0]))) {
+//                    Reporter.report("[ERROR]", "Wrapped FASTA not supported. Offending record: "+line , TOOL_NAME);
+//                    System.exit(1);
+//                }              
             }
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
@@ -115,12 +114,12 @@ public class FastaIndexed {
      * @param to
      * @return
      */
-    public String getSequence(String id, Long from, Long to) {
+    public String getSequence(String id, Integer from, Integer to) {
         RandomAccessFile file = null;
         byte[] buff = null;
         try {
             file = new RandomAccessFile(fastaFile, "r");
-            Long start = offsetsMap.get(id);
+            Integer start = offsetsMap.get(id);
             if(start == null) {
                 Reporter.report("[ERROR]", id+" <- identifier  not found in .fai index for: "+fastaFile, TOOL_NAME);                
                 System.exit(1);
@@ -129,10 +128,65 @@ public class FastaIndexed {
                 start += from - 1;
             }
             file.seek(start);
+           
+           
+            int len = to == null ? lengthsMap.get(id) : to - from + 1;               
+            buff = new byte[len];
             
-            Long len = to == null ? lengthsMap.get(id) : to - from + 1;            
-            buff = new byte[len.intValue()];
-            file.read(buff);
+            //Wrapped FASTA
+            int lineWidth = lineWidthsMap.get(id);
+            int lineBases = lineBasesMap.get(id);
+            int wrapBytes = lineWidth-lineBases;
+//            byte[] sink = new byte[wrapBytes];
+            if(lineWidth < len) {
+                int lines = len / lineWidth;
+//                len += lines;
+                int offset = 0;
+                for (int i = 0; i < lines; i++) {                     
+                   offset += file.read(buff,offset,lineBases);
+//                   byte tmp[] = buff.clone();
+//                   String sofar = new String(tmp);
+//                   file.read(sink);
+                   file.skipBytes(wrapBytes);
+                }
+                file.read(buff,offset,buff.length-offset);
+
+//                    offset = file.read(buff,0,lineBases);
+//
+//                      file.skipBytes(wrapBytes);
+////                    byte newlineOrReturn = file.readByte();
+////                    if(newlineOrReturn != 10) { //If not \n
+////                        if(newlineOrReturn == 13) { //If \r
+////                            newlineOrReturn = file.readByte();
+////                        }
+////                    }
+////                    String should_be_newline = Byte.toString(file.readByte());
+//                    offset += file.read(buff,offset,lineBases);                    
+//                    file.skipBytes(wrapBytes);
+//                    offset+= file.read(buff,offset,lineBases);
+//                    
+//                    file.skipBytes(wrapBytes);
+//                    file.read(buff,offset,buff.length-offset);
+                    
+//                }
+//                String read = new String(buff);
+//                int  readLen = read.length();
+//                
+//                System.err.println(read);
+//                System.err.println(readLen);
+                
+//                for (int i = 0; i < buff.length; i++) {
+//                    System.out.printf("%4d", i);
+//                }
+//                for (int i = 0; i < buff.length; i++) {
+//                    System.out.printf("%4s", buff[i]);
+//                }
+//                System.out.println();
+//                int x =0;
+            } else {                       
+                
+                file.read(buff);
+            }
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
             System.exit(1);
