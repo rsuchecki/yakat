@@ -191,7 +191,7 @@ public class AllOrfs {
         } catch (TimeoutException ex) {
             Reporter.report("[ERROR]", "timeout exception!", getClass().getSimpleName());
         }
-        bufferedOut.flush();
+        bufferedOut.close();
 
         Reporter.report("[INFO]", "Finished extracting ORFs", TOOL_NAME);
     }

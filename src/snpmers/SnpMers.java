@@ -728,7 +728,7 @@ public class SnpMers {
                         out.newLine();
                     }
                 }
-                out.flush();
+                out.close();
 //            System.err.println(snpFilter.getSequence1().getId() + DELIMITER + snpFilter.getSequence2().getId()+" CALL: "+snpFilter.callBaseAndResetMers(sampleName, minTotal, minMinor));
 //            System.err.println(snpFilter.getMedian1() + " <-- "+Arrays.toString(snpFilter.getMers1()));
 //            System.err.println(snpFilter.getMedian2() + " <-- "+Arrays.toString(snpFilter.getMers2()));
@@ -767,7 +767,7 @@ public class SnpMers {
                         out.newLine();
                     }
                 }
-                out.flush();
+                out.close();
             } catch (UnsupportedEncodingException e) {
                 Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
             } catch (IOException e) {
@@ -853,7 +853,7 @@ public class SnpMers {
                 sb.append(";").append(System.lineSeparator());
                 sb.append("END; [Distances]").append(System.lineSeparator());
                 out.write(sb.toString());
-                out.flush();
+                out.close();
 
             } catch (UnsupportedEncodingException e) {
                 Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);

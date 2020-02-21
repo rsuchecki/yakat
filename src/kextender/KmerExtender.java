@@ -347,7 +347,7 @@ public class KmerExtender {
 //                    System.out.println(outputLR);
 
                 }
-                out.flush();
+                out.close();
             } catch (UnsupportedEncodingException e) {
                 Reporter.report("[ERROR]", e.getMessage(), TOOL_NAME);
             } catch (IOException e) {
