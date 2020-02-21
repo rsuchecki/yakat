@@ -285,11 +285,10 @@ public class HmmerDomains {
                     percDomainsCovered[round]++;
 
                     //ACTUAL ORF POS IN REF=(ORF POS IN CONTIG)+(CONTIG START POS IN REF)
-                    Long orfFrom = orf.getFrom() + hitsGroup.getOrfPredictionFromPosition() - 1;
-                    Long orfTo = orf.getTo() + hitsGroup.getOrfPredictionFromPosition() - 1;
+                    Integer orfFrom = orf.getFrom() + hitsGroup.getOrfPredictionFromPosition() - 1;
+                    Integer orfTo = orf.getTo() + hitsGroup.getOrfPredictionFromPosition() - 1;
 
-                    sb.append(System.lineSeparator()).append(gffEntry(new CharSequence[]{orf.getParenId(), source, "ORF",
-                        orfFrom.toString(), orfTo.toString(), blank, orf.getFrame() > 0 ? "+" : "-", blank, orfAttributes}));
+                    sb.append(System.lineSeparator()).append(gffEntry(new CharSequence[]{orf.getParenId(), source, "ORF", orfFrom.toString(), orfTo.toString(), blank, orf.getFrame() > 0 ? "+" : "-", blank, orfAttributes}));
 
                     //OUTPUT ORFs as NUCL AND/OR AA FASTA 
                     if (outNucl != null || outAA != null) {
