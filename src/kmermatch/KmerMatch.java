@@ -13,8 +13,10 @@ import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -145,12 +147,13 @@ public class KmerMatch {
         Reporter.report("[INFO]", "Start populating k-mers set", TOOL_NAME);
 
         //SPAWN MAP - POPULATOR THREADS
-        ConcurrentSkipListSet<Kmer> kmers = new ConcurrentSkipListSet();
+//        ConcurrentSkipListSet<Kmer> kmers = new ConcurrentSkipListSet();
+        KmerSetsMap kmerSetsMap = new KmerSetsMap(TOOL_NAME);
         final ExecutorService populatorExecutorService = new ThreadPoolExecutor(MATCHER_THREADS, MATCHER_THREADS, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         ArrayList<Future<?>> populatorFutures = new ArrayList<>(MATCHER_THREADS);
         ArrayList<Message> finalMessages = new ArrayList<>(MATCHER_THREADS * 5);
         for (int i = 0; i < MATCHER_THREADS; i++) {
-            populatorFutures.add(populatorExecutorService.submit(new KmerSetPopulatorConsumer(kmers, inputKmersQueue, k, storeASCII)));
+            populatorFutures.add(populatorExecutorService.submit(new KmerSetPopulatorConsumer(kmerSetsMap, inputKmersQueue, k, storeASCII)));
         }
         populatorExecutorService.shutdown();
         inputKmersExecutorService.shutdown();
@@ -172,8 +175,11 @@ public class KmerMatch {
         } catch (TimeoutException ex) {
             Reporter.report("[ERROR]", "timeout exception!", getClass().getSimpleName());
         }
-
-        Reporter.report("[INFO]", "Finished populating k-mers set, n=" + NumberFormat.getNumberInstance().format(kmers.size()), TOOL_NAME);
+        ConcurrentHashMap<Integer, ConcurrentSkipListSet<Kmer>> map = kmerSetsMap.getKmerSetsMap();
+        for (Map.Entry<Integer, ConcurrentSkipListSet<Kmer>> entry : map.entrySet()) {           
+            Reporter.report("[INFO]", "Finished populating k-mers set, k= "+entry.getKey()+", n=" + NumberFormat.getNumberInstance().format(entry.getValue().size()), TOOL_NAME);            
+        }
+//        Reporter.report("[INFO]", "Finished populating k-mers set, n=" + NumberFormat.getNumberInstance().format(kmers.size()), TOOL_NAME);
 
 //        for(String inputFileName: inputFilenamesList) {
 //            
@@ -212,7 +218,7 @@ public class KmerMatch {
         final ExecutorService matcherExecutorService = new ThreadPoolExecutor(MATCHER_THREADS, MATCHER_THREADS, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         ArrayList<Future<?>> matcherFutures = new ArrayList<>(MATCHER_THREADS);
         for (int i = 0; i < MATCHER_THREADS; i++) {
-            matcherFutures.add(matcherExecutorService.submit(new KmerMatcherConsumerProducer(inputQueue, outputQueue, kmers, IN_BUFFER_SIZE, TOOL_NAME,
+            matcherFutures.add(matcherExecutorService.submit(new KmerMatcherConsumerProducer(inputQueue, outputQueue, kmerSetsMap.getKmerSet(k), IN_BUFFER_SIZE, TOOL_NAME,
                     finalMessages, optSet.getOpt("v").isUsed(), (int) optSet.getOpt("m").getValueOrDefault(),
                     (double) optSet.getOpt("M").getValueOrDefault(),
                     inputReaderProducer.getGuessedInputFormat(), k, storeASCII)));
@@ -246,7 +252,7 @@ public class KmerMatch {
         
         
         if(optSet.getOpt("d").isUsed()) {
-            Iterator<Kmer> iterator = kmers.iterator();
+            Iterator<Kmer> iterator = kmerSetsMap.getKmerSet(k).iterator();
             while (iterator.hasNext()) {
                 Kmer next = iterator.next();
                 if(storeASCII) {
