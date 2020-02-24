@@ -40,7 +40,7 @@ public class FastaIndexed {
     private String TOOL_NAME;
     private String fastaFile;
     private HashMap<String, Integer> lengthsMap = new HashMap<>();
-    private HashMap<String, Integer> offsetsMap = new HashMap<>();
+    private HashMap<String, Long> offsetsMap = new HashMap<>();
     private HashMap<String, Integer> lineBasesMap = new HashMap<>();
     private HashMap<String, Integer> lineWidthsMap = new HashMap<>();
     private ArrayList<String> ids;
@@ -65,7 +65,7 @@ public class FastaIndexed {
                 String[] toks = line.split("\t");
                 ids.add(toks[0]);
                 lengthsMap.put(toks[0], Integer.parseInt(toks[1]));
-                offsetsMap.put(toks[0], Integer.parseInt(toks[2]));
+                offsetsMap.put(toks[0], Long.parseLong(toks[2]));
                 lineBasesMap.put(toks[0], Integer.parseInt(toks[3]));
                 lineWidthsMap.put(toks[0], Integer.parseInt(toks[4]));
             }
@@ -107,7 +107,7 @@ public class FastaIndexed {
         byte[] buff = null;
         try {
             file = new RandomAccessFile(fastaFile, "r");
-            Integer start = offsetsMap.get(id);
+            Long start = offsetsMap.get(id);
             if (start == null) {
                 Reporter.report("[ERROR]", id + " <- identifier  not found in .fai index for: " + fastaFile, TOOL_NAME);
                 System.exit(1);
