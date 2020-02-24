@@ -85,7 +85,7 @@ public class KmerLocatorConsumer implements Runnable {
                             if (kmers.contains(new Kmer(canonical, storeASCII))) {
                                 count++;
 //                                bufferedOut.append(id + ":" + (i + 1) + "-" + (i + k) + "\t" + canonical + System.lineSeparator());                                
-                                bufferedOut.append(canonical + "\t"+ id + "\t" + (i + 1) + "\t" + (i + k) + System.lineSeparator());
+                                bufferedOut.append(canonical.toUpperCase() + "\t"+ id + "\t" + (i + 1) + "\t" + (i + k) + System.lineSeparator());
                             }
                         }
 //                        stats.addStat(id, k, count);
