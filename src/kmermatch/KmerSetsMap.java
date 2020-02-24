@@ -18,7 +18,6 @@ package kmermatch;
 import java.util.ArrayList;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
-import kmermatch.Kmer;
 import shared.Reporter;
 
 /**
@@ -29,7 +28,7 @@ public class KmerSetsMap {
 
     private final ConcurrentHashMap<Integer, ConcurrentSkipListSet<Kmer>> kmersSetsMap;
     private final ArrayList<Integer> kSizes;
-    private final String TOOL_NAME;
+    private final String TOOL_NAME;    
     
     public KmerSetsMap(String TOOL_NAME) {
         this.kmersSetsMap = new ConcurrentHashMap<>();

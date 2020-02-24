@@ -111,6 +111,7 @@ public class Yakat {
         System.out.println("                  report k-mer coverage and frequency for the input sequences");
         System.out.println("  kextend       : extend k-mers to unambiguous contigs or extend input \"seed\" sequences only");
         System.out.println("  kmatch        : match/filter/bait FAST(A|Q) sequences based on contained k-mers (or lack thereof)");
+        System.out.println("  kmerloc       : [PROTOTYPE] report locations of k-mers within a (indexed) FASTA");
         System.out.println("  seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers");
         System.out.println("                  to genotype presumed mutations at positions k bases from the seed edges");
         System.out.println("  snpmers       : given SNPs from vclusters, corresponding FASTA sequences and sets of k-mers");
