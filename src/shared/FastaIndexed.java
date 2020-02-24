@@ -121,10 +121,10 @@ public class FastaIndexed {
             buff = new byte[len];
 
             int lineWidth = lineWidthsMap.get(id);
-            if (lineWidth < len) { //Wrapped FASTA
+            if (lineWidth < len) { //Wrapped FASTA                
                 int lineBases = lineBasesMap.get(id);
                 int wrapBytes = lineWidth - lineBases; //1 or 2 depending if linux or windows line endings
-                int lines = len / lineWidth;
+                int lines = len / lineBases;
                 int offset = 0; //start writing buffer array from this position
                 for (int i = 0; i < lines; i++) {
                     offset += file.read(buff, offset, lineBases);
