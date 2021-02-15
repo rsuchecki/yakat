@@ -14,7 +14,7 @@
     
     <target name="-pre-init">
 <!--       <property name="project.name" value="NAME" />-->
-       <property name="version.num" value="0.9.2-kmerlocate" />
+       <property name="version.num" value="0.9.2-soigraphs" />
         <tstamp>
             <format property="NOW" pattern="yyyy-MM-dd HH:mm:ss z" />
         </tstamp>
