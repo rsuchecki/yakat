@@ -148,7 +148,6 @@ public class KmerExtender {
             NAME_PREFIX = (String) optSet.getOpt("p").getValueOrDefault();
         }
 
-
 //        String outRedirect;
 //        String errRedirect;
 //        if ((outRedirect = (String) optSet.getOpt("o").getValueOrDefault()) != null) {
@@ -171,7 +170,6 @@ public class KmerExtender {
 //                Reporter.report("[ERROR]", "Failed redirecting stderr to " + errRedirect, TOOL_NAME);
 //            }
 //        }
-
 //        for(Opt o: optSet.getOptsList()) {
 //            Reporter.report("[INFO]", o.getOptLabelString()+" "+o.getValueOrDefault(), toolName);
 //        }
@@ -236,14 +234,11 @@ public class KmerExtender {
         return optSet;
     }
 
-
-
     /**
      * Wrapper method executing individual steps
      */
     private void runKmerExtender(OptSet optSet) {
         Reporter.report("[INFO]", "Initialized, will use " + MAX_THREADS + " thread(s) to populate map ", TOOL_NAME);
-
 
         ArrayList<Integer> kSizes = new ArrayList<>();
         if (KMER_LENGTH_MIN != null) {
@@ -266,10 +261,15 @@ public class KmerExtender {
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 //            Reporter.report("[INFO]", "Finished populating map, counting elements... ", TOOL_NAME);
             Reporter.report("[INFO]", "Finished populating map, k=" + k + ", n=" + NumberFormat.getNumberInstance().format(pairMersMap.size()), TOOL_NAME);
-            if(pairMersMap.isEmpty()) {
+            if (pairMersMap.isEmpty()) {
                 pairMerMaps.removePairMersMap(k);
                 kIterator.remove();
             }
+        }
+
+        if (pairMerMaps.size() == 0) {
+            Reporter.report("[WARN]", "Empty k-mer map(s), nothing to extend... terminating", TOOL_NAME);
+            System.exit(0); //not sure if this should be non-zero 
         }
 
         //PURGING ALSO IDENTIFIES MOST TERMINAl PAIRMERS -> ALLOWING EFFICIENT MULTI-THREADED TRAVERSAL
@@ -461,7 +461,7 @@ public class KmerExtender {
             while (it.hasNext()) {
                 Integer k = it.next();
                 PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
-                if(pairMersMap.storeSize() == 0) { //Record for stats after purging, also continue if empty
+                if (pairMersMap.storeSize() == 0) { //Record for stats after purging, also continue if empty
                     continue;
                 }
                 if (pairMerMaps.size() >= threads) {
@@ -539,8 +539,8 @@ public class KmerExtender {
             double ratio = (double) terminals / pairMersMap.getStoredSize();
             NumberFormat perc = NumberFormat.getPercentInstance();
             perc.setMaximumFractionDigits(4);
-            Reporter.report("[INFO]", "Identified " + NumberFormat.getIntegerInstance().format(terminals)+" terminal PairMers (" + perc.format(ratio) + ") at k="+k, TOOL_NAME);
-            Reporter.report("[INFO]", "Found "+NumberFormat.getIntegerInstance().format(pairMersMap.getAmbiguous()) + " ambiguous extensions", TOOL_NAME);
+            Reporter.report("[INFO]", "Identified " + NumberFormat.getIntegerInstance().format(terminals) + " terminal PairMers (" + perc.format(ratio) + ") at k=" + k, TOOL_NAME);
+            Reporter.report("[INFO]", "Found " + NumberFormat.getIntegerInstance().format(pairMersMap.getAmbiguous()) + " ambiguous extensions", TOOL_NAME);
             Reporter.report("[INFO]", "Finished purging map, k=" + k + ", n=" + NumberFormat.getIntegerInstance().format(size), TOOL_NAME);
 //            Iterator<PairMer> iterator = pairMersMap.getTerminalPairMers().keySet().iterator();
 //            while (iterator.hasNext()) {
@@ -647,14 +647,13 @@ public class KmerExtender {
             Iterator<PairMer> it = trimmedSeedPairMerMaps.getPairMersMap(k).iterator();
             PairMersMap pairMersMap = pairMerMaps.getPairMersMap(k);
 
-
             long removedCount = 0L;
             while (it.hasNext()) {
                 if (pairMersMap.remove(it.next())) {
                     removedCount++;
                 }
             }
-            Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount)+" for k="+k, TOOL_NAME);
+            Reporter.report("[INFO]", "Seed-based purging removed additional " + NumberFormat.getIntegerInstance().format(removedCount) + " for k=" + k, TOOL_NAME);
         }
     }
 
@@ -742,7 +741,4 @@ public class KmerExtender {
 //        System.out.println(Reporter.wrapString(s, 145));
 //        System.out.println();
 //    }
-
-
-
 }
