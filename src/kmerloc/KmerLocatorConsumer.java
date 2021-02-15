@@ -84,8 +84,9 @@ public class KmerLocatorConsumer implements Runnable {
                             String canonical = SequenceOps.getCanonical(subSequence.toString());
                             if (kmers.contains(new Kmer(canonical, storeASCII))) {
                                 count++;
+//                                String orientation = canonical.contentEquals(subSequence) ? "+" : "-";
 //                                bufferedOut.append(id + ":" + (i + 1) + "-" + (i + k) + "\t" + canonical + System.lineSeparator());                                
-                                bufferedOut.append(canonical.toUpperCase() + "\t"+ id + "\t" + (i + 1) + "\t" + (i + k) + System.lineSeparator());
+                                bufferedOut.append(subSequence + "\t"+ id + "\t" + (i + 1) + "\t" + (i + k) +"\t"+System.lineSeparator());
                             }
                         }
 //                        stats.addStat(id, k, count);
