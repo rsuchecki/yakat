@@ -68,7 +68,7 @@ public class ProcessPileup {
         optSet.setListingGroupLabel("[Input settings]");
         optSet.addOpt(new Opt('n', "sample-names", "space separated sample names, order must correspond to mpileup input").setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE));
         optSet.addOpt(new Opt('p', "pileup-file", "Input (m)pileup file, alternatively use stdin", 1));
-        optSet.incrementLisitngGroup();
+        int callingOptGroup = optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Base calling settings]");
         optSet.addOpt(new Opt('a', "min-coverage-per-allele", "Minimum coverage required for an allele to be considered in a locus call", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt('c', "min-coverage-per-locus", "Minimum coverage required for a locus to be considered ", 1).setMinValue(1).setDefaultValue(2));
@@ -78,7 +78,11 @@ public class ProcessPileup {
         optSet.addOpt(new Opt(null, "min-minor-major-ratio", "[TODO] Minimum fraction of a minor allele bases required to call a heterozygous base", 1).setMinValue(0.0).setMaxValue(0.5).setDefaultValue(0.0));
         optSet.addOpt(new Opt(null, "zero-reads-char", "A character denoting zero reads at a postion for a given sample", 1).setDefaultValue('.'));
         optSet.addOpt(new Opt(null, "ambiguous-call-char", "A character indicating uncertain call (e.g. due to low coverage or unclear zygosity at locus)", 1).setDefaultValue('?'));
+        int consensusOptGroup = optSet.incrementLisitngGroup();
+        optSet.setListingGroupLabel("[No calling - just report bases]");
+        optSet.addOpt(new Opt(null, "from-consensus", "Not calling but rather just reporting bases from consensus sequences aligned to a reference"));
         optSet.incrementLisitngGroup();
+        optSet.setMutuallyExclusiveGroups(callingOptGroup, consensusOptGroup);
         optSet.setListingGroupLabel("[Record reporting settings]");
         optSet.addOpt(new Opt('s', "min-samples-within-coverage", "Minimum samples within coverage thresholds required to produce ouput", 1).setMinValue(0).setDefaultValue(2));
 
