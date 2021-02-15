@@ -57,6 +57,8 @@ public class Yakat {
         } else if (args.length != 0 && args[0].matches("(k)?merloc(ate)?")) {            
             new KmerLocator(args, name, "kmerlocate");
 //            new KmerMatch(args, name, "kmatch");
+        } else if (args.length != 0 && args[0].matches("soigraph")) {            
+            new soigraph.SoiGraph(args, name, "soigraph");
         } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {
             new KmerSetMerge(args, name, "kmerge");
         } else if (args.length != 0 && args[0].matches("split(er)?")) {
