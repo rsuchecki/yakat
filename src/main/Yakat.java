@@ -57,7 +57,7 @@ public class Yakat {
         } else if (args.length != 0 && args[0].matches("(k)?merloc(ate)?")) {            
             new KmerLocator(args, name, "kmerlocate");
 //            new KmerMatch(args, name, "kmatch");
-        } else if (args.length != 0 && args[0].matches("soigraph")) {            
+        } else if (args.length != 0 && args[0].matches("soi(graph)?")) {            
             new soigraph.SoiGraphBuilder(args, name, "soigraph");
         } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {
             new KmerSetMerge(args, name, "kmerge");
@@ -134,6 +134,7 @@ public class Yakat {
         System.out.println();
         System.out.println("Miscellaneous modules:");
         System.out.println("  allorfs       : Identify and extract all (longest) ORFs from a genome");
+        System.out.println("  soigraph      : Generate sequence-of-interest graph from features and their mappings");
         System.out.println("  kexpress      : [UNTESTED] Calculate expresion values (TPM) from read counts");
         System.out.println("                    and (not quite) GFF description of features ");
 //        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");
