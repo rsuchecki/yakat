@@ -117,7 +117,10 @@ public class FastaIndexed {
             }
             file.seek(start);
 
-            int len = to == null ? lengthsMap.get(id) : to - from + 1;
+            int len = lengthsMap.get(id);
+            if(to != null && to < len) {
+              len = to - from + 1;
+            }
             buff = new byte[len];
 
             int lineWidth = lineWidthsMap.get(id);
