@@ -59,8 +59,9 @@ public class CoreCoder {
                         kmerCoreBitsArray[currentByte]++;
                         break;
                     default:
-                        System.err.println("Failed ecoding kmerstring to byte array....");
-                        System.err.println("Offending char: " + kmerSequence.charAt(position));
+                        System.err.println("Failed encoding kmerstring to byte array....");
+                        System.err.println("Offending char: \"" + kmerSequence.charAt(position)+"\"");
+                        System.err.println("at position " + position);
                         System.err.println("in " + kmerSequence);
                         System.err.println("....exiting");
                         System.exit(1);
