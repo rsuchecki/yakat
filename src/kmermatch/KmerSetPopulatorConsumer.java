@@ -17,7 +17,9 @@ package kmermatch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.regex.Pattern;
 import shared.SequenceOps;
@@ -28,19 +30,21 @@ import shared.SequenceOps;
  */
 public class KmerSetPopulatorConsumer implements Runnable {
 
-    private final ConcurrentSkipListSet<Kmer> kmers;
+//    private final ConcurrentHashMap<Integer, ConcurrentSkipListSet<Kmer>> kmerSetsMap;
+    private final KmerSetsMap kmerSetsMap;
+//    private final ConcurrentSkipListSet<Kmer> kmers;
     private final BlockingQueue<ArrayList<String>> inputQueue;
     private final Integer k;
     private final boolean storeASCII;
 
     /**
      *
-     * @param kmers
+     * @param kmerSetsMap
      * @param inputQueue
      * @param k - set to null if no need to kmerize input
      */
-    public KmerSetPopulatorConsumer(ConcurrentSkipListSet<Kmer> kmers, BlockingQueue<ArrayList<String>> inputQueue, Integer k, boolean storeASCII) {
-        this.kmers = kmers;
+    public KmerSetPopulatorConsumer(KmerSetsMap kmerSetsMap, BlockingQueue<ArrayList<String>> inputQueue, Integer k, boolean storeASCII) {
+        this.kmerSetsMap = kmerSetsMap;
         this.inputQueue = inputQueue;
         this.k = k;
         this.storeASCII = storeASCII;
@@ -53,10 +57,13 @@ public class KmerSetPopulatorConsumer implements Runnable {
             Pattern nonNuclPattern = Pattern.compile(".*[^acgtACGT]+.*");
             Pattern tab = Pattern.compile("\t");
             List<String> list;
-            if (k ==null) { //KMERS INPUT, NO NEED TO KMERIZE
+            if (k == null) { //KMERS INPUT, NO NEED TO KMERIZE
+                StringTokenizer tokenizer;
                 while (!(list = inputQueue.take()).isEmpty()) {
                     for (String line : list) {
-                        kmers.add(new Kmer(SequenceOps.getCanonical(tab.split(line)[0]), storeASCII));
+                        tokenizer = new StringTokenizer(line);
+                        String tok = tokenizer.nextToken().toUpperCase();
+                        kmerSetsMap.getKmerSet(tok.length()).add(new Kmer(SequenceOps.getCanonical(tab.split(line)[0]), storeASCII));
                     }
                 }
             } else {  //KMERIZE
@@ -67,7 +74,7 @@ public class KmerSetPopulatorConsumer implements Runnable {
                         for (int i = 0; i < maxKmer; i++) {                            
                             String canonical = SequenceOps.getCanonical(kmer.subSequence(i, i + k).toString());
                             if(!nonNuclPattern.matcher(canonical).matches()) {
-                                kmers.add(new Kmer(canonical, storeASCII));
+                                kmerSetsMap.getKmerSet(canonical.length()).add(new Kmer(canonical, storeASCII));
                             }
                         }
                     }
@@ -78,5 +85,4 @@ public class KmerSetPopulatorConsumer implements Runnable {
             e.printStackTrace();
         }
     }
-
 }

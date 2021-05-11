@@ -26,6 +26,7 @@ import kextender.CoreCoder;
 import kextender.KmerExtender;
 import kmermatch.KmerMatch;
 import kmerger.KmerSetMerge;
+import kmerloc.KmerLocator;
 import processpileup.ProcessPileup;
 import processpileup.PileupStats;
 import pileupstatsmerge.PileupStatsMerge;
@@ -53,6 +54,9 @@ public class Yakat {
             args[0] = "";
             new KmerMatch(args, name, "kmatch");
 //            new KmerMatch(args, name, "kmatch");
+        } else if (args.length != 0 && args[0].matches("(k)?merloc(ate)?")) {            
+            new KmerLocator(args, name, "kmerlocate");
+//            new KmerMatch(args, name, "kmatch");        
         } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {
             new KmerSetMerge(args, name, "kmerge");
         } else if (args.length != 0 && args[0].matches("split(er)?")) {
@@ -107,6 +111,7 @@ public class Yakat {
         System.out.println("                  report k-mer coverage and frequency for the input sequences");
         System.out.println("  kextend       : extend k-mers to unambiguous contigs or extend input \"seed\" sequences only");
         System.out.println("  kmatch        : match/filter/bait FAST(A|Q) sequences based on contained k-mers (or lack thereof)");
+        System.out.println("  kmerloc       : [PROTOTYPE] report locations of k-mers within a (indexed) FASTA");
         System.out.println("  seedmers      : [PROTOTYPE] given seed seequences interrogare sets of k-mers");
         System.out.println("                  to genotype presumed mutations at positions k bases from the seed edges");
         System.out.println("  snpmers       : given SNPs from vclusters, corresponding FASTA sequences and sets of k-mers");
@@ -126,7 +131,7 @@ public class Yakat {
         System.out.println("  vclusters     : call variants from VSEARCH clustering msa output");
         System.out.println();
         System.out.println("Miscellaneous modules:");
-        System.out.println("  allorfs       : Identify and extract all (longest) ORFs from a genome");
+        System.out.println("  allorfs       : Identify and extract all (longest) ORFs from a genome");        
         System.out.println("  kexpress      : [UNTESTED] Calculate expresion values (TPM) from read counts");
         System.out.println("                    and (not quite) GFF description of features ");
 //        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");

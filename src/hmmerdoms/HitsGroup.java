@@ -32,8 +32,8 @@ public class HitsGroup implements Comparable<HitsGroup>{
     private ArrayList<DomainHit> domainHits;
     private int from;
     private int to;
-    private Long orfPredictionRangeFrom;
-    private Long orfPredictionToPosition;
+    private Integer orfPredictionRangeFrom;
+    private Integer orfPredictionToPosition;
     private Strand strand;
 
     ArrayList<OrfWithDomainHits> orfsWithDomainsHits;
@@ -140,7 +140,7 @@ public class HitsGroup implements Comparable<HitsGroup>{
 
     private void identifyOrfsOverlappingDomains(FastaIndexed fastaIndexed, int upstreamDownstreamBases, boolean allowRecursiveExtending) {
         orfsWithDomainsHits = new ArrayList<>();
-        orfPredictionRangeFrom = new Long(getFrom()) - upstreamDownstreamBases;
+        orfPredictionRangeFrom = new Integer(getFrom()) - upstreamDownstreamBases;
 //        int mod = (int) (orfPredictionFromPosition % 3);
 //        switch(mod) {
 //            case 0: orfPredictionFromPosition -= 2; break;
@@ -148,7 +148,7 @@ public class HitsGroup implements Comparable<HitsGroup>{
 //            case 2: orfPredictionFromPosition -= 1; break;
 //        }
 //        orfPredictionFromPosition -= mod+1;
-        orfPredictionToPosition = new Long(getTo()) + upstreamDownstreamBases;
+        orfPredictionToPosition = new Integer(getTo()) + upstreamDownstreamBases;        
         Sequence s = new Sequence(getTargetId(), fastaIndexed.getSequence(getTargetId(), orfPredictionRangeFrom, orfPredictionToPosition));
                 Pattern startStopCodonsForward = Pattern.compile("ATG|(T(AA|AG|GA))", Pattern.CASE_INSENSITIVE);
         Pattern startStopCodonsReverse = Pattern.compile("CAT|((TT|TC|CT)A)", Pattern.CASE_INSENSITIVE);
@@ -215,11 +215,11 @@ public class HitsGroup implements Comparable<HitsGroup>{
         return orfsWithDomainsHits;
     }
 
-    public Long getOrfPredictionFromPosition() {
+    public Integer getOrfPredictionFromPosition() {
         return orfPredictionRangeFrom;
     }
 
-    public Long getOrfPredictionToPosition() {
+    public Integer getOrfPredictionToPosition() {
         return orfPredictionToPosition;
     }
 

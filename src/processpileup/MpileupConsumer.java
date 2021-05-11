@@ -39,6 +39,7 @@ public class MpileupConsumer implements Runnable {
     private final double maxPercErrLocus;
     private final double minMinorMajorRatio;
     private final boolean allWithinThresholds;
+    private final boolean fromConsensus;
 //    private final boolean reportHets;
     private final String TOOL_NAME;
     private final PrintStream bufferedOut;
@@ -77,6 +78,7 @@ public class MpileupConsumer implements Runnable {
         maxCallsUnceratin = (int) optSet.getOpt("max-calls-uncertain").getValueOrDefault();
 
         allWithinThresholds = optSet.getOptS('W').isUsed();
+        fromConsensus = optSet.getOpt("from-consensus").isUsed();
 //        reportHets = optSet.getOptS('H').isUsed();
         this.inputQueue = inputQueue;
 //        this.outputQueue = outputQueue;
@@ -131,10 +133,10 @@ public class MpileupConsumer implements Runnable {
 //                    int samplesWithBaseCalled = 0;
 //                    int[] basesAllSamples = new int[7];
 
-                    int coverageAllSamples = 0;
+//                    int coverageAllSamples = 0;
                     int samplesWithinCoverage = 0;
                     int uncertain = 0;
-                    int samplesZeroCoverage = 0;
+//                    int samplesZeroCoverage = 0;
                     int snpsToRef = 0;
                     int hetCalls = 0;
                     for (int i = 3; i < toks.length; i += 3) {
@@ -148,41 +150,59 @@ public class MpileupConsumer implements Runnable {
                                 continue;
                             }
 
-                            coverageAllSamples += coverage;
+//                            coverageAllSamples += coverage;
                             if (coverage >= minCoveragePerLocus && coverage <= maxCoveragePerLocus) {
                                 samplesWithinCoverage++;
                             }
-                            int[] bases = getBaseCounts(toks[i + 1], refBase);
+
+                            //special case: calling from consensus sequences 
+                            String entry = toks[i + 1];
+                            if (fromConsensus) {
+                                if (coverage == 1) {
+                                    if (entry.length() == 1) {
+                                        char base = entry.charAt(0);
+                                        if (base == '.' || base == ',') {
+                                            callsSB.append(refBase);
+                                        } else {
+                                            callsSB.append(base);
+                                        }
+                                    } else {
+                                        callsSB.append(ambiguousCallChar);
+                                    }
+                                }
+                            } else {
+                                int[] bases = getBaseCounts(toks[i + 1], refBase);
 //                            for (int j = 0; j < bases.length; j++) {
 //                                basesAllSamples[j] += bases[j];
 //                            }
 
-                            char calledBase = getIUPAC(bases, coverage);
-                            char calledBaseUpper = Character.toUpperCase(calledBase);
+                                char calledBase = getIUPAC(bases, coverage);
+                                char calledBaseUpper = Character.toUpperCase(calledBase);
 
-                            if (calledBase == ambiguousCallChar) {
-                                uncertain++;
-                            } else if (calledBase == zeroReadsChar) {
-                                samplesZeroCoverage++;
-                            } else {
-                                if (!isACGT(calledBase)) {
-                                    hetCalls++;
-                                }
-                                if (calledBaseUpper != refBaseUpper) {
-                                    snpsToRef++;
-                                }
-                                if (lastCalledBase != '#' && Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase)) {
-                                    betweenSamplesSnps = true;
-                                }
-                                lastCalledBase = calledBase;
+                                if (calledBase == ambiguousCallChar) {
+                                    uncertain++;
+                                } else if (calledBase == zeroReadsChar) {
+//                                samplesZeroCoverage++;
+                                } else {
+                                    if (!isACGT(calledBase)) {
+                                        hetCalls++;
+                                    }
+                                    if (calledBaseUpper != refBaseUpper) {
+                                        snpsToRef++;
+                                    }
+                                    if (lastCalledBase != '#' && Character.toUpperCase(calledBase) != Character.toUpperCase(lastCalledBase)) {
+                                        betweenSamplesSnps = true;
+                                    }
+                                    lastCalledBase = calledBase;
 //                                samplesWithBaseCalled++;
-                            }
-                            callsSB.append(calledBase);
+                                }
+                                callsSB.append(calledBase);
 
-                            for (int j = 1; j < bases.length; j++) {
-                                coveragesSB.append(bases[j]);
-                                if (j < bases.length - 1) {
-                                    coveragesSB.append(",");
+                                for (int j = 1; j < bases.length; j++) {
+                                    coveragesSB.append(bases[j]);
+                                    if (j < bases.length - 1) {
+                                        coveragesSB.append(",");
+                                    }
                                 }
                             }
 //                            coveragesSB.append(System.lineSeparator());
@@ -190,12 +210,13 @@ public class MpileupConsumer implements Runnable {
                         } catch (ArrayIndexOutOfBoundsException e) {
                             Reporter.report("[FATAL]", "Array index out of bounds - likely cause: mismatch between samples given and pileup file content", TOOL_NAME);
                             System.err.println(line);
-
                             System.exit(1);
                         }
                     }
 //                    if (samplesWithinCoverage >= minSamples && (calledDifferentBases || (allWithinThresholds && basesCalled>0 && unknown==0 && uncovered>1))) {
-                    if (samplesWithinCoverage >= minSamples) {
+                    if (fromConsensus) {
+                        bufferedOut.println(callsSB);
+                    } else if (samplesWithinCoverage >= minSamples) {
                         if (betweenSamplesSnps || (minSnpsToRef != null && snpsToRef >= minSnpsToRef)
                                 || (allWithinThresholds
                                 && hetCalls >= minCallsHet && hetCalls <= maxCallsHet

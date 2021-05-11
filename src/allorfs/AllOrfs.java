@@ -151,7 +151,7 @@ public class AllOrfs {
             for (String id : fastaIndexed.getIds()) {
                 Reporter.report("[INFO]", "Reading in " + id, TOOL_NAME);
 //                Sequence sequence = new Sequence(id, fastaIndexed.getSequence(id, 1L, 50000000L));
-                Sequence sequence = firsBasesNum == null ? new Sequence(id, fastaIndexed.getSequence(id)) : new Sequence(id, fastaIndexed.getSequence(id, 1L, firsBasesNum.longValue()));
+                Sequence sequence = firsBasesNum == null ? new Sequence(id, fastaIndexed.getSequence(id)) : new Sequence(id, fastaIndexed.getSequence(id, 1, firsBasesNum));
                 ArrayList<Sequence> seqList = new ArrayList<>();
                 seqList.add(sequence);
                 inputQueue.put(seqList);
@@ -191,7 +191,7 @@ public class AllOrfs {
         } catch (TimeoutException ex) {
             Reporter.report("[ERROR]", "timeout exception!", getClass().getSimpleName());
         }
-        bufferedOut.flush();
+        bufferedOut.close();
 
         Reporter.report("[INFO]", "Finished extracting ORFs", TOOL_NAME);
     }

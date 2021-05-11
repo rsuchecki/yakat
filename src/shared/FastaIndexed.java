@@ -39,42 +39,35 @@ public class FastaIndexed {
     //LINEWIDTH	The number of bytes in each line, including the newline            
     private String TOOL_NAME;
     private String fastaFile;
-    private HashMap<String, Long> lengthsMap = new HashMap<>();
+    private HashMap<String, Integer> lengthsMap = new HashMap<>();
     private HashMap<String, Long> offsetsMap = new HashMap<>();
-    private HashMap<String, Long> lineBasesMap = new HashMap<>();
-    private HashMap<String, Long> lineWidthsMap = new HashMap<>();
+    private HashMap<String, Integer> lineBasesMap = new HashMap<>();
+    private HashMap<String, Integer> lineWidthsMap = new HashMap<>();
     private ArrayList<String> ids;
-    
-    public FastaIndexed(String TOOL_NAME, String fasta, String fai) {
+
+    public FastaIndexed(String TOOL_NAME, String fastaF, String fai) {
         this.ids = new ArrayList<>();
         this.TOOL_NAME = TOOL_NAME;
-        fastaFile = fasta;
+        fastaFile = fastaF;
         if (fai == null) {
-            //TODO create index
+            //TODO create index????            
         } else {
             readIndex(fai);
         }
     }
 
-    
     private void readIndex(String fai) {
         BufferedReader index = null;
         try {
             index = new BufferedReader(new FileReader(new File(fai)));
             String line;
             while ((line = index.readLine()) != null && !line.isEmpty()) {
-
                 String[] toks = line.split("\t");
                 ids.add(toks[0]);
-                lengthsMap.put(toks[0], Long.parseLong(toks[1]));
+                lengthsMap.put(toks[0], Integer.parseInt(toks[1]));
                 offsetsMap.put(toks[0], Long.parseLong(toks[2]));
-                lineBasesMap.put(toks[0], Long.parseLong(toks[3]));
-                lineWidthsMap.put(toks[0], Long.parseLong(toks[4]));
-//                System.out.println(line);
-                if(!Objects.equals(lineBasesMap.get(toks[0]), lengthsMap.get(toks[0]))) {
-                    Reporter.report("[ERROR]", "Wrapped FASTA not supported. Offending record: "+line , TOOL_NAME);
-                    System.exit(1);
-                }
+                lineBasesMap.put(toks[0], Integer.parseInt(toks[3]));
+                lineWidthsMap.put(toks[0], Integer.parseInt(toks[4]));
             }
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
@@ -91,18 +84,12 @@ public class FastaIndexed {
             }
 
         }
-
     }
-    
-    
 
     public ArrayList<String> getIds() {
         return ids;
     }
 
-
-    
-    
     public String getSequence(String id) {
         return getSequence(id, null, null);
     }
@@ -115,24 +102,41 @@ public class FastaIndexed {
      * @param to
      * @return
      */
-    public String getSequence(String id, Long from, Long to) {
+    public String getSequence(String id, Integer from, Integer to) {
         RandomAccessFile file = null;
         byte[] buff = null;
         try {
             file = new RandomAccessFile(fastaFile, "r");
             Long start = offsetsMap.get(id);
-            if(start == null) {
-                Reporter.report("[ERROR]", id+" <- identifier  not found in .fai index for: "+fastaFile, TOOL_NAME);                
+            if (start == null) {
+                Reporter.report("[ERROR]", id + " <- identifier  not found in .fai index for: " + fastaFile, TOOL_NAME);
                 System.exit(1);
             }
-            if(from != null) {
+            if (from != null) {
                 start += from - 1;
             }
             file.seek(start);
-            
-            Long len = to == null ? lengthsMap.get(id) : to - from + 1;            
-            buff = new byte[len.intValue()];
-            file.read(buff);
+
+            int len = lengthsMap.get(id);
+            if(to != null && to < len) {
+              len = to - from + 1;
+            }
+            buff = new byte[len];
+
+            int lineWidth = lineWidthsMap.get(id);
+            if (lineWidth < len) { //Wrapped FASTA                
+                int lineBases = lineBasesMap.get(id);
+                int wrapBytes = lineWidth - lineBases; //1 or 2 depending if linux or windows line endings
+                int lines = len / lineBases;
+                int offset = 0; //start writing buffer array from this position
+                for (int i = 0; i < lines; i++) {
+                    offset += file.read(buff, offset, lineBases);
+                    file.skipBytes(wrapBytes);
+                }
+                file.read(buff, offset, buff.length - offset);  //add last line which should fill the reminder of the buffer 
+            } else {  //Unwrapped FASTA                                    
+                file.read(buff);
+            }
         } catch (FileNotFoundException ex) {
             Reporter.report("[ERROR]", "File not found exception: " + ex.getMessage(), TOOL_NAME);
             System.exit(1);

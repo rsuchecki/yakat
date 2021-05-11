@@ -248,7 +248,7 @@ public class OptSet {
 
         //Generate help page
         StringBuilder help = new StringBuilder();
-        int currentListingGroup = -1;
+        int listingGroup = -1;
         boolean hasRequiredOption = false;
 
         HashMap<Integer, String> footnotes = new HashMap<>();
@@ -257,9 +257,9 @@ public class OptSet {
         for (int i = 0; i < getOptsList().size(); i++) {
             Opt opt = getOptsList().get(i);
             //Split option groups
-            if (opt.getListingGroup() > currentListingGroup) {
-                currentListingGroup = opt.getListingGroup();
-                String groupLabel = getListingGroupLabel(currentListingGroup);
+            if (opt.getListingGroup() > listingGroup) {
+                listingGroup = opt.getListingGroup();
+                String groupLabel = getListingGroupLabel(listingGroup);
                 if (groupLabel.isEmpty()) {
                     if (i != 0) {
                         help.append(String.format("%" + (offset - 1) + "s", " ")).append(": ").append(System.lineSeparator());
@@ -270,16 +270,16 @@ public class OptSet {
                         help.append(System.lineSeparator());
                     }
                     help.append(groupLabel);
-                    ArrayList<Integer> mutuallyExclusive = getMutuallyExclusive(currentListingGroup);
-                    if (isGroupRequired(currentListingGroup)) {
+                    ArrayList<Integer> mutuallyExclusive = getMutuallyExclusive(listingGroup);
+                    if (isGroupRequired(listingGroup)) {
                         help.append("[**] ");
                     }
-//                    if(mutuallyExclusive !=null && !mutuallyExclusive.isEmpty()) {
-//                        help.append(" Mutually exclusive with:");
-//                        for (Integer g : mutuallyExclusive) {
-//                            help.append(" ").append(getListingGroupLabel(g).replaceAll("\\[|\\]", ""));
-//                        }
-//                    }
+                    if(mutuallyExclusive !=null && !mutuallyExclusive.isEmpty()) {
+                        help.append(" [NOT ENFORCED!] Mutually exclusive with:");
+                        for (Integer g : mutuallyExclusive) {
+                            help.append(" ").append(getListingGroupLabel(g).replaceAll("\\[|\\]", ""));
+                        }
+                    }
                     help.append(System.lineSeparator());
                 }
             }
