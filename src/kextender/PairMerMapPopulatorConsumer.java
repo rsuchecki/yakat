@@ -30,7 +30,7 @@ public class PairMerMapPopulatorConsumer implements Runnable {
 
     private final BlockingQueue<List<String>> queue;
     private final PairMerMaps pairMersMaps;
-    private final Integer MIN_KMER_FREQUENCY;
+    private final int MIN_KMER_FREQUENCY;
     private final boolean SPLIT_INPUT_INTO_KMERS;
 //    private final Integer KMER_LENGTH;
     private final ArrayList<Integer> kList;
@@ -38,7 +38,7 @@ public class PairMerMapPopulatorConsumer implements Runnable {
 //    private long pairMersGenerated;
 
     public PairMerMapPopulatorConsumer(BlockingQueue<List<String>> queue, PairMerMaps pairMerMaps,
-            boolean splitInputSequenceintoKmers, ArrayList<Integer> kList, Integer minFreq, boolean skipTerminalBases) {
+            boolean splitInputSequenceintoKmers, ArrayList<Integer> kList, int minFreq, boolean skipTerminalBases) {
         this.queue = queue;
         this.pairMersMaps = pairMerMaps;
         this.SPLIT_INPUT_INTO_KMERS = splitInputSequenceintoKmers;
@@ -118,7 +118,7 @@ public class PairMerMapPopulatorConsumer implements Runnable {
     }
 
     private void kmerizeAndAddToMaps(CharSequence sequence) {
-        for (Integer k : kList) {
+        for (int k : kList) {
             try {
                 int maxKmer = sequence.length() - k + 1;
                 int startAt = 0;

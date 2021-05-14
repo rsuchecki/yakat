@@ -22,10 +22,8 @@ import freqmers.FreqMers;
 import gbssplit.SplitGBS;
 import hmmerdoms.HmmerDomains;
 import kexpression.KeXpression;
-import kextender.CoreCoder;
 import kextender.KmerExtender;
 import kmermatch.KmerMatch;
-import kmerger.KmerSetMerge;
 import kmerloc.KmerLocator;
 import processpileup.ProcessPileup;
 import processpileup.PileupStats;
@@ -54,11 +52,9 @@ public class Yakat {
             args[0] = "";
             new KmerMatch(args, name, "kmatch");
 //            new KmerMatch(args, name, "kmatch");
-        } else if (args.length != 0 && args[0].matches("(k)?merloc(ate)?")) {            
+        } else if (args.length != 0 && args[0].matches("(k)?merloc(ate)?")) {
             new KmerLocator(args, name, "kmerlocate");
 //            new KmerMatch(args, name, "kmatch");        
-        } else if (args.length != 0 && args[0].matches("(k)?merge(r)?")) {
-            new KmerSetMerge(args, name, "kmerge");
         } else if (args.length != 0 && args[0].matches("split(er)?")) {
             new SplitGBS(args, name, "split");
         } else if (args.length != 0 && args[0].matches("idmatch(er)?")) {
@@ -103,8 +99,8 @@ public class Yakat {
 //        String version = this.getClass().getPackage().getImplementationVersion();
 //        System.out.println("java -jar " + this.getClass().getSimpleName().toLowerCase() + "-" + version + ".jar <command> ");
         System.out.println("Usage:");
-        System.out.println("  either:   "+ this.getClass().getSimpleName().toLowerCase()+" <module> ");
-        System.out.println("  or:       java -jar " + this.getClass().getSimpleName().toLowerCase()+".jar <module> ");
+        System.out.println("  either:   " + this.getClass().getSimpleName().toLowerCase() + " <module> ");
+        System.out.println("  or:       java -jar " + this.getClass().getSimpleName().toLowerCase() + ".jar <module> ");
         System.out.println();
         System.out.println("k-mer based modules");
         System.out.println("  freqmers      : given a set of sequences and set(s) of k-mers");
@@ -131,7 +127,7 @@ public class Yakat {
         System.out.println("  vclusters     : call variants from VSEARCH clustering msa output");
         System.out.println();
         System.out.println("Miscellaneous modules:");
-        System.out.println("  allorfs       : Identify and extract all (longest) ORFs from a genome");        
+        System.out.println("  allorfs       : Identify and extract all (longest) ORFs from a genome");
         System.out.println("  kexpress      : [UNTESTED] Calculate expresion values (TPM) from read counts");
         System.out.println("                    and (not quite) GFF description of features ");
 //        System.out.println("   mmers      : count (and analyse?) k-mers in multiple input sets ");

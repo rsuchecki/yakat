@@ -27,9 +27,9 @@ public class PairMerMapPurgerConsumer implements Runnable {
 
     private final BlockingQueue<PairMersMap> queue;
     private final String TOOL_NAME;
-    private final Integer MIN_KMER_FREQUENCY;
+    private final int MIN_KMER_FREQUENCY;
 
-    public PairMerMapPurgerConsumer(BlockingQueue<PairMersMap> queue, String toolName, Integer minFrequency) {
+    public PairMerMapPurgerConsumer(BlockingQueue<PairMersMap> queue, String toolName, int minFrequency) {
         this.queue = queue;
         this.TOOL_NAME = toolName;
         this.MIN_KMER_FREQUENCY = minFrequency;

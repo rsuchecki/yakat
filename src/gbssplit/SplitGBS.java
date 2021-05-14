@@ -200,7 +200,7 @@ public class SplitGBS {
 //            System.err.println("\t"+r);            
 //        }
 //        
-        Integer k = -1;
+        int k = -1;
         //READ INPUT AND POPULATE PairMers MAP
 //            int threads = Math.max(Runtime.getRuntime().availableProcessors(), 6);
 

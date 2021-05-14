@@ -258,7 +258,8 @@ public class HmmerDomains {
                 groupId.append(String.format(fmt, (i + 1)));
 
                 StringBuilder sb = gffEntry(new CharSequence[]{hitsGroup.getTargetId(), source, "region",
-                    hitsGroup.getOrfPredictionFromPosition().toString(), hitsGroup.getOrfPredictionToPosition().toString(),
+                    String.valueOf(hitsGroup.getOrfPredictionFromPosition()), 
+                    String.valueOf(hitsGroup.getOrfPredictionToPosition()),
                     blank, hitsGroup.getStrandSymbol(), blank, groupId});
 
                 StringBuilder sbNuclOrfs = new StringBuilder();
@@ -285,10 +286,20 @@ public class HmmerDomains {
                     percDomainsCovered[round]++;
 
                     //ACTUAL ORF POS IN REF=(ORF POS IN CONTIG)+(CONTIG START POS IN REF)
-                    Integer orfFrom = orf.getFrom() + hitsGroup.getOrfPredictionFromPosition() - 1;
-                    Integer orfTo = orf.getTo() + hitsGroup.getOrfPredictionFromPosition() - 1;
+                    int orfFrom = orf.getFrom() + hitsGroup.getOrfPredictionFromPosition() - 1;
+                    int orfTo = orf.getTo() + hitsGroup.getOrfPredictionFromPosition() - 1;
 
-                    sb.append(System.lineSeparator()).append(gffEntry(new CharSequence[]{orf.getParenId(), source, "ORF", orfFrom.toString(), orfTo.toString(), blank, orf.getFrame() > 0 ? "+" : "-", blank, orfAttributes}));
+                    sb.append(System.lineSeparator()).append(gffEntry(new CharSequence[] {
+                        orf.getParenId(), 
+                        source, 
+                        "ORF", 
+                        String.valueOf(orfFrom), 
+                        String.valueOf(orfTo), 
+                        blank, 
+                        orf.getFrame() > 0 ? "+" : "-", 
+                        blank, 
+                        orfAttributes
+                    }));
 
                     //OUTPUT ORFs as NUCL AND/OR AA FASTA 
                     if (outNucl != null || outAA != null) {
@@ -321,7 +332,7 @@ public class HmmerDomains {
                         DomHitAttributes.append("_ORF_").append((j + 1)).append("_DOMAINS_").append((k + 1));;
 
                         sb.append(System.lineSeparator()).append(gffEntry(new CharSequence[]{dh.getTargetIdCorrected(), source, "match",
-                            dh.getCorrectedStart().toString(), dh.getCorrectedEnd().toString(), blank, dh.getTargetFrame() > 0 ? "+" : "-", blank, DomHitAttributes}));
+                             String.valueOf(dh.getCorrectedStart()),  String.valueOf(dh.getCorrectedEnd()), blank, dh.getTargetFrame() > 0 ? "+" : "-", blank, DomHitAttributes}));
                     }
 //                Long extractStart = new Long(hitsGroup.getFrom()) - maxGap / 2;
 //                long orfFrom = orf.getFrom() + extractStart - 1;

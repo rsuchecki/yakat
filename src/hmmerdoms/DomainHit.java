@@ -207,11 +207,11 @@ public class DomainHit {
         }
     }
 
-    public Integer getCorrectedStart() {
+    public int getCorrectedStart() {
         return getTargetOffset() + getStartLocal();
     }
 
-    public Integer getCorrectedEnd() {
+    public int getCorrectedEnd() {
         return getTargetOffset() + getEndLocal();
     }
 

@@ -39,7 +39,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
     private final Character shortKey;
     private final String longKey;
     private final String helpString;
-    private Integer minValueArgs = 0;
+    private int minValueArgs = 0;
     private int maxValueArgs = 0;
     private Integer listingGroup = 1;
     private Integer listingGroupPosition = 1;
@@ -417,7 +417,7 @@ public class Opt<T extends Comparable<T>> implements Comparable<Opt> {
         return listingGroupPosition != null;
     }
 
-    public Integer getMaxValueArgs() {
+    public int getMaxValueArgs() {
         return maxValueArgs;
     }
 

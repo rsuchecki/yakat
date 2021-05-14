@@ -61,7 +61,7 @@ public class KmerExtender {
     private Integer KMER_LENGTH_MAX;
     private Integer KMER_LENGTH_STEP;
     private SeedSequences seedSequences;
-    private Integer MIN_KMER_FREQUENCY = 1; //PLANNED but not really used other than to exclude , must be >=1
+    private int MIN_KMER_FREQUENCY = 1; //PLANNED but not really used other than to exclude , must be >=1
     private int MAX_THREADS;
     private int INPUT_BUFFER_SIZE;
     private int INPUT_QUEUE_SIZE;
@@ -117,8 +117,9 @@ public class KmerExtender {
             KMER_LENGTH_STEP = (int) optSet.getOpt("k-mer-step").getValueOrDefault();
             if (KMER_LENGTH_MIN != null & KMER_LENGTH_MAX != null) {
                 if (KMER_LENGTH_MAX < KMER_LENGTH_MIN) {
-                    Reporter.report("[ERROR]", "The k-mer-min value (" + KMER_LENGTH_MIN + ") set higher than k-mer-max value (" + KMER_LENGTH_MAX + "), adjusting to " + KMER_LENGTH_MAX + ",", TOOL_NAME);
-                    KMER_LENGTH_MAX = KMER_LENGTH_MIN;
+                    Reporter.report("[ERROR]", "The k-mer-min value (" + KMER_LENGTH_MIN + ") set higher than k-mer-max value (" + KMER_LENGTH_MAX + ")", TOOL_NAME);
+                    System.exit(1);
+//                    KMER_LENGTH_MAX = KMER_LENGTH_MIN;
                 }
             } else if (KMER_LENGTH_MIN == null) {
                 KMER_LENGTH_MIN = KMER_LENGTH_MAX;
@@ -131,7 +132,7 @@ public class KmerExtender {
             seedSequences = new SeedSequences((String) optSet.getOpt("seed-file").getValueOrDefault(), optSet.getOpt("purged-input").isUsed());
             if (seedSequences.getSeedSequences().isEmpty()) {
                 Reporter.report("[ERROR]", "No seeds found in " + (String) optSet.getOpt("seed-file").getValueOrDefault() + ", proceeding without...", TOOL_NAME);
-                if (KMER_LENGTH_MIN != KMER_LENGTH_MAX) {
+                if (KMER_LENGTH_MIN.intValue() != KMER_LENGTH_MAX.intValue()) {
                     Reporter.report("[FATAL]", "Varied k implemented  (for now) for seed extension only - no seed(s) found", TOOL_NAME);
                     System.exit(1);
                 }
@@ -641,7 +642,7 @@ public class KmerExtender {
             Reporter.report("[ERROR]", "SeedsProcessor timeout exception!", TOOL_NAME);
         }
 
-        for (Integer k : kSizes) {
+        for (int k : kSizes) {
 //            Reporter.report("[INFO]", "Seed-mers map populated, k=" + k, TOOL_NAME);
 
             Iterator<PairMer> it = trimmedSeedPairMerMaps.getPairMersMap(k).iterator();
@@ -662,7 +663,7 @@ public class KmerExtender {
         //PREPARE EXECUTOR SERVICE
         int threads = MAX_THREADS;
         ArrayList<Future<?>> futures = new ArrayList<>(threads);
-        final ExecutorService seedExtenderExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<Runnable>());
+        final ExecutorService seedExtenderExecutorService = new ThreadPoolExecutor(threads, threads, 0L, TimeUnit.MILLISECONDS, new LinkedBlockingQueue<>());
         BlockingQueue<PairMersMap> queue = new ArrayBlockingQueue<>(kSizes.size() + 1);
         try {
             for (int k : kSizes) {

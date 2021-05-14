@@ -35,7 +35,7 @@ public class PairMerMaps {
         this.TOOL_NAME = TOOL_NAME;
         this.kSizes = kSizes;
         kSizeToPairMersMap = new ConcurrentHashMap<>(kSizes.size());
-        for (Integer k : kSizes) {
+        for (int k : kSizes) {
             if (k != 0) {
                 kSizeToPairMersMap.put(k, new PairMersMap(k));
             }
@@ -130,13 +130,13 @@ public class PairMerMaps {
         if (kSizes.size() != kSizeToPairMersMap.size()) {
             Reporter.report("[BUG]", "Internal structures sizes mismtach", TOOL_NAME);
             System.err.print(kSizes.size() + " kSizes:");
-            for (Integer kSize : kSizes) {
+            for (int kSize : kSizes) {
                 System.err.print(" " + kSize);
             }
             System.err.println();
 
             System.err.print(kSizeToPairMersMap.size() + " k2PairMerMap:");
-            for (Integer kSize : kSizeToPairMersMap.keySet()) {
+            for (int kSize : kSizeToPairMersMap.keySet()) {
                 System.err.print(" " + kSize);
             }
             System.err.println();
