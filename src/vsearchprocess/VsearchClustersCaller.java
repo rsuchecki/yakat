@@ -65,7 +65,7 @@ public class VsearchClustersCaller {
 
     private OptSet populateOptSet() {
         OptSet optSet = new OptSet("Parse MSA output of VSEARCH clustering, call variants within each cluster. "
-            + "Variants printed to stdout.");
+                + "Variants printed to stdout.");
 
         //CONSIDER SETTINGS
         //  INPUT LABELS TO DISTINGUISH SAMPLES, PREVENT CALLING SNPS WITHIN SAMPLES
@@ -79,7 +79,7 @@ public class VsearchClustersCaller {
         //INPUT
         optSet.setListingGroupLabel("[Input settings]");
         optSet.addOpt(new Opt(null, "sample-ids", "Space separated sample identifiers which form the prefices of the input FASTA identifiers")
-            .setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
+                .setMinValueArgs(1).setMaxValueArgs(Integer.MAX_VALUE).setRequired(true));
         optSet.addOpt(new Opt(null, "clusters-msa", "The vsearch cluster msaout file, alternatively use stdin", 1));
 //        optSet.addOpt(new Opt(null, "original-fasta", "The original FASTA file gven to vsearch, if specified it will be used to extract the input sequences' lengths", 1));
 //        optSet.incrementLisitngGroup();
@@ -120,6 +120,7 @@ public class VsearchClustersCaller {
         optSet.addOpt(new Opt(null, "out-clusters-fasta", "Output clustered sequences (for which SNPs were called) to <arg> FASTA file", 1));
         optSet.addOpt(new Opt(null, "out-unclustered-fasta", "Output unclustered sequences to <arg> FASTA file", 1));
         optSet.addOpt(new Opt(null, "out-unclustered-min-len", "Minimum length required to output an unclustered sequence", 1).setMinValue(1).setDefaultValue(100));
+        optSet.addOpt(new Opt(null, "out-unvarying-clusters", "Output clusters (FASTA and/or MSA) for which no SNPs/indels called. Not reported by default"));
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
 ////        String headerNote = "Can be useful for external parallization (print header once)";
@@ -280,25 +281,26 @@ public class VsearchClustersCaller {
 
     }
 
-    private int processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber, BufferedWriter clustersFastaOut, 
+    private int processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber, BufferedWriter clustersFastaOut,
             BufferedWriter clustersMsaOut) throws IOException {
 
         int minSamplesClustered = (int) optSet.getOpt("min-samples-clustered").getValueOrDefault();
         int minSeqsClusteredIn = (int) optSet.getOpt("min-seqs-clustered-in").getValueOrDefault();
         int maxSeqsClusteredIn = (int) optSet.getOpt("max-seqs-clustered-in").getValueOrDefault();
-        
+
         int maxSeqsClusteredOut = (int) optSet.getOpt("max-seqs-clustered-out").getValueOrDefault();
         int maxIntraSnps = (int) optSet.getOpt("max-intra-snps").getValueOrDefault();
         int maxInterSnps = (int) optSet.getOpt("max-inter-snps").getValueOrDefault(Integer.MAX_VALUE);
 
         int maxIndelLength = (int) optSet.getOpt("max-indel-length").getValueOrDefault();
         int minIndelDistFromEnds = (int) optSet.getOpt("min-indel-distance").getValueOrDefault();
-        
+
         double minInterIdentity = (double) optSet.getOpt("min-inter-identity").getValueOrDefault();
 
         boolean reverseLex = optSet.getOpt("reverse-lex-order").getOptFlag();
         boolean supressIntra = optSet.getOpt("supress-intra-snps").getOptFlag();
         boolean supressInter = optSet.getOpt("supress-inter-snps").getOptFlag();
+        boolean outputUnvaryingClusters = optSet.getOpt("out-unvarying-clusters").getOptFlag();
 
         boolean appendSequencesToSnpList = true;
         int size = clusteredSeqs.size();
@@ -315,9 +317,9 @@ public class VsearchClustersCaller {
             //MERGE NON-CONFLICTING SEQUENCES WITHIN EACH SAMPLE
             if (clusteredSeqs.mergeSequencesWithinSamples()) {
 //                clusterString = "MERGED";
-                suffix= "MERGED";
+                suffix = "MERGED";
             }
-            
+
             //CALL BETWEEN SAMPLES
             clusteredSeqs.callSNPsBetweenAllSamples(maxIndelLength, minIndelDistFromEnds);
 //            boolean hasInter = false;
@@ -332,22 +334,22 @@ public class VsearchClustersCaller {
 //            } catch (NoSuchElementException e) {
 //                int x =0;
 //            }
-            
+
             int intra = clusteredSeqs.getIntraSnps().size();
             int inter = clusteredSeqs.getInterSnps().size();
 //             clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix, 0, appendSequencesToSnpList);
-            
+
             //PRINT            
-            if (intra <= maxIntraSnps &&  inter <= maxInterSnps && clusteredSeqs.size() <= maxSeqsClusteredOut) {
+            if (intra <= maxIntraSnps && inter <= maxInterSnps && clusteredSeqs.size() <= maxSeqsClusteredOut) {
                 ++clusterNumber;
 //                clusteredSeqs.printCluster((clusterNumber) + " " + clusterString, maxIndelLength);
-                if (clustersFastaOut != null && ((hasIntra && !supressIntra) || (hasInter && !supressInter))) {
-                    clustersFastaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, true).toString());
-//                    clustersFastaOut.newLine();
-                }
-                if (clustersMsaOut != null && ((hasIntra && !supressIntra) || (hasInter && !supressInter))) {
-                    clustersMsaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, false).toString());
-//                    clustersFastaOut.newLine();
+                if ((hasIntra && !supressIntra) || (hasInter && !supressInter) || outputUnvaryingClusters) {
+                    if (clustersFastaOut != null) {
+                        clustersFastaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, true).toString());
+                    }
+                    if (clustersMsaOut != null) {
+                        clustersMsaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, false).toString());
+                    }
                 }
                 if (!supressIntra) {
                     clusteredSeqs.printIntraSnps(clusterNumber, reverseLex, DELIMITER, "INTRA", appendSequencesToSnpList);
