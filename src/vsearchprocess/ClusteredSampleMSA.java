@@ -28,7 +28,7 @@ public class ClusteredSampleMSA {
     private final ArrayList<MsaSequence> sequences;
     private final String sampleId;
     private ArrayList<Snp> snpsWithin;
-
+    
     public ClusteredSampleMSA(String sample) {
         sequences = new ArrayList<>();
         this.sampleId = sample;
@@ -37,7 +37,7 @@ public class ClusteredSampleMSA {
     public int size() {
         return sequences.size();
     }
-
+       
     public String getSampleId() {
         return sampleId;
     }

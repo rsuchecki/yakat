@@ -95,6 +95,7 @@ public class VsearchClustersCaller {
         optSet.addOpt(new Opt(null, "min-samples-clustered", "Minimum number of samples in an input  cluster", 1).setMinValue(1).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "min-seqs-clustered-in", "Minimum number of sequences in an input cluster", 1).setMinValue(2).setDefaultValue(2));
         optSet.addOpt(new Opt(null, "max-seqs-clustered-in", "Maximum number of sequences in an input cluster", 1).setMinValue(2).setDefaultValue(1000));
+        optSet.addOpt(new Opt(null, "no-merge", "Do not merge/assemble perfectly matching sequenceswithin a sample. By default, non-conflicting sequences are merged/assembled within each sample."));
         optSet.incrementLisitngGroup();
         optSet.setListingGroupLabel("[Variant calling and reporting]");
 //        optSet.addOpt(new Opt(null, "min-sequences-per-cluster", "Minimum number of sequences required for a cluster to be considered ", 1).setMinValue(2).setDefaultValue(2));
@@ -118,7 +119,8 @@ public class VsearchClustersCaller {
 ////        optSet.addOpt(new Opt('q', "out-queue-capacity", "Maximum number of buffers put on queue for writing-out",64, 1, 256));
         optSet.addOpt(new Opt(null, "out-clusters-msa", "Output clustered sequences (for which SNPs were called) to <arg> MSA/FASTA file", 1));
         optSet.addOpt(new Opt(null, "out-clusters-fasta", "Output clustered sequences (for which SNPs were called) to <arg> FASTA file", 1));
-        optSet.addOpt(new Opt(null, "out-unclustered-fasta", "Output unclustered sequences to <arg> FASTA file", 1));
+        optSet.addOpt(new Opt(null, "out-unclustered-fasta", "Output unclustered sequences to <arg> FASTA file", 1)
+                .addFootnote(1, "The sequences may have been clustered by VSEARCH but did not fulfill variant calling and reporting thresholds."));
         optSet.addOpt(new Opt(null, "out-unclustered-min-len", "Minimum length required to output an unclustered sequence", 1).setMinValue(1).setDefaultValue(100));
         optSet.addOpt(new Opt(null, "out-unvarying-clusters", "Output clusters (FASTA and/or MSA) for which no SNPs/indels called. Not reported by default"));
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
@@ -224,15 +226,8 @@ public class VsearchClustersCaller {
                     } else if (line.equals(">consensus")) {
                         //PROCESS PREVIOUS CLUSER 
 //                        if (sequencesList.size() > 1) {
-                        clusterNumber = processCluster(clusteredSeqs, optSet, clusterNumber, clustersFastaOut, clustersMsaOut);
+                        clusterNumber = processCluster(clusteredSeqs, optSet, clusterNumber, clustersFastaOut, clustersMsaOut, unclusteredFastaOut, unclusteredOutMinLength);
 
-                        if (unclusteredFastaOut != null && clusteredSeqs.size() == 1) {
-                            MsaSequence seq = clusteredSeqs.getSequencesList().get(0);
-                            if (seq.getUnpaddedLength() >= unclusteredOutMinLength) {
-                                unclusteredFastaOut.write(clusteredSeqs.getSequencesList().get(0).getFasta(true).toString());
-                                unclusteredFastaOut.newLine();
-                            }
-                        }
 //                        }
                         //SKIP the consensus
 //                        continue;
@@ -282,7 +277,7 @@ public class VsearchClustersCaller {
     }
 
     private int processCluster(ClusteredSequencesMSA clusteredSeqs, OptSet optSet, int clusterNumber, BufferedWriter clustersFastaOut,
-            BufferedWriter clustersMsaOut) throws IOException {
+            BufferedWriter clustersMsaOut, BufferedWriter unclusteredFastaOut, int unclusteredOutMinLength) throws IOException {
 
         int minSamplesClustered = (int) optSet.getOpt("min-samples-clustered").getValueOrDefault();
         int minSeqsClusteredIn = (int) optSet.getOpt("min-seqs-clustered-in").getValueOrDefault();
@@ -301,8 +296,10 @@ public class VsearchClustersCaller {
         boolean supressIntra = optSet.getOpt("supress-intra-snps").getOptFlag();
         boolean supressInter = optSet.getOpt("supress-inter-snps").getOptFlag();
         boolean outputUnvaryingClusters = optSet.getOpt("out-unvarying-clusters").getOptFlag();
+        boolean merge = !optSet.getOpt("no-merge").getOptFlag();
 
         boolean appendSequencesToSnpList = true;
+        boolean unclusteredOrLeftover = false;
         int size = clusteredSeqs.size();
         if (size >= minSeqsClusteredIn && size <= maxSeqsClusteredIn && clusteredSeqs.getNumClusteredSamples() >= minSamplesClustered) {
             //CALL WITHIN EACH SAMPLE
@@ -313,27 +310,14 @@ public class VsearchClustersCaller {
                 suffix = "HAS_INTRA";
                 hasIntra = true;
             }
-//            String clusterString = "ALL";
-            //MERGE NON-CONFLICTING SEQUENCES WITHIN EACH SAMPLE
-            if (clusteredSeqs.mergeSequencesWithinSamples()) {
-//                clusterString = "MERGED";
+
+//            MERGE NON-CONFLICTING SEQUENCES WITHIN EACH SAMPLE
+            if (merge && clusteredSeqs.mergeSequencesWithinSamples()) {
                 suffix = "MERGED";
             }
-
             //CALL BETWEEN SAMPLES
             clusteredSeqs.callSNPsBetweenAllSamples(maxIndelLength, minIndelDistFromEnds);
-//            boolean hasInter = false;
-//            if (!clusteredSeqs.getInterSnps().isEmpty()) {
-//                hasInter = true;
-//            }
             boolean hasInter = clusteredSeqs.hasInterSnps(minInterIdentity);
-//            ArrayList<Double> pairwiseIntraIdenities = clusteredSeqs.getPairwiseIntraIdenities();
-//            try {
-//            Double minIdentity = Collections.min(pairwiseIntraIdenities);
-//            System.out.println(minIdentity);
-//            } catch (NoSuchElementException e) {
-//                int x =0;
-//            }
 
             int intra = clusteredSeqs.getIntraSnps().size();
             int inter = clusteredSeqs.getInterSnps().size();
@@ -345,10 +329,10 @@ public class VsearchClustersCaller {
 //                clusteredSeqs.printCluster((clusterNumber) + " " + clusterString, maxIndelLength);
                 if ((hasIntra && !supressIntra) || (hasInter && !supressInter) || outputUnvaryingClusters) {
                     if (clustersFastaOut != null) {
-                        clustersFastaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, true).toString());
+                        clustersFastaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, true, Integer.MIN_VALUE).toString());
                     }
                     if (clustersMsaOut != null) {
-                        clustersMsaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, false).toString());
+                        clustersMsaOut.write(clusteredSeqs.getClusterForPrint(clusterNumber, false, Integer.MIN_VALUE).toString());
                     }
                 }
                 if (!supressIntra) {
@@ -357,8 +341,25 @@ public class VsearchClustersCaller {
                 if (!supressInter) {
                     clusteredSeqs.printInterSnps(clusterNumber, reverseLex, DELIMITER, suffix, minInterIdentity, appendSequencesToSnpList);
                 }
+            } else { //too many inter or intra SNPs or clustered sequeces
+                unclusteredOrLeftover = true;
             }
+        } else { // too few/many clustered seqs or samples
+            unclusteredOrLeftover = true;
         }
+
+        //out unclustered and otherwise leftover sequences
+        //                        if (unclusteredFastaOut != null && clusteredSeqs.size() == 1) {
+//            if (unclusteredFastaOut != null && clusteredSeqs.originalSize() == 1) {
+        if (unclusteredFastaOut != null && unclusteredOrLeftover) {
+            unclusteredFastaOut.write(clusteredSeqs.getClusterForPrint(null, true, unclusteredOutMinLength).toString());
+//                MsaSequence seq = clusteredSeqs.getSequencesList().get(0);
+//                if (seq.getUnpaddedLength() >= unclusteredOutMinLength) {                    
+//                    unclusteredFastaOut.write(clusteredSeqs.getSequencesList().get(0).getFasta(true).toString());
+//                    unclusteredFastaOut.newLine();
+//                }
+        }
+
         return clusterNumber;
     }
 

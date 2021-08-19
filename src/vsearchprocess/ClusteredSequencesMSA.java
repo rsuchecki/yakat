@@ -27,20 +27,17 @@ import shared.Sequence;
  */
 public class ClusteredSequencesMSA {
 
-//    HashMap<String, ArrayList<Sequence>> map;
     private HashMap<String, ClusteredSampleMSA> map;
-    private Integer msaAlignmentLength;
+    private Integer msaAlignmentLength; //All sequences' MSA length must match
     private ArrayList<Snp> intraSnps = new ArrayList<>(0);
     private ArrayList<Snp> interSnps = new ArrayList<>(0);
     private HashMap<String, MsaSeqPair> seqPairs = new HashMap<>();
 
-//    ArrayList<Sequence> list;
     private final String TOOL_NAME;
 
     public ClusteredSequencesMSA(ArrayList<String> sampleNames, String TOOL_NAME) {
         this.TOOL_NAME = TOOL_NAME;
         map = new HashMap<>(sampleNames.size() * 2);
-//        list = new ArrayList<>();
         for (String sampleName : sampleNames) {
             map.put(sampleName, new ClusteredSampleMSA(sampleName));
         }
@@ -85,7 +82,6 @@ public class ClusteredSequencesMSA {
         return interSnps;
     }
 
-//
     public int size() {
         int size = 0;
         for (ClusteredSampleMSA s : map.values()) {
@@ -99,7 +95,6 @@ public class ClusteredSequencesMSA {
     }
 
     public void addSequence(MsaSequence sequence) {
-//        list.add(sequence);
         if (msaAlignmentLength == null) {
             msaAlignmentLength = sequence.getLength();
         } else if (msaAlignmentLength != sequence.getLength()) {
@@ -244,23 +239,30 @@ public class ClusteredSequencesMSA {
 //        return sb;
 //    }
 
-    public CharSequence getClusterForPrint(int clusterNumber, boolean suppressPadding) {
+    public CharSequence getClusterForPrint(Integer clusterNumber, boolean suppressPadding, Integer minLength) {
 //        System.out.println("\nCLUSTER: " + clusterLabel);      
         StringBuilder sb = new StringBuilder();
         for (Sequence msaSequence : getSequencesList()) {
-            sb.append(">Cluster_").append(clusterNumber).append("_").append(msaSequence.getId());
-            sb.append(System.lineSeparator());
-            if (suppressPadding) {
-                sb.append(msaSequence.getSequenceString().replaceAll("-", "")).append(System.lineSeparator());
-            } else {
-                sb.append(msaSequence.getSequenceString()).append(System.lineSeparator());
+            if ((suppressPadding && msaSequence.getLengthUnpadded() >= minLength) || (!suppressPadding && msaSequence.getLength() >= minLength)) {
+                if (clusterNumber != null) {
+                    sb.append(">Cluster_").append(clusterNumber).append("_");
+                } else {
+                    sb.append(">");
+                }
+                sb.append(msaSequence.getId());
+                sb.append(System.lineSeparator());
+                if (suppressPadding) {
+                    sb.append(msaSequence.getSequenceString().replaceAll("-", "")).append(System.lineSeparator());
+                } else {
+                    sb.append(msaSequence.getSequenceString()).append(System.lineSeparator());
+                }
             }
         }
         return sb;
     }
 
     public void printIntraSnps(int clusterNumber, boolean reverseLex, String DELIMITER,
-        String suffix, boolean printSequence) {
+            String suffix, boolean printSequence) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : intraSnps) {
             sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix));
@@ -274,7 +276,7 @@ public class ClusteredSequencesMSA {
     }
 
     public void printInterSnps(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix,
-        double minInterIdentity, boolean printSequence) {
+            double minInterIdentity, boolean printSequence) {
         StringBuilder sb = new StringBuilder();
         for (Snp snp : interSnps) {
             MsaSeqPair pair = seqPairs.get(snp.getSequence1().getId() + snp.getSequence2().getId());
