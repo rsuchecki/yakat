@@ -8,12 +8,14 @@ jobs:
     strategy:
       matrix:
         java: [8, 11, 13, 16]
+        distribution: ['temourin', 'zulu']
         
     steps:
       - uses: actions/checkout@v2
       - name: Set up JDK
         uses: actions/setup-java@v2
         with:
+          distribution: ${{ matrix.distribution }}
           java-version: ${{ matrix.java }}
       - name: Compile with Ant
         run: ant compile 
