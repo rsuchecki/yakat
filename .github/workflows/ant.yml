@@ -15,7 +15,9 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: ${{ matrix.java }}
-      - name: Compile, build and run with Ant
-        run: ant compile
+      - name: Compile with Ant
+        run: ant compile 
+      - name: Build with Ant
         run: ant jar
+      - name: Run with Ant
         run: ant run
