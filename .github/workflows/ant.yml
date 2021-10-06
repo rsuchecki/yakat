@@ -7,8 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [8, 11]
-        distribution: ['temurin', 'zulu']
+        java: [8]
+        distribution: ['temurin']
         
     steps:
       - uses: actions/checkout@v2
@@ -18,7 +18,7 @@ jobs:
           distribution: ${{ matrix.distribution }}
           java-version: ${{ matrix.java }}
       - name: Compile with Ant
-        run: ant -Dplatforms.JDK_${{ matrix.java }}.home=$(readlink -f $(which java) | sed 's@/jre/bin/java@@') compile
+        run: ant -Dplatforms.JDK_${{ matrix.java }}.home=${JAVA_HOME} compile
       - name: Build with Ant
         run: ant jar
       - name: Run with Ant
