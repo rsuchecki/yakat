@@ -8,7 +8,7 @@ jobs:
     strategy:
       matrix:
         java: [8, 11]
-        distribution: ['temurin']
+        distribution: ['temurin', 'zulu']
         
     steps:
       - uses: actions/checkout@v2
@@ -18,8 +18,8 @@ jobs:
           distribution: ${{ matrix.distribution }}
           java-version: ${{ matrix.java }}
       - name: Compile with Ant
-        run: ant -Dplatforms.JDK_${{ matrix.java }}.home=${JAVA_HOME} compile
+        run: ant -Dplatforms.JDK_8.home=${JAVA_HOME} compile
       - name: Build with Ant
-        run: ant -Dplatforms.JDK_${{ matrix.java }}.home=${JAVA_HOME} jar
+        run: ant -Dplatforms.JDK_8.home=${JAVA_HOME} jar
       - name: Run with Ant
-        run: ant run
+        run: ant -Dplatforms.JDK_8.home=${JAVA_HOME} run
