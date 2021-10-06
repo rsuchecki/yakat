@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        java: [8]
+        java: [8, 11]
         distribution: ['temurin']
         
     steps:
@@ -20,6 +20,6 @@ jobs:
       - name: Compile with Ant
         run: ant -Dplatforms.JDK_${{ matrix.java }}.home=${JAVA_HOME} compile
       - name: Build with Ant
-        run: ant jar
+        run: ant -Dplatforms.JDK_${{ matrix.java }}.home=${JAVA_HOME} jar
       - name: Run with Ant
         run: ant run
