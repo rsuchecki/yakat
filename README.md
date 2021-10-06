@@ -1,12 +1,12 @@
 [![DOI](https://zenodo.org/badge/161127471.svg)](https://zenodo.org/badge/latestdoi/161127471)
-[![Build Status](https://travis-ci.org/rsuchecki/yakat.svg?branch=master)](https://travis-ci.org/rsuchecki/yakat)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/rsuchecki/yakat/CI)](https://github.com/rsuchecki/yakat/actions)
 [![Latest GitHub tag](https://img.shields.io/github/tag/rsuchecki/yakat.svg?label=latest%20release&logo=github)](https://github.com/rsuchecki/yakat/releases)
 [![GitHub commits since latest tag/release](https://img.shields.io/github/commits-since/rsuchecki/yakat/latest.svg?logo=github)](https://github.com/rsuchecki/yakat/releases)
 
 
 # Table of Contents <!-- omit in toc -->
 
-- [`yakat` - yet another k-mer analysis toolkit?](#yakat---yet-another-k-mer-analysis-toolkit)
+- [`yakat` - yet another  k-mer analysis toolkit?](#yakat---yet-another--k-mer-analysis-toolkit)
 - [Getting started](#getting-started)
   - [Dependencies](#dependencies)
   - [Compile and build and run](#compile-and-build-and-run)
@@ -43,7 +43,9 @@ Normal usage is in Linux environment but most modules should work on other syste
 
 After cloning or downloading this repository, run
 
-`ant jar`
+`ant jar` 
+
+or, if that fails,  `ant -Dplatforms.JDK_8.home=${JAVA_HOME} jar` 
 
 This should generate the Java executable `dist/yakat.jar`
 and a self contained linux executable `yakat`
