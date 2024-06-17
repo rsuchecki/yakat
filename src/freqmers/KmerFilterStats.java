@@ -23,14 +23,16 @@ import java.util.ArrayList;
  */
 public class KmerFilterStats {
 
-    private final short[] mers;
+//    private final short[] mers;
+    private final double medianFrequency;
     private final int mersCount;
-    private final int maxMers;
+    private final int maxUniqMers;
 
-    public KmerFilterStats(short[] mers, int mersCount, int maxMers) {
-        this.mers = mers;
+    public KmerFilterStats(short[] mers, int mersCount, int maxUniqMers) {
+//        this.mers = mers;
+        this.medianFrequency = shared.CommonMaths.getMedian(getNonZeroKmerFreqs(mers));
         this.mersCount = mersCount;
-        this.maxMers = maxMers;
+        this.maxUniqMers = maxUniqMers;
     }
 
     private ArrayList<Short> getNonZeroKmerFreqs(short[] mers) {
@@ -43,43 +45,54 @@ public class KmerFilterStats {
         return nonZeroValues;
     }
 
-    private double getMax(ArrayList<Short> nonZeroValues) {
-        if (nonZeroValues.isEmpty()) {
-            return 0;
-        } else {
-            short max = 0;
-            for (Short nonZeroValue : nonZeroValues) {
-                max = nonZeroValue > max ? nonZeroValue : max;
-            }
-            return max;
-        }
-    }
+//    private double getMax(ArrayList<Short> nonZeroValues) {
+//        if (nonZeroValues.isEmpty()) {
+//            return 0;
+//        } else {
+//            short max = 0;
+//            for (Short nonZeroValue : nonZeroValues) {
+//                max = nonZeroValue > max ? nonZeroValue : max;
+//            }
+//            return max;
+//        }
+//    }
 
     public int getMersCount() {
         return mersCount;
     }
 
-    public int getMaxMers() {
-        return maxMers;
+    public int getMaxUniqMers() {
+        return maxUniqMers;
     }
+    
+//    public int getMaxMers() {
+//      return mers.length;
+//    }
 
-    public double getMedianFrequency() {
-        return shared.CommonMaths.getMedian(getNonZeroKmerFreqs(mers));
-    }
+  public double getMedianFrequency() {
+    return medianFrequency;
+  }
+    
+    
+    
+//    public double getMedianFrequency() {
+//        return shared.CommonMaths.getMedian(getNonZeroKmerFreqs(mers));
+//    }
 
-    public int getCoverage() {
-        return getNonZeroKmerFreqs(mers).size();
-    }
+//    public int getCoverage() {
+//        return getNonZeroKmerFreqs(mers).size();
+//    }
 
-    public double getCoverageRatio() {
+    public double getCoverageRatioOverMaxUniqmers() {
 //        int coverage = getCoverage();
 //        int maxMers1 = getMaxMers();
-        return (double) getCoverage() / (double) getMaxMers();
+//        return (double) getCoverage() / (double) getMaxUniqMers();
+        return (double) getMersCount() / (double) getMaxUniqMers();
     }
 
-    public short[] getMers() {
-        return mers;
-    }
+//    public short[] getMers() {
+//        return mers;
+//    }
     
     
 }

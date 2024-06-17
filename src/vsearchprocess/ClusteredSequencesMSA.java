@@ -293,5 +293,24 @@ public class ClusteredSequencesMSA {
         }
         System.out.print(sb);
     }
+    
+//    public void printInterSnpsVertical(int clusterNumber, boolean reverseLex, String DELIMITER, String suffix,
+//            double minInterIdentity, boolean printSequence) {
+//        StringBuilder sb = new StringBuilder();
+//        for (Snp snp : interSnps) {
+//            MsaSeqPair pair = seqPairs.get(snp.getSequence1().getId() + snp.getSequence2().getId());
+//            if (pair.getMinIdentity() > minInterIdentity) {
+//                sb.append(snp.getSnpString(clusterNumber, reverseLex, DELIMITER, suffix));
+//                if (printSequence) {
+//                    sb.append(DELIMITER).append(snp.getSequence1().getSequenceString());
+//                    sb.append(DELIMITER).append(snp.getSequence2().getSequenceString());
+//                }
+////                sb.append(System.lineSeparator());
+////                sb.append(pair.getMinIdentity());
+//                sb.append(System.lineSeparator());
+//            }
+//        }
+//        System.out.print(sb);
+//    }
 
 }

@@ -133,7 +133,7 @@ public class FreqMers {
         optSet.setListingGroupLabel(optSet.incrementLisitngGroup(), "[Runtime and output settings]");
         optSet.addOpt(new Opt('o', "stdout-redirect", "Redirect stdout to this file", 1));
         optSet.addOpt(new Opt('e', "stderr-redirect", "Redirect stderr to this file", 1));
-        optSet.addOpt(new Opt(null, "out-fasta", "Output annotated sequences to this file (in FASTA format)", 1));
+        optSet.addOpt(new Opt('F', "out-fasta", "Output annotated sequences to this file (in FASTA format)", 1));
         optSet.addOpt(new Opt(null, "out-stats", "Output stats to this file ", 1).setDefaultValue("/dev/stdout"));
 //        optSet.addOpt(new Opt(null, "out-calls-AB", "Output calls to this file (in AB format)", 1));
 //        optSet.addOpt(new Opt(null, "out-calls-IUPAC", "Output calls to this file (in IUPAC format) - due to the limitations "
@@ -350,9 +350,8 @@ public class FreqMers {
                 }
                 for (KmerFilter snpFilter : kmerFilters) {
                     StringBuilder sb = new StringBuilder(">");
-                    sb.append(snpFilter.getId()).append("_").append(snpFilter.getSequence().getId());
+                    sb.append(snpFilter.getId());
                     sb.append(System.lineSeparator()).append(snpFilter.getSequence().getUnpaddedSequenceString());
-                    sb.append(System.lineSeparator()).append(">");
                     out.write(sb.toString());
                     out.newLine();
                 }
@@ -383,6 +382,7 @@ public class FreqMers {
                 }
 
                 StringBuilder header = new StringBuilder("SeqId");
+                header.append(DELIMITER).append("Length");
                 for (String sample : samples) {
                     header.append(DELIMITER).append(sample).append("_median_freq");
                     header.append(DELIMITER).append(sample).append("_num_kmers");
@@ -395,14 +395,14 @@ public class FreqMers {
                 for (KmerFilter kmerFilter : kmerFilters) {
                         snpsGenotyped++;
                         StringBuilder sb = new StringBuilder();
-                        sb.append(kmerFilter.getId());
+                        sb.append(kmerFilter.getId()).append(DELIMITER).append(kmerFilter.getSequence().getLength());                        
 //                sb.append(snpFilter.getSequence1().getId()).append("__").append(snpFilter.getSequence2().getId());
 //                        sb.append(DELIMITER).append(kmerFilter.getMers1()).append(DELIMITER);
 //                        sb.append(DELIMITER).append(kmerFilter.getMersParent2());
                         for (String sample : samples) {
                             sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getMedianFrequency());                            
-                            sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getCoverage());                            
-                            sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getCoverageRatio());  
+                            sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getMersCount());                            
+                            sb.append(DELIMITER).append(kmerFilter.getKmerFilterStats(sample).getCoverageRatioOverMaxUniqmers());  
 //                            sb.append(DELIMITER).append(Arrays.toString(kmerFilter.getKmerFilterStats(sample).getMers()).replaceAll(",|\\[|\\]", ""));  
                             
                         }

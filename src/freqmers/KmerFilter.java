@@ -24,7 +24,7 @@ import shared.Sequence;
  */
 public class KmerFilter implements Comparable<KmerFilter>{
     private final String id;
-    private final Sequence sequence1;
+    private final Sequence sequence;
     private short[] mers; //RECORD START POSITIONS OF ENCOUNTERED k-mers 
     private final HashMap<String, KmerFilterStats> samplesToStatsMap;
     private int mersCount;
@@ -33,13 +33,14 @@ public class KmerFilter implements Comparable<KmerFilter>{
     
     /**
      *
+     * @param id
      * @param sequence1
      * @param k
      * @param TOOL_NAME
      */
     public KmerFilter(String id, Sequence sequence1, int k,  String TOOL_NAME) {
-        this.sequence1 = sequence1;
-        mers = new short[this.sequence1.getLength()-k+1]; //
+        this.sequence = sequence1;
+        mers = new short[this.sequence.getLength()-k+1]; //
         this.id = id;
         samplesToStatsMap = new HashMap<>();
     }
@@ -50,7 +51,7 @@ public class KmerFilter implements Comparable<KmerFilter>{
     }
 
     public Sequence getSequence() {
-        return sequence1;
+        return sequence;
     }
 
     public boolean setMer(int position, short value) {
@@ -62,6 +63,10 @@ public class KmerFilter implements Comparable<KmerFilter>{
         return false;
     }
 
+    public int getMaxMers(int k) {
+      return getSequence().getLength() - k + 1;
+    }
+    
     public int getMaxUniqMers() {
         return maxUniqMers;
     }
@@ -70,109 +75,16 @@ public class KmerFilter implements Comparable<KmerFilter>{
         this.maxUniqMers = maxUniqMers;
     }
 
-    
-
-    public short[] getMers1() {
+    public short[] getMers() {
         return mers;
     }
-
     
-
-//    public String getSnpCallDetails(String id) {
-//        return callDetails.get(id);
-//    }
     public void collectStatsAndResetMers(String sampleName, String TOOL_NAME) {
-//        System.out.println();
-//        System.out.printf("%15s%30s%30s\n", clusterId, sequence1.getId(), sequence2.getId());
-//        System.out.println(sequence1.getSequenceString());
-//        System.out.println(sequence2.getSequenceString());
-//        System.out.println("Calling "+sampleName+" parent calls "+getBase1()+"/"+getBase2());
-        
-        //        System.out.println(Arrays.toString(getMers1()).replaceAll(",|\\[|\\]", ""));
-//        System.out.println(Arrays.toString(getMers2()).replaceAll(",|\\[|\\]", ""));
-        
-        
-
-//        ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
-//        double medianFreq1 = shared.CommonMaths.getMedian(nonZeroKmerFreqs1);
-//        double cov1 = getMax(nonZeroKmerFreqs1);
-//        double cov2 = getMax(nonZeroKmerFreqs2);
-
-//        if(mersParent1 < 10 &&  mersParent2 < 10) {
-//            int x =0;
-//        }
-//        int cov1 = nonZeroKmerFreqs1.size();
-//        double coverageRatio1 = (double)cov1 / getmaxMers();
-        
-        
-//        BaseCall put = snpCalls.put(sampleName, call);
-
-//        //DEBUGGING ONLY
-//        ArrayList<Short> nonZeroKmerFreqs1 = getNonZeroKmerFreqs(getMers1());
-//        ArrayList<Short> nonZeroKmerFreqs2 = getNonZeroKmerFreqs(getMers2());
-//
-////        if (clusterId.equals("Cluster_548")) {
-//        int size1 = nonZeroKmerFreqs1.size();
-//        int size2 = nonZeroKmerFreqs2.size();
-////        if (uniqeMersParent1 != size1 && uniqeMersParent2 != size2 && (size1 > 0 || size2 >0)) {
-////            System.err.print("Calling "+sampleName+" "+clusterId);
-////            System.err.printf(" %.2f\t%.2f", (double) size1 / uniqeMersParent1, (double) size2 / uniqeMersParent2);
-////            System.err.println(", uniqmers counts max, obs: " + uniqeMersParent1 + " / " + uniqeMersParent2 + ", " + size1 + " / " + size2);
-//        System.out.println(uniqeMersParent1 + "\t" + uniqeMersParent2);
-////                        
-////            System.err.println(sequence1.getSequenceString());
-////            System.err.println(Arrays.toString(mers1));            
-//////            for(int i=0; i<mers1.length; i++) {
-//////                if(mers1[i] > 0) {
-//////                    System.err.println("["+i+"] "+sequence1.getSequenceString().substring(i, i+45));
-//////                }
-//////            }            
-////            System.err.println(sequence2.getSequenceString());
-////            System.err.println(Arrays.toString(mers2));
-//////            for(int i=0; i<mers2.length; i++) {
-//////                if(mers2[i] > 0) {
-//////                    System.err.println("["+i+"] "+sequence2.getSequenceString().substring(i, i+45));
-//////                }
-//////            }      
-//            int x=0;
-////        }   
-//        }
-//        }
-
-//        double median1 = getMedian(nonZeroKmerFreqs1);
-//        double median2 = getMedian(nonZeroKmerFreqs2);
-//        if (median1 > 0 || median2 > 0) {
-//            StringBuilder callDetail = new StringBuilder("[");
-//            if (median1 > 0) {
-//                callDetail.append(getSequence1().getSequenceString().charAt(getSnpPosition0())).append(":").append((int) Math.ceil(median1));
-//                callDetail.append("*").append(nonZeroKmerFreqs1.size());
-//            }
-//            if (median2 > 0) {
-//                if (median1 > 0) {
-//                    callDetail.append("/");
-//                }
-//                callDetail.append(getSequence2().getSequenceString().charAt(getSnpPosition0())).append(":").append((int) Math.ceil(median2));
-//                callDetail.append("*").append(nonZeroKmerFreqs2.size());
-//            }
-//            callDetail.append("]");
-//            callDetails.put(sampleName, callDetail.toString());
-//        } else {
-//            callDetails.put(sampleName, "");
-//        }
-        //DEBUGGING ONLY
-//        if (put != null) {
-//            Reporter.report("[WARNING]", "Call " + put + " previously made for " + sampleName + ", current call: " + call, this.getClass().getSimpleName());
-//        }
-//        if(this.clusterId.equals("Cluster_172")) {
-//            int x = 0;
-//        }
-
         samplesToStatsMap.put(sampleName, new KmerFilterStats(mers, mersCount, getMaxUniqMers()));
         
         mers = new short[mers.length];
-        mersCount =0;
+        mersCount = 0;
     }
-
 
     public String getId() {
         return id;

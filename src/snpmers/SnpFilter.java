@@ -372,7 +372,13 @@ public class SnpFilter implements Comparable<SnpFilter>{
     public int compareTo(SnpFilter o) {
         int compareTo = getClusterId().compareTo(o.getClusterId());
         if(compareTo == 0) {
-            return getSnpPosition0() - o.getSnpPosition0();
+          compareTo = getSnpPosition0() - o.getSnpPosition0();
+//          if(compareTo == 0) {
+//            compareTo = getSequence1().getUnpaddedSequenceString().compareTo(o.getSequence1().getUnpaddedSequenceString());
+//            if(compareTo == 0) {
+//              compareTo = getSequence2().getUnpaddedSequenceString().compareTo(o.getSequence2().getUnpaddedSequenceString());
+//            }
+//          }            
         }
         return compareTo;
     }

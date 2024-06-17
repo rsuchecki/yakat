@@ -85,17 +85,17 @@ public class CallerConsumer implements Runnable {
                     samples.add(laeblledBuffer.getLabel());
                 }
                 ArrayList<String[]> data = laeblledBuffer.getData();
-                for (String[] toks : data) {
-                    ArrayList<KmerLink> kmerLinks = map.get(SequenceOps.getCanonical(toks[0]));
+                for (String[] kmerAndFrequency : data) {
+                    ArrayList<KmerLink> kmerLinks = map.get(SequenceOps.getCanonical(kmerAndFrequency[0]));
                     if (kmerLinks != null) {
 //                        if(kmerLinks.size()>1) {
 //                            int f=0;
 //                        }
                         for (KmerLink kmerLink : kmerLinks) {
-                            if (kmerLink != null) {
-                                boolean setMer = kmerLink.setMer((short) Math.min(Integer.parseInt(toks[1]), Short.MAX_VALUE)); 
+                            if (kmerLink != null) {                                
+                                boolean setMer = kmerLink.setMer((short) Math.min(Integer.parseInt(kmerAndFrequency[1]), Short.MAX_VALUE)); 
                                 if (!setMer) {
-                                    Reporter.report("[ERROR]", "Unable to set k-mer link to sequence, possible reason: duplicate k-mer in an input set, k-mer: " + toks[0], TOOL_NAME);
+                                    Reporter.report("[ERROR]", "Unable to set k-mer link to sequence, possible reason: duplicate k-mer in an input set, k-mer: " + kmerAndFrequency[0], TOOL_NAME);
                                 }
 //                    SnpFilter snpFilter = kmerLink.getSnpFilter();
 //                    System.err.println(kmerLink.getParentSequence().getId()+"\t"+snpFilter.getSnpPosition0()+"\t"+toks[1]);
