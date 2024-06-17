@@ -32,6 +32,7 @@ package freqmers;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import shared.LabelledInputBuffer;
 import shared.Reporter;
 import shared.SequenceOps;
@@ -44,7 +45,7 @@ public class CallerConsumer implements Runnable {
 
     private final BlockingQueue<LabelledInputBuffer> inputQueue;
     private final String TOOL_NAME;
-    private final ArrayList<KmerFilter> snpFilters;
+    private final ConcurrentSkipListSet<KmerFilter> snpFilters;
 //    private final ConcurrentSkipListMap<CharSequence, KmerLink> map;
     private final HashMap<String, ArrayList<KmerLink>> map;
 //    private final OptSet optSet;
@@ -53,7 +54,7 @@ public class CallerConsumer implements Runnable {
 //    ConcurrentHashMap<String, PerSampleBuffer> sampleToBufferMap;
 //    ConcurrentHashMap<String, BlockingQueue<PerSampleBuffer>> sampleToQueueMap;
     public CallerConsumer(BlockingQueue<LabelledInputBuffer> inputQueue, String TOOL_NAME, ArrayList<String> samples,
-            HashMap<String, ArrayList<KmerLink>> map, ArrayList<KmerFilter> snpFilters) {
+            HashMap<String, ArrayList<KmerLink>> map, ConcurrentSkipListSet<KmerFilter> snpFilters) {
         this.inputQueue = inputQueue;
         this.samples = samples;
         this.map = map;
