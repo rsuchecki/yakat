@@ -45,7 +45,7 @@ After cloning or downloading this repository, run
 
 `ant jar` 
 
-or, if that fails,  `ant -Dplatforms.JDK_8.home=${JAVA_HOME} jar` 
+or, if that fails,  `ant -Dplatforms.JDK_8.home=${JAVA_HOME} jar`   <!-- temporary (?) fix -->
 
 This should generate the Java executable `dist/yakat.jar`
 and a self contained linux executable `yakat`
